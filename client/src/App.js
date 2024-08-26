@@ -8,8 +8,8 @@ import {
   Routes
 } from 'react-router-dom';
 // eslint-disable-next-line
-import Home from './components/Home';
-import Cart from './components/Cart';
+import Home from './pages/Home';
+import Cart from './pages/Cart';
 
 //data will be the string we send from our server
 // const apiCall = () => {
