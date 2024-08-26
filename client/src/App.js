@@ -1,32 +1,26 @@
-//App.js
-
-import axios from 'axios';
-
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes
-} from 'react-router-dom';
-// eslint-disable-next-line
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
+import Login from './pages/Login';
+import { AuthProvider, useAuth } from './context/AuthContext.js';
 
-//data will be the string we send from our server
-// const apiCall = () => {
-//   axios.get(process.env.REACT_APP_BACKEND_URL).then((data) => {
-//     //this console.log will be in our frontend console
-//     console.log(data)
-//   })
-// }
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path='/' element={<Home />} />
-        <Route path='/cart' element={<Cart />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
