@@ -6,40 +6,61 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
     if (token) {
-      setIsAuthenticated(true);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      fetchUserData(token);
+    } else {
+      setLoading(false);
     }
-  }, [token]);
+  }, []);
+
+  const fetchUserData = async (token) => {
+    try {
+      const response = await axios.get(`${backendUrl}/user-data`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUser(response.data);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      localStorage.removeItem('token');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/login`, { username, password });
+      const response = await axios.post(`${backendUrl}/login`, { username, password });
       const { token } = response.data;
       localStorage.setItem('token', token);
-      setToken(token);
-      setIsAuthenticated(true);
+      await fetchUserData(token);
       return true;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Login error:', error);
       return false;
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    setToken(null);
     setIsAuthenticated(false);
-    delete axios.defaults.headers.common['Authorization'];
+    setUser(null);
   };
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    isAuthenticated,
+    user,
+    loading,
+    login,
+    logout
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

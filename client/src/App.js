@@ -3,13 +3,13 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import Home from './pages/Home';
 import Cart from './pages/Cart';
 import Login from './pages/Login';
+import Logout from './pages/Logout';
 import { AuthProvider, useAuth } from './context/AuthContext.js';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
-
 
 function App() {
   return (
@@ -19,6 +19,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Home />} />
           <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+          <Route path="/logout" element={<Logout />} />
         </Routes>
       </Router>
     </AuthProvider>

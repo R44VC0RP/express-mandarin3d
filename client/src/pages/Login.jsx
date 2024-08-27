@@ -23,9 +23,9 @@ function Login() {
       <Header />
       <div className="flex items-center justify-center min-h-screen ">
         
-
+        
         <form onSubmit={handleSubmit} className="p-6 bg-[#2A2A2A] rounded shadow-md border border-[#8791A3]">
-          <h2 className="mb-4 text-2xl font-bold text-[#FFFFFF]">Login</h2>
+        <h2 className='text-[#FFFFFF] text-2xl font-bold mb-2'>Login to M3D Admin</h2>
           <input
             type="text"
             value={username}
