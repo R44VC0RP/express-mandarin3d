@@ -24,3 +24,13 @@ Backend API (Slicing Events): `slicing.api.mandarin3d.com`<br>
 - [ ] (server) Create cart management
 - [ ] (client) Create admin panel and login
 - [ ] (server) Setup authentication
+
+
+
+## Order Flow
+
+1. User uploads file to be sliced
+IF (FILE is ABLE TO BE SLICED):
+    get mass, dimensions
+    create product in stripe
+    create file in database (attach stripe product id)
