@@ -29,3 +29,19 @@ code {
   color: #FFFFFF;
   cursor: pointer;
 }
+
+.secondary-button {
+  background-color: #2A2A2A;
+  color: #FFFFFF;
+  padding: 10px 20px;
+  border-radius: 40px;
+  border: 1px solid #8791A3;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.secondary-button:hover {
+  background-color: #8791A3;
+  color: #FFFFFF;
+  cursor: pointer;
+}

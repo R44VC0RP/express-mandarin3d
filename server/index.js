@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
-import { createRouteHandler } from "uploadthing/express";
+import {
+  createRouteHandler
+} from "uploadthing/express";
 import uploadRouter from "./uploadthing.js";
 import express from 'express';
 import cors from 'cors';
@@ -7,7 +9,9 @@ import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({
+  path: '.env.local'
+});
 
 const app = express();
 
@@ -22,31 +26,55 @@ mongoose.connect(mongoURI)
   .then(() => console.log('MongoDB connected successfully'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Define the schema for the 'files' collection
-
-
-// Create a model based on the schema
-
-
 const fileSchema = new mongoose.Schema({
   fileid: String,
   filename: String,
-  mass_in_grams: { type: Number, required: false },
+  mass_in_grams: {
+    type: Number,
+    required: false
+  },
   dimensions: {
-    x: { type: Number, required: false },
-    y: { type: Number, required: false },
-    z: { type: Number, required: false }
+    x: {
+      type: Number,
+      required: false
+    },
+    y: {
+      type: Number,
+      required: false
+    },
+    z: {
+      type: Number,
+      required: false
+    }
   },
   fileurl: String,
-  dateCreated: { type: Date, default: Date.now }  
+  dateCreated: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  password: { type: String, required: true },
-  role: { type: String, required: true },
-  email: { type: String, required: false },
-  profilePicture: { type: String, required: false }
+  username: {
+    type: String,
+    required: true
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  role: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: false
+  },
+  profilePicture: {
+    type: String,
+    required: false
+  }
 });
 
 const File = mongoose.model('File', fileSchema);
@@ -54,31 +82,41 @@ const User = mongoose.model('User', userSchema);
 
 // Functions for usermanagement
 
-async function addUser(username, password, role, email="", profilePicture=""){
+async function addUser(username, password, role, email = "", profilePicture = "") {
   console.log("Adding user: ", username, password, role, email, profilePicture);
   // Check if the username already exists
-  const existingUser = await User.findOne({ username });
+  const existingUser = await User.findOne({
+    username
+  });
   if (existingUser) {
     console.log('Username already exists');
     return;
   }
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
-  const user = new User({ username, password: hashedPassword, role, email, profilePicture });
+  const user = new User({
+    username,
+    password: hashedPassword,
+    role,
+    email,
+    profilePicture
+  });
   await user.save();
   console.log("User added successfully");
 }
 
-async function getUserByUsername(username){
+async function getUserByUsername(username) {
   // Find the user by username
-  const user = await User.findOne({ username });
+  const user = await User.findOne({
+    username
+  });
   if (!user) {
     return null;
   }
   return user;
 }
 
-async function getUserRole(username){
+async function getUserRole(username) {
   const user = await getUserByUsername(username);
   if (!user) {
     return null;
@@ -86,24 +124,26 @@ async function getUserRole(username){
   return user.role;
 }
 
-async function deleteUser(username){
-  await User.deleteOne({ username });
+async function deleteUser(username) {
+  await User.deleteOne({
+    username
+  });
 }
 
-async function updateUser(username, newPassword, newEmail, newProfilePicture){
+async function updateUser(username, newPassword, newEmail, newProfilePicture) {
   const user = await getUserByUsername(username);
   if (!user) {
     return null;
   }
-  if (newPassword){
+  if (newPassword) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     user.password = hashedPassword;
   }
-  if (newEmail){
+  if (newEmail) {
     user.email = newEmail;
   }
-  if (newProfilePicture){
+  if (newProfilePicture) {
     user.profilePicture = newProfilePicture;
   }
   await user.save();
@@ -125,26 +165,43 @@ app.use(
 // Login route
 app.post('/login', async (req, res) => {
   console.log("Login request received");
-  const { username, password } = req.body;
-  const user = await User.findOne({ username });
+  const {
+    username,
+    password
+  } = req.body;
+  const user = await User.findOne({
+    username
+  });
 
   if (user && await bcrypt.compare(password, user.password)) {
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({
+      userId: user._id
+    }, process.env.JWT_SECRET, {
+      expiresIn: '1h'
+    });
     console.log("User {username: ", user.username, ", role: ", user.role, "} logged in");
-    res.json({ token });
+    res.json({
+      token
+    });
   } else {
     console.log("Invalid credentials for user {username: ", username, "}");
-    res.status(401).json({ message: 'Invalid credentials' });
+    res.status(401).json({
+      message: 'Invalid credentials'
+    });
   }
 });
 
 // Middleware to verify JWT
 const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
-  if (!token) return res.status(403).json({ message: 'No token provided' });
+  const token = req.headers['authorization'] ? .split(' ')[1];
+  if (!token) return res.status(403).json({
+    message: 'No token provided'
+  });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ message: 'Failed to authenticate token' });
+    if (err) return res.status(401).json({
+      message: 'Failed to authenticate token'
+    });
     req.userId = decoded.userId;
     next();
   });
@@ -152,29 +209,39 @@ const verifyToken = (req, res, next) => {
 
 // Protected route example
 app.get('/protected', verifyToken, (req, res) => {
-  res.json({ message: 'This is a protected route', userId: req.userId });
+  res.json({
+    message: 'This is a protected route',
+    userId: req.userId
+  });
 });
 
 app.get('/', (req, res) => {
-      res.send('Hello from our server!')
+  res.send('Hello from our server!')
 })
 
 app.get('/test', (req, res) => {
-      res.send({"status": "success", "message": "Hello from our test route!"})
+  res.send({
+    "status": "success",
+    "message": "Hello from our test route!"
+  })
 })
-
-//addUser("ryanvogel", "admin", "admin");
 
 // New route to get user role
 app.get('/user-role', verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({
+        message: 'User not found'
+      });
     }
-    res.json({ role: user.role });
+    res.json({
+      role: user.role
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching user role' });
+    res.status(500).json({
+      message: 'Error fetching user role'
+    });
   }
 });
 
@@ -183,7 +250,9 @@ app.get('/user-data', verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({
+        message: 'User not found'
+      });
     }
     res.json({
       username: user.username,
@@ -192,10 +261,12 @@ app.get('/user-data', verifyToken, async (req, res) => {
       profilePicture: user.profilePicture
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching user data' });
+    res.status(500).json({
+      message: 'Error fetching user data'
+    });
   }
 });
 
 app.listen(8080, () => {
-      console.log('Server is running on port 8080')
+  console.log('Server is running on port 8080')
 })
