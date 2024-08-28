@@ -162,6 +162,9 @@ app.use(
   }),
 );
 
+
+// #region LOGIN AND AUTHENTICATION
+
 // Login route
 app.post('/login', async (req, res) => {
   console.log("Login request received");
@@ -191,9 +194,11 @@ app.post('/login', async (req, res) => {
   }
 });
 
+
+
 // Middleware to verify JWT
 const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization'] ? .split(' ')[1];
+  const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(403).json({
     message: 'No token provided'
   });
@@ -207,6 +212,10 @@ const verifyToken = (req, res, next) => {
   });
 };
 
+// #endregion LOGIN AND AUTHENTICATION
+
+
+
 // Protected route example
 app.get('/protected', verifyToken, (req, res) => {
   res.json({
@@ -216,13 +225,9 @@ app.get('/protected', verifyToken, (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('Hello from our server!')
-})
-
-app.get('/test', (req, res) => {
   res.send({
     "status": "success",
-    "message": "Hello from our test route!"
+    "message": "Server is running!"
   })
 })
 

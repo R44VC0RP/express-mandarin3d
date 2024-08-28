@@ -29,16 +29,18 @@ const Header = () => {
                 </button>
             </div>
             <nav className={`flex-col md:flex-row md:flex items-center md:space-x-6 ${isMobileMenuOpen ? 'flex items-end' : 'hidden'} md:flex`}>
-                <a href="#" className={`text-white font-semibold hover:text-gray-300 ${isMobileMenuOpen ? 'py-2' : ''}`}>About Us</a>
-                <a href="#" className={`text-white font-semibold hover:text-gray-300 ${isMobileMenuOpen ? 'py-2' : ''}`}>Model Library</a>
-                <button className={`primary-button font-semibold ${isMobileMenuOpen ? 'py-2' : ''}`} onClick={() => window.location.href = '/cart'}>
-                    Contact Us
-                </button>
-                {isAuthenticated && (
-                    <a href="/logout" className={`${isMobileMenuOpen ? 'py-2' : ''}`}>
-                        <FaSignOutAlt className="mr-2 text-red-500 bg-gray-200 rounded-full p-1 text-2xl" />
-                    </a>
-                )}
+                <div className={`flex flex-col items-end space-y-2 overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} md:flex-row md:items-center md:space-y-0 md:space-x-6 md:max-h-full md:opacity-100`}>
+                    <a href="#" className="text-white font-semibold hover:text-gray-300 py-2 md:py-0">About Us</a>
+                    <a href="#" className="text-white font-semibold hover:text-gray-300 py-2 md:py-0">Model Library</a>
+                    <button className="primary-button font-semibold py-2 md:py-0" onClick={() => window.location.href = '/cart'}>
+                        Contact Us
+                    </button>
+                    {isAuthenticated && (
+                        <a href="/logout" className="py-2 md:py-0">
+                            <FaSignOutAlt className="mr-2 text-red-500 bg-gray-200 rounded-full p-1 text-2xl" />
+                        </a>
+                    )}
+                </div>
             </nav>
         </header>
     );
