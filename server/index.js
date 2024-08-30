@@ -1,13 +1,13 @@
 import dotenv from 'dotenv';
-import {
-  createRouteHandler
-} from "uploadthing/express";
-import uploadRouter from "./uploadthing.js";
+import { createUploadthing } from "uploadthing/express";
+import { createRouteHandler } from "uploadthing/express";
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
+import session from 'express-session';
 
 dotenv.config({
   path: '.env.local'
@@ -15,8 +15,18 @@ dotenv.config({
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL, // Replace with your frontend URL
+  credentials: true
+}));
+
 app.use(express.json());
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
 
 // MongoDB connection string - replace with your actual connection string
 const mongoURI = process.env.MONGODB_URI;
@@ -77,10 +87,19 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+const cartSchema = new mongoose.Schema({
+  cart_id: String,
+  files: [{
+    type: String,
+    ref: 'File'
+  }]
+});
+
+const Cart = mongoose.model('Cart', cartSchema);
 const File = mongoose.model('File', fileSchema);
 const User = mongoose.model('User', userSchema);
 
-// Functions for usermanagement
+// #region USER MANAGEMENT
 
 async function addUser(username, password, role, email = "", profilePicture = "") {
   console.log("Adding user: ", username, password, role, email, profilePicture);
@@ -150,17 +169,122 @@ async function updateUser(username, newPassword, newEmail, newProfilePicture) {
   return user;
 }
 
-// Uploadthing routes
+// #endregion USER MANAGEMENT
 
+// #region FILE MANAGEMENT
+
+// Create an UploadThing instance
+const f = createUploadthing();
+
+const auth = (req, res) => ({ id: "fakeId" }); // Replace with your auth logic
+
+const uploadRouter = {
+  modelUploader: f(["image/*", "video/*", ".stl", ".3mf", ".step"])
+    .middleware(async ({ req, res }) => {
+      const user = await auth(req, res);
+      if (!user) throw new Error("Unauthorized");
+      return { userId: user.id };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Upload complete for userId:", metadata.userId);
+      console.log("file url", file.url);
+      
+      // Save file info to your database
+      const newFile = new File({
+        fileid: file.key,
+        filename: file.name,
+        fileurl: file.url,
+      });
+      await newFile.save();
+    }),
+};
+
+// Create the UploadThing route handler
 app.use(
   "/api/uploadthing",
   createRouteHandler({
     router: uploadRouter,
     config: {
-      apiUrl: "/api/uploadthing",
+      uploadthingId: process.env.UPLOADTHING_APP_ID,
+      uploadthingSecret: process.env.UPLOADTHING_SECRET,
     },
-  }),
+  })
 );
+
+// #endregion FILE MANAGEMENT
+
+// #region CART MANAGEMENT
+
+async function getCart(req) {
+  if (!req.session) {
+    req.session = {};
+  }
+  if (!req.session.cart_id) {
+    const existingCart = await Cart.findOne().sort({ _id: -1 }).limit(1);
+    if (existingCart) {
+      req.session.cart_id = existingCart.cart_id;
+    } else {
+      return createCart(req);
+    }
+  }
+  const cart = await Cart.findOne({ cart_id: req.session.cart_id });
+  if (!cart) {
+    return createCart(req);
+  }
+  return cart;
+}
+
+function createCart(req) {
+  const cart_id = "cart_" + uuidv4();
+  const newCart = new Cart({ cart_id, files: [] });
+  newCart.save();
+  req.session.cart_id = cart_id;
+  console.log("New cart created: ", cart_id);
+  return newCart;
+}
+
+async function addFileToCart(req, fileid) {
+  const cart = await getCart(req);
+  console.log("Updating cartid: ", cart.cart_id, " with fileid: ", fileid);
+  if (!cart.files.includes(fileid)) {
+    cart.files.push(fileid);
+    await cart.save();
+    console.log("Cart updated successfully");
+    return {"status": "success", "message": "File added to cart successfully"};
+  }
+  return {"status": "error", "message": "File already in cart"};
+}
+
+app.post('/api/cart/add', async (req, res) => {
+  const { fileid } = req.body;
+  const result = await addFileToCart(req, fileid);
+  res.json(result);
+});
+
+app.post('/api/cart/remove', async (req, res) => {
+  const { fileid } = req.body;
+  const cart = getCart(req);
+  cart.files = cart.files.filter(id => id !== fileid);
+  await Cart.findOneAndUpdate(
+    { cart_id: cart.cart_id },
+    { $pull: { files: fileid } }
+  );
+  res.json({ status: 'success', message: 'File removed from cart successfully' });
+});
+
+
+app.get('/api/cart', async (req, res) => {
+  const cart = await getCart(req);
+  res.json({ status: 'success', cart_id: cart.cart_id, files: cart.files });
+});
+
+app.delete('/api/cart', async (req, res) => {
+  req.session.cart_id = null;
+  await Cart.findOneAndDelete({ cart_id: req.session.cart_id });
+  res.json({ status: 'success', message: 'Cart deleted successfully' });
+});
+
+// #endregion CART MANAGEMENT
 
 
 // #region LOGIN AND AUTHENTICATION

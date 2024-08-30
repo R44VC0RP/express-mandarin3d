@@ -26,6 +26,8 @@ Backend API (Slicing Events): `slicing.api.mandarin3d.com`<br>
 - [ ] (server) Setup authentication
 
 
+- [ ] (client & server) Bulk file discount
+- [ ] (client) Make the every page a dropzone (home, cart) (except admin panel)
 
 ## Order Flow
 
