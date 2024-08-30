@@ -201,27 +201,20 @@ const ourFileRouter = {
       console.log("File uploaded: ", utfile_name, utfile_id, utfile_url);
       // const stripe_product_id = await createNewProduct(utfile_name, utfile_id).id;
       // console.log("Stripe product created: ", stripe_product_id);
-      const newFileCreation = new File({
-        fileid: "file_" + uuidv4(),
-        filename: utfile_name,
-        utfile_id: utfile_id,
-        utfile_url: utfile_url,
+      // const newFileCreation = new File({
+      //   fileid: "file_" + uuidv4(),
+      //   filename: utfile_name,
+      //   utfile_id: utfile_id,
+      //   utfile_url: utfile_url,
         
-      });
-      console.log("New file creation: ", newFileCreation);
+      // });
+      // console.log("New file creation: ", newFileCreation);
 
-      newFileCreation.save();
+      // newFileCreation.save();
 
       console.log("File uploaded successfully: ", utfile_name, utfile_id, utfile_url, stripe_product_id);
 
       // Hit the external API to begin slicing of the file
-
-
-
-      
-
-
-
 
       // So from this what we need to do is create a new Stripe product, then get the product ID and create an entry in MongoDB (our database) with the file details and the Stripe product ID
 
