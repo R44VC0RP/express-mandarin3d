@@ -11,6 +11,7 @@ import PricingPlan from '../components/ShowcaseProduct';
 import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import FileUploadProgress from '../components/FileUploadProgress';
 
 // Asset Imports
 import prining_bambu from '../assets/videos/printing_bambu.mp4'
@@ -27,18 +28,25 @@ function Home() {
   const location = useLocation();
   const [showcaseProducts, setShowcaseProducts] = useState([]);
   const [files, setFiles] = useState([]);
+  const [uploadFiles, setUploadFiles] = useState([]);
 
-  
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
     "imageUploader",
     {
       onClientUploadComplete: (res) => {
         console.log("Files: ", res);
         alert("Upload Completed");
-        setFiles([]);
+        setUploadFiles(prevFiles => prevFiles.map(file => ({
+          ...file,
+          status: 'success'
+        })));
       },
       onUploadError: (error) => {
         alert(`ERROR! ${error.message}`);
+        setUploadFiles(prevFiles => prevFiles.map(file => ({
+          ...file,
+          status: 'error'
+        })));
       },
       onUploadBegin: () => {
         console.log("Upload has begun");
@@ -47,18 +55,31 @@ function Home() {
   );
 
   const onDrop = useCallback((acceptedFiles) => {
-    setFiles(acceptedFiles);
-  }, []);
+    console.log("acceptedFiles", acceptedFiles);
+    const newFiles = acceptedFiles.map(file => ({
+      name: file.name,
+      status: 'uploading'
+    }));
+    setUploadFiles(newFiles);
+    startUpload(acceptedFiles);
+  }, [startUpload]);
+
   const fileTypes = permittedFileInfo?.config
     ? Object.keys(permittedFileInfo.config)
     : [];
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: generateClientDropzoneAccept(fileTypes),
+    accept: {
+      'model/stl': ['.stl'],
+      'model/3mf': ['.3mf'],
+      'application/step': ['.step', '.stp']
+    },
     noClick: true,
     noKeyboard: true
   });
+
+  console.log("fileTypes", fileTypes);
 
   useEffect(() => {
     if (!loading) {
@@ -179,6 +200,14 @@ function Home() {
     ]
   };
 
+  const handleRemoveFile = (index) => {
+    if (index === null) {
+      setUploadFiles([]);
+    } else {
+      setUploadFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+    }
+  };
+
   return (
     <div {...getRootProps()} className="min-h-screen bg-[#0F0F0F] text-white">
       <input {...getInputProps()} />
@@ -252,6 +281,7 @@ function Home() {
         </section>
       </main>
       <Footer />
+      <FileUploadProgress files={uploadFiles} onRemove={handleRemoveFile} />
     </div>
   );
 }

@@ -176,7 +176,7 @@ async function updateUser(username, newPassword, newEmail, newProfilePicture) {
 const f = createUploadthing();
 
 const ourFileRouter = {
-  imageUploader: f({ image: {
+  imageUploader: f({ blob: {
     maxFileSize: "128MB",
     maxFileCount: 20
   } })
