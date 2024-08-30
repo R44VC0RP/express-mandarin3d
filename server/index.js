@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
-import { createUploadthing } from "uploadthing/express";
-import { createRouteHandler } from "uploadthing/express";
+import { createUploadthing, createRouteHandler } from "uploadthing/express";
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -176,26 +175,14 @@ async function updateUser(username, newPassword, newEmail, newProfilePicture) {
 // Create an UploadThing instance
 const f = createUploadthing();
 
-const auth = (req, res) => ({ id: "fakeId" }); // Replace with your auth logic
-
-const uploadRouter = {
-  modelUploader: f(["image/*", "video/*", ".stl", ".3mf", ".step"])
-    .middleware(async ({ req, res }) => {
-      const user = await auth(req, res);
-      if (!user) throw new Error("Unauthorized");
-      return { userId: user.id };
-    })
+const ourFileRouter = {
+  imageUploader: f({ image: {
+    maxFileSize: "128MB",
+    maxFileCount: 20
+  } })
     .onUploadComplete(async ({ metadata, file }) => {
       console.log("Upload complete for userId:", metadata.userId);
       console.log("file url", file.url);
-      
-      // Save file info to your database
-      const newFile = new File({
-        fileid: file.key,
-        filename: file.name,
-        fileurl: file.url,
-      });
-      await newFile.save();
     }),
 };
 
@@ -203,7 +190,7 @@ const uploadRouter = {
 app.use(
   "/api/uploadthing",
   createRouteHandler({
-    router: uploadRouter,
+    router: ourFileRouter,
     config: {
       uploadthingId: process.env.UPLOADTHING_APP_ID,
       uploadthingSecret: process.env.UPLOADTHING_SECRET,
