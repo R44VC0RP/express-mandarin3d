@@ -23,7 +23,7 @@ mongoose.connect(mongoURI)
   .catch(err => console.error('MongoDB connection error:', err));
 
 app.use(session({
-  secret: env.process.JWT_SECRET,
+  secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: true,
   store: MongoStore.create({
