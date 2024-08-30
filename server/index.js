@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import session from 'express-session';
-import createNewProduct from './conn_stripe';
+import createNewProduct from 'conn_stripe';
 
 dotenv.config({
   path: '.env.local'
