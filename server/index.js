@@ -1,16 +1,22 @@
-import session from 'express-session';
-import MongoStore from 'connect-mongo';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import { createUploadthing, createRouteHandler } from "uploadthing/express";
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
+import session from 'express-session';
+import createNewProduct from './conn_stripe';
 
-dotenv.config();
+dotenv.config({
+  path: '.env.local'
+});
 
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: process.env.FRONTEND_URL, // Replace with your frontend URL
   credentials: true
 }));
 
@@ -32,11 +38,6 @@ app.use(session({
   }),
   cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
-
-// Connect to MongoDB
-mongoose.connect(mongoURI)
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
 const fileSchema = new mongoose.Schema({
   fileid: String,
