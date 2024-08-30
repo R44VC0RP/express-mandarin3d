@@ -1,35 +1,37 @@
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { createUploadthing, createRouteHandler } from "uploadthing/express";
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
-import session from 'express-session';
-import createNewProduct from './conn_stripe';
 
-dotenv.config({
-  path: '.env.local'
-});
+dotenv.config();
 
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Replace with your frontend URL
+  origin: process.env.FRONTEND_URL,
   credentials: true
 }));
 
 app.use(express.json());
+
+const mongoURI = process.env.MONGODB_URI;
+
+mongoose.connect(mongoURI)
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
 app.use(session({
   secret: 'your-secret-key',
   resave: false,
   saveUninitialized: true,
+  store: MongoStore.create({
+    mongoUrl: mongo_URI,
+    collectionName: 'sessions'
+  }),
   cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
-
-// MongoDB connection string - replace with your actual connection string
-const mongoURI = process.env.MONGODB_URI;
 
 // Connect to MongoDB
 mongoose.connect(mongoURI)
