@@ -23,11 +23,11 @@ mongoose.connect(mongoURI)
   .catch(err => console.error('MongoDB connection error:', err));
 
 app.use(session({
-  secret: 'your-secret-key',
+  secret: env.process.JWT_SECRET,
   resave: false,
   saveUninitialized: true,
   store: MongoStore.create({
-    mongoUrl: mongo_URI,
+    mongoUrl: mongoURI,
     collectionName: 'sessions'
   }),
   cookie: { secure: process.env.NODE_ENV === 'production' }
