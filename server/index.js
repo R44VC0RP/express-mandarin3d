@@ -7,7 +7,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import session from 'express-session';
-import createNewProduct from 'conn_stripe';
+import MongoStore from 'connect-mongo';
+import createNewProduct from './conn_stripe.js';
 
 dotenv.config({
   path: '.env.local'
@@ -23,7 +24,6 @@ app.use(cors({
 app.use(express.json());
 
 const mongoURI = process.env.MONGODB_URI;
-
 mongoose.connect(mongoURI)
   .then(() => console.log('MongoDB connected successfully'))
   .catch(err => console.error('MongoDB connection error:', err));
