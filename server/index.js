@@ -182,7 +182,7 @@ async function updateUser(username, newPassword, newEmail, newProfilePicture) {
 const f = createUploadthing();
 
 const ourFileRouter = {
-  imageUploader: f({ blob: {
+  modelUploader: f({ blob: {
     maxFileSize: "128MB",
     maxFileCount: 20
   } })
@@ -198,9 +198,9 @@ const ourFileRouter = {
       utfile_id = file.key;
       utfile_url = file.url;
       utfile_name = file.name;
-
+      console.log("File uploaded: ", utfile_name, utfile_id, utfile_url);
       const stripe_product_id = await createNewProduct(utfile_name, utfile_id).id;
-
+      console.log("Stripe product created: ", stripe_product_id);
       const newFileCreation = new File({
         fileid: "file_" + uuidv4(),
         filename: utfile_name,
@@ -208,6 +208,7 @@ const ourFileRouter = {
         utfile_url: utfile_url,
         stripe_product_id: stripe_product_id
       });
+      console.log("New file creation: ", newFileCreation);
 
       newFileCreation.save();
 
