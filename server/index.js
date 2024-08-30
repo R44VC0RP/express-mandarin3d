@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import session from 'express-session';
+import createNewProduct from './conn_stripe';
 
 dotenv.config({
   path: '.env.local'
@@ -56,7 +57,9 @@ const fileSchema = new mongoose.Schema({
       required: false
     }
   },
-  fileurl: String,
+  utfile_id: String,
+  utfile_url: String,
+  stripe_product_id: String,
   dateCreated: {
     type: Date,
     default: Date.now
@@ -181,8 +184,43 @@ const ourFileRouter = {
     maxFileCount: 20
   } })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("MetaData:", metadata);
-      console.log("File:", file);
+      // File: UploadedFileData {
+      //   name: 'grief_seed_p1.stl',
+      //   size: 542884,
+      //   type: 'blob',
+      //   key: '601c1955-a57f-4972-b5d4-3f09ca8e28d0-5kb27l.stl',
+      //   url: 'https://utfs.io/f/601c1955-a57f-4972-b5d4-3f09ca8e28d0-5kb27l.stl',
+      //   customId: null
+      // }
+      utfile_id = file.key;
+      utfile_url = file.url;
+      utfile_name = file.name;
+
+      const stripe_product_id = await createNewProduct(utfile_name, utfile_id).id;
+
+      const newFileCreation = new File({
+        fileid: "file_" + uuidv4(),
+        filename: utfile_name,
+        utfile_id: utfile_id,
+        utfile_url: utfile_url,
+        stripe_product_id: stripe_product_id
+      });
+
+      newFileCreation.save();
+
+      console.log("File uploaded successfully: ", utfile_name, utfile_id, utfile_url, stripe_product_id);
+
+      // Hit the external API to begin slicing of the file
+
+
+
+      
+
+
+
+
+      // So from this what we need to do is create a new Stripe product, then get the product ID and create an entry in MongoDB (our database) with the file details and the Stripe product ID
+
     }),
 };
 
