@@ -181,8 +181,8 @@ const ourFileRouter = {
     maxFileCount: 20
   } })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Upload complete for userId:", metadata.userId);
-      console.log("file url", file.url);
+      console.log("MetaData:", metadata);
+      console.log("File:", file);
     }),
 };
 
