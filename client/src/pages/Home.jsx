@@ -31,7 +31,7 @@ function Home() {
   const [uploadFiles, setUploadFiles] = useState([]);
 
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
-    "imageUploader",
+    "modelUploader",
     {
       onClientUploadComplete: (res) => {
         console.log("Files: ", res);
