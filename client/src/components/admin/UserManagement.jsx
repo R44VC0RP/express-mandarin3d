@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaTimes, FaTrash, FaEdit } from 'react-icons/fa';
 import DataTable from 'react-data-table-component';
-import { UploadButton } from "../utils/uploadthing";
-import { useAlerts } from '../context/AlertContext';
+import { UploadButton } from "../../utils/uploadthing";
+import { useAlerts } from '../../context/AlertContext';
 import axios from 'axios';
 
 function UserManagement() {

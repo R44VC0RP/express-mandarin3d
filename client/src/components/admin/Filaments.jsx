@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaTimes, FaTrash } from 'react-icons/fa';
 import DataTable from 'react-data-table-component';
-import { UploadButton } from "../utils/uploadthing";
-import { useAlerts } from '../context/AlertContext'; // Make sure this path is correct
+import { UploadButton } from "../../utils/uploadthing";
+import { useAlerts } from '../../context/AlertContext'; // Make sure this path is correct
 import axios from 'axios';
 
 function FilamentInventory() {

@@ -48,6 +48,7 @@ const fileSchema = new mongoose.Schema({
   stripe_product_id: String,
   filename: String,
   file_status: String,
+  file_error: String,
   mass_in_grams: {
     type: Number,
     required: false
@@ -130,6 +131,19 @@ const productSchema = new mongoose.Schema({
 const Cart = mongoose.model('Cart', cartSchema);
 const File = mongoose.model('File', fileSchema);
 const User = mongoose.model('User', userSchema);
+
+// Config schema
+const configSchema = new mongoose.Schema({
+  dimensionConfig: {
+    x: Number,
+    y: Number,
+    z: Number,
+  },
+  // Add more config sections here
+});
+
+const Config = mongoose.model('Config', configSchema);
+
 
 
 // #region LOGIN AND AUTHENTICATION
@@ -352,6 +366,18 @@ const createNewFile = async (filename, utfile_id, utfile_url, price_override = n
   const stripeProduct = await createNewProduct(filename, fileid, utfile_id, utfile_url);
   const newFile = new File({ fileid, stripe_product_id: stripeProduct.id, utfile_id, utfile_url, filename, price_override, file_status: "unsliced" });
   await newFile.save();
+  // Post to https://api.mandarin3d.com/v2/api/slice
+  console.log("Posting to https://api.mandarin3d.com/v2/api/slice");
+  const sliceResponse = await fetch('https://api.mandarin3d.com/v2/api/slice', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      "fileid": fileid,
+      "env": process.env.NODE_ENV
+    })
+  });
   return newFile;
 }
 
@@ -455,7 +481,7 @@ app.use(
     config: {
       uploadthingId: process.env.UPLOADTHING_APP_ID,
       uploadthingSecret: process.env.UPLOADTHING_SECRET,
-      isDev: process.env.NODE_ENV === "development",
+      isDev: process.env.NODE_ENV === "dev",
     },
   })
 );
@@ -722,6 +748,31 @@ const createProduct = async (product_title, product_description, product_feature
   await newProduct.save();
   return newProduct;
 }
+
+// #endregion PRODUCT MANAGEMENT
+
+// #region SETTINGS MANAGEMENT
+
+app.get('/api/configs', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const config = await Config.findOne();
+    res.json(config || {});
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Error fetching configs' });
+  }
+});
+
+// Update configs
+app.post('/api/configs', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const updatedConfig = await Config.findOneAndUpdate({}, req.body, { new: true, upsert: true });
+    res.json({ status: 'success', config: updatedConfig });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Error updating configs' });
+  }
+});
+
+// #endregion SETTINGS MANAGEMENT
 
 app.listen(8080, () => {
   console.log('Server is running on port 8080')

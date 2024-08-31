@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaTimes, FaTrash, FaEdit, FaSpinner, FaCheck } from 'react-icons/fa';
 import DataTable from 'react-data-table-component';
-import { UploadButton } from "../utils/uploadthing";
-import { useAlerts } from '../context/AlertContext';
+import { UploadButton } from "../../utils/uploadthing";
+import { useAlerts } from '../../context/AlertContext';
 import axios from 'axios';
 
 function FileManagement() {
@@ -69,7 +69,7 @@ function FileManagement() {
             selector: row => {
                 if (row.file_status === 'unsliced') {
                     return <div><FaSpinner className="animate-spin inline" /> Processing</div>;
-                } else if (row.file_status === 'sliced') {
+                } else if (row.file_status === 'success') {
                     return <div><FaCheck className="text-green-500 inline" /> Sliced</div>;
                 } else if (row.file_status === 'error') {
                     return <div><FaTimes className="text-red-500 inline" /> Error</div>;

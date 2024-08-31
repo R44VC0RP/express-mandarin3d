@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FaBars, FaUser, FaCog, FaChartBar, FaBoxes, FaFileAlt, FaShoppingCart } from 'react-icons/fa';
-import Dashboard from '../components/Dashboard';
-import FilamentInventory from '../components/Filaments';
-import FileManagement from '../components/Files';
-import UserManagement from '../components/UserManagement';
+import Dashboard from '../components/admin/Dashboard';
+import FilamentInventory from '../components/admin/Filaments';
+import FileManagement from '../components/admin/Files';
+import UserManagement from '../components/admin/UserManagement';
+import Settings from '../components/admin/Settings';
 import logo from '../assets/images/m3d_logo.png';
 
 
@@ -72,7 +73,7 @@ function Content({ activeTab }) {
             {activeTab === 'Filaments' && <FilamentInventory />}
             {activeTab === 'Files' && <FileManagement />}
             {activeTab === 'Users' && <UserManagement />}
-            {activeTab === 'Settings' && <h2 className="text-2xl font-bold mb-4">Settings</h2>}
+            {activeTab === 'Settings' && <Settings />}
         </div>
     );
 }
