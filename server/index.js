@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+dotenv.config({ 'path': '.env.local' });
 import { createUploadthing, createRouteHandler } from "uploadthing/express";
 import { UTApi } from "uploadthing/server";
 import express from 'express';
@@ -9,13 +10,11 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
-import { createNewProduct, deleteProduct } from './conn_stripe.js';
+import stripePackage from 'stripe';
 
 export const utapi = new UTApi();
 
-dotenv.config({
-  path: '.env.local'
-});
+
 
 const app = express();
 
@@ -42,6 +41,27 @@ app.use(session({
   }),
   cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
+
+// #region STRIPE
+
+const stripe = stripePackage(process.env.STRIPE_API_KEY);
+
+const createNewProduct = async (file_name, file_id, file_image = "https://utfs.io/f/db9c501f-28aa-4ff5-b4cd-33f86bf1b09a-9w6i5v.png") => {
+    const product = await stripe.products.create({
+        name: file_name,
+        images: [file_image],
+        metadata: {
+            file_id: file_id,
+        },
+    });
+    return product;
+}
+
+const deleteProduct = async (product_id) => {
+    await stripe.products.del(product_id);
+}
+
+// #endregion STRIPE
 
 const fileSchema = new mongoose.Schema({
   fileid: String,
