@@ -12,7 +12,7 @@ import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import stripePackage from 'stripe';
 
-export const utapi = new UTApi();
+const utapi = new UTApi();
 
 
 
