@@ -5,15 +5,19 @@ import Admin from './pages/Admin';
 import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Logout from './pages/Logout';
+import { AlertProvider } from './context/AlertContext';
+import AlertManager from './components/AlertManager'; // Add this import
 import { AuthProvider, useAuth } from './context/AuthContext.js';
 import { CartProvider } from './context/Cart';
+import Loading from 'react-fullscreen-loading';
+// 
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
   
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
   }
   
   return isAuthenticated ? children : <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} />;
@@ -26,19 +30,22 @@ const LoginRoute = () => {
 
 function App() {
   return (
-    <CartProvider>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<LoginRoute />} />
-            <Route path="/" element={<Home />} />
-            <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-            <Route path="/logout" element={<Logout />} />
-            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-          </Routes>
-        </Router>
-      </AuthProvider>
-    </CartProvider>
+    <AlertProvider>
+      <CartProvider>
+        <AuthProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<LoginRoute />} />
+              <Route path="/" element={<Home />} />
+              <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+              <Route path="/logout" element={<Logout />} />
+              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            </Routes>
+            <AlertManager /> {/* Add this line */}
+          </Router>
+        </AuthProvider>
+      </CartProvider>
+    </AlertProvider>
   );
 }
 

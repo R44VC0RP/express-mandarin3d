@@ -6,7 +6,7 @@ import { FaInfoCircle, FaCopy, FaCheck } from 'react-icons/fa';
 import m3d_logo from '../assets/images/m3d_logo.png';
 
 const Footer = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { cart } = useCart();
   const [showTooltip, setShowTooltip] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
@@ -74,13 +74,18 @@ const Footer = () => {
               <Link to="/terms-of-service" className="text-white hover:text-gray-400 font-extralight text-sm">Terms of Service</Link>
             </div>
           ) : (
-            <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 items-center">
-              <Link to="/account" className="text-white hover:text-gray-400 font-light text-sm">My Account</Link>
-              <Link to="/orders" className="text-white hover:text-gray-400 font-light text-sm">My Orders</Link>
-            </div>
+            <>
+              {user.role === 'admin' ? (
+                <Link to="/admin" className="text-white hover:text-gray-400 font-light text-sm">Admin</Link>
+              ) : null}
+              <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 items-center">
+                <Link to="/account" className="text-white hover:text-gray-400 font-light text-sm">{user.username}'s account</Link>
+              </div>
+            </>
           )}
         </div>
       </div>
+      
     </footer>
   );
 };

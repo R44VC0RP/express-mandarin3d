@@ -12,6 +12,14 @@ export const CartProvider = ({ children }) => {
 
   useEffect(() => {
     getFilesFromCart();
+
+    // Set up polling interval
+    const intervalId = setInterval(() => {
+      getFilesFromCart();
+    }, 1000); // Check every 1 second
+
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   const addFile = async (fileid) => {
@@ -44,9 +52,15 @@ export const CartProvider = ({ children }) => {
     try {
       const response = await axios.get(backendUrl + '/api/cart', { withCredentials: true });
       if (response.data.status === 'success') {
-        setCart({
-          cart_id: response.data.cart_id,
-          files: response.data.files || []
+        setCart(prevCart => {
+          // Only update if there's a change
+          if (JSON.stringify(prevCart) !== JSON.stringify(response.data)) {
+            return {
+              cart_id: response.data.cart_id,
+              files: response.data.files || []
+            };
+          }
+          return prevCart;
         });
       }
       return response.data;

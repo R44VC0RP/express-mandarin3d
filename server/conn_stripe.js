@@ -17,4 +17,8 @@ const createNewProduct = async (file_name, file_id, file_image = "https://utfs.i
     return product;
 }
 
-export default createNewProduct;
+const deleteProduct = async (product_id) => {
+    await stripe.products.del(product_id);
+}
+
+export { createNewProduct, deleteProduct };

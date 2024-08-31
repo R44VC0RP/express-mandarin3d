@@ -13,7 +13,6 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import FileUploadProgress from '../components/FileUploadProgress';
 import { useCart } from '../context/Cart';
-import Loading from 'react-fullscreen-loading';
 
 // Asset Imports
 import prining_bambu from '../assets/videos/printing_bambu.mp4'
@@ -32,7 +31,6 @@ function Home() {
   const [showcaseProducts, setShowcaseProducts] = useState([]);
   const [files, setFiles] = useState([]);
   const [uploadFiles, setUploadFiles] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
     "modelUploader",
@@ -82,6 +80,8 @@ function Home() {
       'model/3mf': ['.3mf'],
       'application/step': ['.step', '.stp']
     },
+    noClick: true,
+    noKeyboard: true
   });
 
   useEffect(() => {
@@ -140,10 +140,10 @@ function Home() {
   }, []);
 
   if (localLoading) {
-    return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
+    return <div>Loading...</div>;
   }
 
-  const productShowcases = [
+  const pricingPlans = [
     {
       title: "Shark Knife",
       description: "A knife in the shape of a shark that is inspired by pictures i found on pinterest",
@@ -212,7 +212,15 @@ function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white">
+    <div {...getRootProps()} className="min-h-screen bg-[#0F0F0F] text-white">
+      <input {...getInputProps()} />
+      {isDragActive && (
+        <div className="fixed inset-0 bg-blue-500 bg-opacity-50 flex items-center justify-center z-50 border border-dotted border-[#2A2A2A]">
+          <div className="bg-white p-8 rounded-lg shadow-lg text-black">
+            <p className="text-2xl font-bold">Drop your file here</p>
+          </div>
+        </div>
+      )}
       <Header />
       <main className="container mx-auto px-4 py-8">
         {showAlert && (
@@ -222,8 +230,8 @@ function Home() {
           </div>
         )}
         {/* Hero Section */}
-        <section className="flex flex-col md:flex-row justify-between items-center max-w-5xl">
-          <div className="max-w-md p-2 ">
+        <section className="flex flex-col md:flex-row justify-between items-center max-w-5xl mx-auto">
+          <div className="max-w-md p-2">
             <h1 className="text-4xl font-bold mb-3">Custom 3D Prints Done Right</h1>
             <p className="text-lg mb-6 font-light">Bringing your ideas to life, one layer at a time.</p>
             <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
@@ -234,19 +242,12 @@ function Home() {
           <div className="max-w-md p-6 rounded w-full md:w-1/2 mt-6 md:mt-0">
             <h2 className="text-xl font-bold mb-2">Get a custom quote now!</h2>
             <p className="text-sm mb-4 opacity-70">*No Account Needed</p>
-            <div
-              {...getRootProps()}
-              className="border-2 border-dashed border-gray-600 p-6 rounded text-center h-64 cursor-pointer hover:bg-gray-800 transition-colors duration-200"
-            >
-              <input {...getInputProps()} />
+            <div className="border-2 border-dashed border-gray-600 p-6 rounded text-center h-64">
               {files.length > 0 ? (
                 <div>
                   <p>{files.length} file(s) selected</p>
                   <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startUpload(files);
-                    }}
+                    onClick={() => startUpload(files)}
                     className="primary-button mt-4"
                     disabled={isUploading}
                   >
@@ -254,7 +255,7 @@ function Home() {
                   </button>
                 </div>
               ) : (
-                <p className="text-gray-500">Click or drop .stl, .step, .3mf files here!</p>
+                <p className="text-gray-500">Drop .stl, .step, .3mf files here!</p>
               )}
             </div>
           </div>
@@ -274,7 +275,7 @@ function Home() {
         <section className="py-8 px-4">
           <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
           <Slider {...settings}>
-            {productShowcases.map((plan, index) => (
+            {pricingPlans.map((plan, index) => (
               <div key={index} className="px-2">
                 <PricingPlan {...plan} />
               </div>
