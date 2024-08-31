@@ -21,4 +21,4 @@ const deleteProduct = async (product_id) => {
     await stripe.products.del(product_id);
 }
 
-export { createNewProduct, deleteProduct };
+export default { createNewProduct, deleteProduct };
