@@ -19,6 +19,8 @@ function FileManagement() {
 
     useEffect(() => {
         fetchFiles();
+        const interval = setInterval(fetchFileStatuses, 5000); // Poll every 5 seconds
+        return () => clearInterval(interval); // Cleanup on unmount
     }, []);
 
     const fetchFiles = async () => {
@@ -39,6 +41,24 @@ function FileManagement() {
         } catch (error) {
             console.error('Error fetching files:', error);
             showAlert('error', 'Error', 'Failed to fetch files');
+        }
+    };
+
+    const fetchFileStatuses = async () => {
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/file-status`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.data.status === 'success') {
+                setFiles(response.data.files);
+            } else {
+                showAlert('error', 'Error', 'Failed to fetch file statuses');
+            }
+        } catch (error) {
+            console.error('Error fetching file statuses:', error);
+            showAlert('error', 'Error', 'Failed to fetch file statuses');
         }
     };
 
@@ -270,15 +290,6 @@ function FileManagement() {
                             </div>
                         ) : (
                             <div>
-                                <label htmlFor="filename">File Name <span className="text-red-500">*</span></label>
-                                <input
-                                    type="text"
-                                    name="filename"
-                                    value={newFile.filename}
-                                    onChange={handleInputChange}
-                                    placeholder="example.stl"
-                                    className="w-full p-2 mb-2 bg-gray-700 rounded"
-                                />
                                 <label htmlFor="priceOverride">Price Override (Optional)</label>
                                 <div className="flex items-center mb-2">
                                     <span className="text-white mr-2">$</span>

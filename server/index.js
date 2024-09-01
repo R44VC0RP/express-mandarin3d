@@ -37,8 +37,11 @@ app.use(session({
   saveUninitialized: false, // Change this to false
   store: MongoStore.create({
     mongoUrl: mongoURI,
-    collectionName: 'sessions'
+    collectionName: 'sessions',
+    ttl: 14 * 24 * 60 * 60 // 14 days
   }),
+  autoRemove: 'interval',
+  autoRemoveInterval: 10,// In minutes. Default
   cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
@@ -46,9 +49,9 @@ app.use(session({
 
 const stripe = stripePackage(process.env.STRIPE_API_KEY);
 
-const createNewProduct = async (file_name, file_id, file_image = "https://utfs.io/f/db9c501f-28aa-4ff5-b4cd-33f86bf1b09a-9w6i5v.png") => {
+const createNewProduct = async (file_name, file_id, file_image = "https://cdn.discordapp.com/attachments/1165771547223543990/1279816538295107625/3d_model.jpg?ex=66d5d188&is=66d48008&hm=409c22a2b80eaee0ef74c55020ea84511efd9d050f5acd948180d1ae13ac89ce&") => {
     const product = await stripe.products.create({
-        name: file_name,
+        name: file_name || "Untitled",
         images: [file_image],
         metadata: {
             file_id: file_id,
@@ -492,7 +495,7 @@ app.delete('/api/file', verifyToken, isAdmin, async (req, res) => {
 const f = createUploadthing();
 
 const ourFileRouter = {
-  modelUploader: f({ blob: {
+  modelUploader: f({ "model/stl": {
     maxFileSize: "128MB",
     maxFileCount: 20
   } })
@@ -529,6 +532,17 @@ app.use(
     },
   })
 );
+
+// Add this endpoint to get the status of all files
+app.get('/api/file-status', async (req, res) => {
+  try {
+    const files = await File.find();
+    res.json({ status: 'success', files });
+  } catch (error) {
+    console.error('Error fetching file statuses:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
 
 // #endregion FILE MANAGEMENT
 
@@ -817,6 +831,8 @@ app.post('/api/configs', verifyToken, isAdmin, async (req, res) => {
 });
 
 // #endregion SETTINGS MANAGEMENT
+
+
 
 app.listen(8080, () => {
   console.log('Server is running on port 8080')

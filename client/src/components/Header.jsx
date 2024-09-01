@@ -83,11 +83,6 @@ const Header = () => {
                             )}
                         </a>
                     )}
-                    {isAuthenticated && (
-                        <a href="/logout" className="py-2 md:py-0">
-                            <FaSignOutAlt className="mr-2 text-red-500 bg-gray-200 rounded-full p-1 text-2xl" />
-                        </a>
-                    )}
                 </div>
             </nav>
         </header>
