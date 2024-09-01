@@ -16,7 +16,7 @@ export const CartProvider = ({ children }) => {
     // Set up polling interval
     const intervalId = setInterval(() => {
       getFilesFromCart();
-    }, 1000); // Check every 1 second
+    }, 10000); // Check every 10 seconds
 
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
@@ -24,7 +24,7 @@ export const CartProvider = ({ children }) => {
 
   const addFile = async (fileid) => {
     try {
-      const response = await axios.post(backendUrl + '/api/cart/add', { fileid }, { withCredentials: true });
+      const response = await axios.post(backendUrl + '/api/cart/add', { fileid });
       if (response.data.status === 'success') {
         await getFilesFromCart(); // Refresh the cart after adding
       }
@@ -37,7 +37,7 @@ export const CartProvider = ({ children }) => {
 
   const deleteFile = async (fileid) => {
     try {
-      const response = await axios.post(backendUrl + '/api/cart/remove', { fileid }, { withCredentials: true });
+      const response = await axios.post(backendUrl + '/api/cart/remove', { fileid });
       if (response.data.status === 'success') {
         await getFilesFromCart(); // Refresh the cart after removing
       }
@@ -50,7 +50,7 @@ export const CartProvider = ({ children }) => {
 
   const getFilesFromCart = async () => {
     try {
-      const response = await axios.get(backendUrl + '/api/cart', { withCredentials: true });
+      const response = await axios.get(backendUrl + '/api/cart');
       if (response.data.status === 'success') {
         setCart(prevCart => {
           // Only update if there's a change
@@ -73,7 +73,7 @@ export const CartProvider = ({ children }) => {
 
   const deleteCart = async () => {
     try {
-      const response = await axios.delete(backendUrl + '/api/cart', { withCredentials: true });
+      const response = await axios.delete(backendUrl + '/api/cart');
       if (response.data.status === 'success') {
         setCart({ cart_id: null, files: [] });
       }
