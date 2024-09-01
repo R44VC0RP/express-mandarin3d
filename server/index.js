@@ -574,10 +574,12 @@ async function getCart(req) {
 
 async function createCart(req) {
   const cart_id = "cart_" + uuidv4();
+  console.log("Creating new cart with id: ", cart_id);
   const newCart = new Cart({ cart_id, files: [] });
   await newCart.save();
   if (req.session) {
     req.session.cart_id = cart_id;
+    console.log("Saving cart_id: ", cart_id);
     await req.session.save();
   }
   console.log("New cart created: ", cart_id);
