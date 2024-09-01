@@ -452,6 +452,7 @@ const getAllFiles = async () => {
 app.post('/api/file', verifyToken, isAdmin, async (req, res) => {
   const { action, fileid, filename, utfile_id, utfile_url, price_override } = req.body;
   let result;
+  console.log("File action: ", action, "fileid: ", fileid, "filename: ", filename, "utfile_id: ", utfile_id, "utfile_url: ", utfile_url, "price_override: ", price_override);
   try {
     switch (action) {
       case 'create':
