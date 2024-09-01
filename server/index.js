@@ -34,7 +34,7 @@ mongoose.connect(mongoURI)
 app.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false, // Change this to false
   store: MongoStore.create({
     mongoUrl: mongoURI,
     collectionName: 'sessions'
@@ -354,9 +354,9 @@ app.post('/api/users', verifyToken, isAdmin, async (req, res) => {
         break;
 
       case 'edit':
-        if (req.user.id === userId) {
-          return res.status(400).json({ status: 'error', message: 'Cannot edit your own profile' });
-        }
+        // if (req.user.id === userId) {
+        //   return res.status(400).json({ status: 'error', message: 'Cannot edit your own profile' });
+        // }
         await updateUser(username, password, '', profilePic, fullName);
         res.json({ status: 'success', message: 'User updated successfully' });
         break;
@@ -381,13 +381,23 @@ app.post('/api/users', verifyToken, isAdmin, async (req, res) => {
 
 // #region FILE MANAGEMENT
 
-const createNewFile = async (filename, utfile_id, utfile_url, price_override = null) => {
-  const fileid = "file_" + uuidv4();
-  const stripeProduct = await createNewProduct(filename, fileid, utfile_id, utfile_url);
-  const newFile = new File({ fileid, stripe_product_id: stripeProduct.id, utfile_id, utfile_url, filename, price_override, file_status: "unsliced" });
-  await newFile.save();
-  // Post to https://api.mandarin3d.com/v2/api/slice
-  console.log("Posting to https://api.mandarin3d.com/v2/api/slice");
+const reSliceFile = async (fileid) => {
+  const file = await File.findOne({ fileid });
+  if (!file) {
+    return null;
+  }
+  file.file_status = "unsliced";
+  await file.save();
+  sliceFile(fileid);
+  return {"status": "success", "message": "File resliced successfully"};
+}
+
+
+const sliceFile = async (fileid) => {
+  const file = await File.findOne({ fileid });
+  if (!file) {
+    return null;
+  }
   const sliceResponse = await fetch('https://api.mandarin3d.com/v2/api/slice', {
     method: 'POST',
     headers: {
@@ -398,6 +408,17 @@ const createNewFile = async (filename, utfile_id, utfile_url, price_override = n
       "env": process.env.NODE_ENV
     })
   });
+  return {"status": "success", "message": "File sliced successfully"};
+}
+
+const createNewFile = async (filename, utfile_id, utfile_url, price_override = null) => {
+  const fileid = "file_" + uuidv4();
+  const stripeProduct = await createNewProduct(filename, fileid, utfile_id, utfile_url);
+  const newFile = new File({ fileid, stripe_product_id: stripeProduct.id, utfile_id, utfile_url, filename, price_override, file_status: "unsliced" });
+  await newFile.save();
+  // Post to https://api.mandarin3d.com/v2/api/slice
+  console.log("Posting to https://api.mandarin3d.com/v2/api/slice");
+  sliceFile(fileid);
   return newFile;
 }
 
@@ -438,6 +459,9 @@ app.post('/api/file', verifyToken, isAdmin, async (req, res) => {
         break;
       case 'list':
         result = await getAllFiles();
+        break;
+      case 'slice':
+        result = await reSliceFile(fileid);
         break;
       default:
         return res.status(400).json({ status: 'error', message: 'Invalid action' });

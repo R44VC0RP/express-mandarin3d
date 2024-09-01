@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaTimes, FaTrash, FaEdit, FaSpinner, FaCheck } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaTrash, FaEdit, FaSpinner, FaCheck, FaSync } from 'react-icons/fa';
 import DataTable from 'react-data-table-component';
 import { UploadButton } from "../../utils/uploadthing";
 import { useAlerts } from '../../context/AlertContext';
@@ -15,6 +15,7 @@ function FileManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newFile, setNewFile] = useState({ filename: '', priceOverride: '' });
     const [files, setFiles] = useState([]);
+    const [selectedFile, setSelectedFile] = useState(null); // State to manage selected file
 
     useEffect(() => {
         fetchFiles();
@@ -62,8 +63,62 @@ function FileManagement() {
         }
     };
 
+    const handleSlice = async (fileid) => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/file`, {
+                action: 'slice',
+                fileid
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.data.status === 'success') {
+                showAlert('success', 'Success', 'File sliced successfully');
+                fetchFiles();
+            } else {
+                showAlert('error', 'Error', 'Failed to slice file');
+            }
+        } catch (error) {
+            console.error('Error slicing file:', error);
+            showAlert('error', 'Error', 'Failed to slice file');
+        }
+    };
+    
+
+    const handleRowClick = async (row) => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/file`, {
+                action: 'get',
+                fileid: row.fileid
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.data.status === 'success') {
+                setSelectedFile(response.data.result);
+                setIsModalOpen(true);
+            } else {
+                showAlert('error', 'Error', 'Failed to fetch file details');
+            }
+        } catch (error) {
+            console.error('Error fetching file details:', error);
+            showAlert('error', 'Error', 'Failed to fetch file details');
+        }
+    };
+
     const columns = [
-        { name: 'File Name', selector: row => row.filename, sortable: true },
+        { name: 'File Name', selector: row => row.filename, sortable: true, cell: (row) => (
+            <button
+                onClick={() => handleRowClick(row)}
+                className="text-blue-500 hover:text-blue-700"
+            >
+                {row.filename}
+            </button>
+        )},
         { 
             name: 'File Status', 
             selector: row => {
@@ -84,12 +139,18 @@ function FileManagement() {
         {
             name: 'Actions',
             cell: (row) => (
-                <button
-                    onClick={() => handleDelete(row.fileid)}
-                    className="github-secondary text-red-500 hover:text-red-700"
-                >
-                    <FaTrash />
-                </button>
+                <div className="flex justify-center">
+                    <button onClick={() => handleDelete(row.fileid)} className="github-secondary text-red-500 hover:text-red-700 mr-2">
+                        <FaTrash />
+                    </button>
+                    <button 
+                        onClick={() => handleSlice(row.fileid)} 
+                        className="github-secondary text-red-500 hover:text-red-700" 
+                        title="Try to reslice file"
+                    >
+                        <FaSync className="text-red-500 hover:text-red-700" />
+                    </button>
+                </div>
             ),
         },
     ];
@@ -143,6 +204,7 @@ function FileManagement() {
                 pagination
                 highlightOnHover
                 responsive
+                onRowClicked={handleRowClick} // Add this line to handle row clicks
                 customStyles={{
                     headCells: {
                         style: {
@@ -189,46 +251,66 @@ function FileManagement() {
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                     <div className="card-special bg-gray-800 p-6 rounded-lg w-96">
-                        <h3 className="text-xl font-bold mb-4">Add New File</h3>
-                        <label htmlFor="filename">File Name <span className="text-red-500">*</span></label>
-                        <input
-                            type="text"
-                            name="filename"
-                            value={newFile.filename}
-                            onChange={handleInputChange}
-                            placeholder="example.stl"
-                            className="w-full p-2 mb-2 bg-gray-700 rounded"
-                        />
-                        <label htmlFor="priceOverride">Price Override (Optional)</label>
-                        <div className="flex items-center mb-2">
-                            <span className="text-white mr-2">$</span>
-                            <input
-                                type="number"
-                                name="priceOverride"
-                                value={newFile.priceOverride}
-                                onChange={handleInputChange}
-                                placeholder="0.00"
-                                step="0.01"
-                                className="flex-grow p-2 bg-gray-700 rounded"
-                            />
-                        </div>
-                        <label htmlFor="file" className="block mb-1">Upload File</label>
-                        <UploadButton
-                            className='w-full p-2 mb-2 bg-gray-700 rounded'
-                            endpoint="modelUploader"
-                            onClientUploadComplete={(res) => {
-                                console.log("Files: ", res);
-                                setNewFile({ ...newFile, utfile_id: res[0].key, utfile_url: res[0].url });
-                                showAlert("success", "Upload Completed", "File uploaded successfully.");
-                            }}
-                            onUploadError={(error) => {
-                                showAlert("error", "Upload Error", `ERROR! ${error.message}`);
-                            }}
-                        />
-                        <div className="flex justify-end mt-4">
-                            <button className="github-secondary mr-2" onClick={() => { setIsModalOpen(false) }}>Cancel</button>
-                            <button className="github-primary" onClick={handleAddFile}>Add</button>
-                        </div>
+                        <h3 className="text-xl font-bold mb-4">{selectedFile ? 'File Details' : 'Add New File'}</h3>
+                        {selectedFile ? (
+                            <div>
+                                <p><strong>File ID:</strong> {selectedFile.fileid}</p>
+                                <p><strong>Filename:</strong> {selectedFile.filename}</p>
+                                <p><strong>File Status:</strong> {selectedFile.file_status}</p>
+                                <p><strong>Price Override:</strong> {selectedFile.price_override ? `$${(selectedFile.price_override / 100).toFixed(2)}` : 'N/A'}</p>
+                                <p><strong>Date Created:</strong> {new Date(selectedFile.dateCreated).toLocaleString()}</p>
+                                <p><strong>Dimensions:</strong> {selectedFile.dimensions ? `${selectedFile.dimensions.x} x ${selectedFile.dimensions.y} x ${selectedFile.dimensions.z}` : 'N/A'}</p>
+                                <p><strong>Mass in Grams:</strong> {selectedFile.mass_in_grams || 'N/A'}</p>
+                                <p><strong>Stripe Product ID:</strong> {selectedFile.stripe_product_id}</p>
+                                <p><strong>UploadThing File ID:</strong><code>{selectedFile.utfile_id}</code></p>
+                                <p><strong>UploadThing File URL:</strong> <a href={selectedFile.utfile_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">View File</a></p>
+                                <div className="flex justify-end mt-4">
+                                    <button className="github-secondary mr-2" onClick={() => { setIsModalOpen(false); setSelectedFile(null); }}>Close</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <label htmlFor="filename">File Name <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    name="filename"
+                                    value={newFile.filename}
+                                    onChange={handleInputChange}
+                                    placeholder="example.stl"
+                                    className="w-full p-2 mb-2 bg-gray-700 rounded"
+                                />
+                                <label htmlFor="priceOverride">Price Override (Optional)</label>
+                                <div className="flex items-center mb-2">
+                                    <span className="text-white mr-2">$</span>
+                                    <input
+                                        type="number"
+                                        name="priceOverride"
+                                        value={newFile.priceOverride}
+                                        onChange={handleInputChange}
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        className="flex-grow p-2 bg-gray-700 rounded"
+                                    />
+                                </div>
+                                <label htmlFor="file" className="block mb-1">Upload File</label>
+                                <UploadButton
+                                    className='w-full p-2 mb-2 bg-gray-700 rounded'
+                                    endpoint="modelUploader"
+                                    onClientUploadComplete={(res) => {
+                                        console.log("Files: ", res);
+                                        setNewFile({ ...newFile, utfile_id: res[0].key, utfile_url: res[0].url });
+                                        showAlert("success", "Upload Completed", "File uploaded successfully.");
+                                    }}
+                                    onUploadError={(error) => {
+                                        showAlert("error", "Upload Error", `ERROR! ${error.message}`);
+                                    }}
+                                />
+                                <div className="flex justify-end mt-4">
+                                    <button className="github-secondary mr-2" onClick={() => { setIsModalOpen(false) }}>Cancel</button>
+                                    <button className="github-primary" onClick={handleAddFile}>Add</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
