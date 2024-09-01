@@ -30,48 +30,22 @@ mongoose.connect(mongoURI)
   .then(() => console.log('MongoDB connected successfully'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Custom middleware to check for existing session
-const checkExistingSession = (req, res, next) => {
-  if (req.session.id) {
-    // Session exists, update its expiration
-    req.session.touch();
-  }
-  next();
-};
-
-app.use(checkExistingSession);
-
+// First, ensure your session middleware is set up correctly
 app.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
-  saveUninitialized: false,
-  rolling: true, // Reset expiration on every request
+  saveUninitialized: false, // Change this to false
   store: MongoStore.create({
     mongoUrl: mongoURI,
     collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60, // 14 days
-    autoRemove: 'interval',
-    autoRemoveInterval: 10 // In minutes
+    ttl: 14 * 24 * 60 * 60 // 14 days
   }),
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
-  }
+  autoRemove: 'interval',
+  autoRemoveInterval: 10,// In minutes. Default
+  cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
-// Add this after your MongoDB connection setup
-const cleanupSessions = async () => {
-  try {
-    const sessionStore = mongoose.connection.db.collection('sessions');
-    await sessionStore.deleteMany({ expires: { $lt: new Date() } });
-    console.log('Expired sessions cleaned up');
-  } catch (error) {
-    console.error('Error cleaning up sessions:', error);
-  }
-};
-
-// Run cleanup every hour
-setInterval(cleanupSessions, 60 * 60 * 1000);
+// #region STRIPE
 
 const stripe = stripePackage(process.env.STRIPE_API_KEY);
 
@@ -89,6 +63,8 @@ const createNewProduct = async (file_name, file_id, file_image = "https://cdn.di
 const deleteProduct = async (product_id) => {
     await stripe.products.del(product_id);
 }
+
+// #endregion STRIPE
 
 const fileSchema = new mongoose.Schema({
   fileid: String,
