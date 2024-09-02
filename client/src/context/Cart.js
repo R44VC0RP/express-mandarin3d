@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 const CartContext = createContext();
 
@@ -11,22 +12,41 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState({ cart_id: null, files: [] });
 
   useEffect(() => {
-    getFilesFromCart();
+    const cartId = Cookies.get('cart_id');
+    if (!cartId) {
+      createNewCart();
+    } else {
+      getFilesFromCart(cartId);
+    }
 
     // Set up polling interval
     const intervalId = setInterval(() => {
-      getFilesFromCart();
+      getFilesFromCart(cartId);
     }, 10000); // Check every 10 seconds
 
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
   }, []);
 
-  const addFile = async (fileid) => {
+  const createNewCart = async () => {
     try {
-      const response = await axios.post(backendUrl + '/api/cart/add', { fileid });
+      const response = await axios.post(backendUrl + '/api/cart/create');
       if (response.data.status === 'success') {
-        await getFilesFromCart(); // Refresh the cart after adding
+        const cartId = response.data.cart_id;
+        Cookies.set('cart_id', cartId, { expires: 365 });
+        setCart({ cart_id: cartId, files: [] });
+      }
+    } catch (error) {
+      console.error('Error creating new cart:', error);
+    }
+  };
+
+  const addFile = async (fileid) => {
+    const cartId = Cookies.get('cart_id');
+    try {
+      const response = await axios.post(backendUrl + '/api/cart/add', { cart_id: cartId, fileid });
+      if (response.data.status === 'success') {
+        await getFilesFromCart(cartId); // Refresh the cart after adding
       }
       return response.data;
     } catch (error) {
@@ -36,10 +56,11 @@ export const CartProvider = ({ children }) => {
   };
 
   const deleteFile = async (fileid) => {
+    const cartId = Cookies.get('cart_id');
     try {
-      const response = await axios.post(backendUrl + '/api/cart/remove', { fileid });
+      const response = await axios.post(backendUrl + '/api/cart/remove', { cart_id: cartId, fileid });
       if (response.data.status === 'success') {
-        await getFilesFromCart(); // Refresh the cart after removing
+        await getFilesFromCart(cartId); // Refresh the cart after removing
       }
       return response.data;
     } catch (error) {
@@ -48,9 +69,9 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const getFilesFromCart = async () => {
+  const getFilesFromCart = async (cartId) => {
     try {
-      const response = await axios.get(backendUrl + '/api/cart');
+      const response = await axios.get(backendUrl + `/api/cart?cart_id=${cartId}`);
       if (response.data.status === 'success') {
         setCart(prevCart => {
           // Only update if there's a change
@@ -72,10 +93,12 @@ export const CartProvider = ({ children }) => {
   };
 
   const deleteCart = async () => {
+    const cartId = Cookies.get('cart_id');
     try {
-      const response = await axios.delete(backendUrl + '/api/cart');
+      const response = await axios.delete(backendUrl + `/api/cart?cart_id=${cartId}`);
       if (response.data.status === 'success') {
         setCart({ cart_id: null, files: [] });
+        Cookies.remove('cart_id');
       }
       return response.data;
     } catch (error) {

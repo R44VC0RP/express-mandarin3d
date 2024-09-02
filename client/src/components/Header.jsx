@@ -63,10 +63,21 @@ const Header = () => {
                     )}
                 </div>
             </div>
-            <div className="md:hidden">
-                <button onClick={toggleMobileMenu} className="text-white">
+            <div className="md:hidden justify-end">
+            {cart.cart_id && (
+                    <a href="/cart" className="relative md:hidden items-center justify-center pr-5 pt-2">
+                        <div className="card-special p-2 flex items-center">
+                            <ShoppingCart className="text-white text-2xl hover:text-gray-300 mr-2" />
+                            {cart.files.length > 0 && (
+                                <p className="text-white text-sm">{cart.files.length}</p>
+                            )}
+                        </div>
+                    </a>
+                )}
+                <button onClick={toggleMobileMenu} className="text-white justify-end mt-2">
                     {isMobileMenuOpen ? <FaTimes className="text-2xl" /> : <FaBars className="text-2xl" />}
                 </button>
+            
             </div>
             <nav className={`flex-col md:flex-row md:flex items-center md:space-x-6 ${isMobileMenuOpen ? 'flex items-end' : 'hidden'} md:flex`}>
                 <div className={`flex flex-col items-end space-y-2 overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} md:flex-row md:items-center md:space-y-0 md:space-x-6 md:max-h-full md:opacity-100`}>
@@ -76,7 +87,7 @@ const Header = () => {
                         Contact Us
                     </button>
                     {cart.cart_id && (
-                        <a href="/cart" className="relative md:py-0 flex items-center justify-center pr-5 pt-2">
+                        <a href="/cart" className="relative hidden md:flex items-center justify-center pr-5 pt-2">
                             <ShoppingCart className="text-white text-2xl hover:text-gray-300 mr-2 " />
                             {cart.files.length > 0 && (
                                 <p className="text-white text-sm">{cart.files.length}</p>

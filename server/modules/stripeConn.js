@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config({
+  'path': '.env.local'
+});
 import stripePackage from 'stripe';
 
 const stripe = stripePackage(process.env.STRIPE_API_KEY);

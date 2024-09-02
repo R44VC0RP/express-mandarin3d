@@ -14,8 +14,15 @@ import bcrypt from 'bcryptjs';
 import {
   v4 as uuidv4
 } from 'uuid';
-import session from 'express-session';
-import MongoStore from 'connect-mongo';
+import {
+    createNewProduct,
+    deleteProduct
+} from './modules/stripeConn.js';
+import {
+    UTApi
+} from "uploadthing/server";
+
+const utapi = new UTApi();
 
 
 // Modules
@@ -26,49 +33,27 @@ import {
   userSchema,
   configSchema
 } from './modules/dbSchemas.js';
-import {
-  createNewFile,
-  deleteFile,
-  getFile,
-  getAllFiles,
-  reSliceFile,
-  sliceFile
-} from './modules/fileMgmt.js';
 
 
+
+// Express App Initialization and Setup
 
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Replace with your frontend URL
+  origin: process.env.FRONTEND_URL, 
   credentials: true
 }));
 
 app.use(express.json());
+
+// MongoDB Connection
 
 const mongoURI = process.env.MONGODB_URI;
 mongoose.connect(mongoURI)
   .then(() => console.log('MongoDB connected successfully'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// First, ensure your session middleware is set up correctly
-app.use(session({
-  secret: process.env.JWT_SECRET,
-  resave: false,
-  saveUninitialized: false, // Change this to false
-  store: MongoStore.create({
-    mongoUrl: mongoURI,
-    collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60 // 14 days
-  }),
-  autoRemove: 'interval',
-  autoRemoveInterval: 10, // In minutes. Default
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: !process.env.NODE_ENV === 'production',
-    maxAge: 14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
-  }
-}));
 
 const Cart = mongoose.model('Cart', cartSchema);
 const File = mongoose.model('File', fileSchema);
@@ -352,8 +337,96 @@ app.post('/api/users', requireLogin, requireAdmin, async (req, res) => {
 
 // #region FILE MANAGEMENT
 
+const reSliceFile = async (fileid) => {
+  const file = await File.findOne({
+      fileid
+  });
+  if (!file) {
+      return null;
+  }
+  file.file_status = "unsliced";
+  await file.save();
+  sliceFile(fileid);
+  return {
+      "status": "success",
+      "message": "File resliced successfully"
+  };
+}
 
-app.post('/api/file', requireLogin, requireAdmin, async (req, res) => {
+
+const sliceFile = async (fileid) => {
+  const file = await File.findOne({
+      fileid
+  });
+  if (!file) {
+      return null;
+  }
+  const sliceResponse = await fetch('https://api.mandarin3d.com/v2/api/slice', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+          "fileid": fileid,
+          "env": process.env.NODE_ENV
+      })
+  });
+  return {
+      "status": "success",
+      "message": "File sliced successfully"
+  };
+}
+
+const createNewFile = async (filename, utfile_id, utfile_url, price_override = null) => {
+  const fileid = "file_" + uuidv4();
+  const stripeProduct = await createNewProduct(filename, fileid, utfile_id, utfile_url);
+  const newFile = new File({
+      fileid,
+      stripe_product_id: stripeProduct.id,
+      utfile_id,
+      utfile_url,
+      filename,
+      price_override,
+      file_status: "unsliced"
+  });
+  await newFile.save();
+  // Post to https://api.mandarin3d.com/v2/api/slice
+  console.log("Posting to https://api.mandarin3d.com/v2/api/slice");
+  sliceFile(fileid);
+  return newFile;
+}
+
+const deleteFile = async (fileid) => {
+  // this requires a user to be an admin
+  const file = await File.findOne({
+      fileid
+  });
+  if (!file) {
+      return null;
+  }
+  const stripeid = file.stripe_product_id;
+  const utid = file.utfile_id;
+  await File.deleteOne({
+      fileid
+  });
+  await deleteProduct(stripeid);
+  await utapi.deleteFiles(utid); // Delete the file from UploadThing
+  return file;
+}
+
+const getFile = async (fileid) => {
+  const file = await File.findOne({
+      fileid
+  });
+  return file;
+}
+
+const getAllFiles = async () => {
+  const files = await File.find();
+  return files;
+}
+
+app.post('/api/file', async (req, res) => {
   const {
     action,
     fileid,
@@ -428,11 +501,11 @@ const f = createUploadthing();
 
 const ourFileRouter = {
   modelUploader: f({
-      "model/stl": {
-        maxFileSize: "128MB",
-        maxFileCount: 20
-      }
-    })
+    "model/stl": {
+      maxFileSize: "128MB",
+      maxFileCount: 20
+    }
+  })
     .onUploadComplete(async ({
       metadata,
       file
@@ -448,11 +521,11 @@ const ourFileRouter = {
       }
     }),
   imageUploader: f({
-      image: {
-        maxFileSize: "8MB",
-        maxFileCount: 1
-      }
-    })
+    image: {
+      maxFileSize: "8MB",
+      maxFileCount: 1
+    }
+  })
     .onUploadComplete(async ({
       metadata,
       file
@@ -496,103 +569,67 @@ app.get('/api/file-status', async (req, res) => {
 
 // #region CART MANAGEMENT
 
-
-async function getCart(req) {
-  if (!req.session) {
-    console.error('Session is not initialized');
-    return createCart(req);
-  }
-
-  if (!req.session.cart_id) {
-    const existingCart = await Cart.findOne().sort({
-      _id: -1
-    }).limit(1);
-    if (existingCart) {
-      req.session.cart_id = existingCart.cart_id;
-      await req.session.save();
-    } else {
-      return createCart(req);
-    }
-  }
-  const cart = await Cart.findOne({
-    cart_id: req.session.cart_id
-  });
-  if (!cart) {
-    return createCart(req);
-  }
+async function getCart(cart_id) {
+  const cart = await Cart.findOne({ cart_id });
   return cart;
 }
 
-async function createCart(req) {
+async function createCart() {
   const cart_id = "cart_" + uuidv4();
   console.log("Creating new cart with id: ", cart_id);
-  const newCart = new Cart({
-    cart_id,
-    files: []
-  });
+  const newCart = new Cart({ cart_id, files: [] });
   await newCart.save();
-  if (req.session) {
-    req.session.cart_id = cart_id;
-    console.log("Saving cart_id: ", cart_id);
-    await req.session.save();
-  }
-  console.log("New cart created: ", cart_id);
-  return newCart;
+  return newCart.cart_id;
 }
 
-async function addFileToCart(req, fileid) {
-  const cart = await getCart(req);
+async function addFileToCart(cart_id, fileid) {
+  const cart = await getCart(cart_id);
   console.log("Updating cartid: ", cart.cart_id, " with fileid: ", fileid);
   if (!cart.files.includes(fileid)) {
     cart.files.push(fileid);
     await cart.save();
     console.log("Cart updated successfully");
-    return {
-      "status": "success",
-      "message": "File added to cart successfully"
-    };
+    return { status: "success", message: "File added to cart successfully" };
   }
-  return {
-    "status": "error",
-    "message": "File already in cart"
-  };
+  return { status: "error", message: "File already in cart" };
 }
 
-app.post('/api/cart/add', async (req, res) => {
-  const {
-    fileid
-  } = req.body;
-  if (!fileid) {
-    return res.json({
-      status: 'error',
-      message: 'No fileid provided'
-    });
+app.post('/api/cart/create', async (req, res) => {
+  try {
+    const cart_id = await createCart();
+    res.json({ status: 'success', cart_id });
+  } catch (error) {
+    console.error('Error creating cart:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to create cart' });
   }
-  const result = await addFileToCart(req, fileid);
+});
+
+app.post('/api/cart/add', async (req, res) => {
+  const { cart_id, fileid } = req.body;
+  if (!fileid || !cart_id) {
+    return res.json({ status: 'error', message: 'No fileid or cart_id provided' });
+  }
+  const result = await addFileToCart(cart_id, fileid);
   res.json(result);
 });
 
 app.post('/api/cart/remove', async (req, res) => {
-  const {
-    fileid
-  } = req.body;
-  const cart = await getCart(req);
+  const { cart_id, fileid } = req.body;
+  if (!fileid || !cart_id) {
+    return res.json({ status: 'error', message: 'No fileid or cart_id provided' });
+  }
+  const cart = await getCart(cart_id);
   cart.files = cart.files.filter(id => id !== fileid);
-  await Cart.findOneAndUpdate({
-    cart_id: cart.cart_id
-  }, {
-    $pull: {
-      files: fileid
-    }
-  });
-  res.json({
-    status: 'success',
-    message: 'File removed from cart successfully'
-  });
+  await Cart.findOneAndUpdate({ cart_id: cart.cart_id }, { $pull: { files: fileid } });
+  res.json({ status: 'success', message: 'File removed from cart successfully' });
 });
 
 app.get('/api/cart', async (req, res) => {
-  const cart = await getCart(req);
+  const { cart_id } = req.query;
+  if (!cart_id) {
+    return res.json({ status: 'error', message: 'No cart_id provided' });
+  }
+  const cart = await getCart(cart_id);
   for (const fileid of cart.files) {
     const file = await getFile(fileid);
     if (!file) {
@@ -600,25 +637,16 @@ app.get('/api/cart', async (req, res) => {
       await cart.save();
     }
   }
-  res.json({
-    status: 'success',
-    cart_id: cart.cart_id,
-    files: cart.files
-  });
+  res.json({ status: 'success', cart_id: cart.cart_id, files: cart.files });
 });
 
 app.delete('/api/cart', async (req, res) => {
-  if (req.session.cart_id) {
-    await Cart.findOneAndDelete({
-      cart_id: req.session.cart_id
-    });
-    req.session.cart_id = null;
-    await req.session.save();
+  const { cart_id } = req.query;
+  if (!cart_id) {
+    return res.json({ status: 'error', message: 'No cart_id provided' });
   }
-  res.json({
-    status: 'success',
-    message: 'Cart deleted successfully'
-  });
+  await Cart.findOneAndDelete({ cart_id });
+  res.json({ status: 'success', message: 'Cart deleted successfully' });
 });
 
 // #endregion CART MANAGEMENT
@@ -699,9 +727,7 @@ const filamentSchema = new mongoose.Schema({
 const Filament = mongoose.model('Filament', filamentSchema);
 
 const getFilament = async (filament_id) => {
-  const filament = await Filament.findOne({
-    filament_id
-  });
+  const filament = await Filament.findOne({ filament_id });
   return filament;
 }
 
@@ -727,9 +753,7 @@ const addFilament = async (filament_brand, filament_name, filament_color, filame
 }
 
 const updateFilament = async (filament_id, filament_brand, filament_name, filament_color, filament_unit_price, filament_image_url, filament_mass_in_grams, filament_link) => {
-  const filament = await Filament.findOne({
-    filament_id
-  });
+  const filament = await Filament.findOne({ filament_id });
   if (!filament) {
     return null;
   }
@@ -744,9 +768,7 @@ const updateFilament = async (filament_id, filament_brand, filament_name, filame
 }
 
 const deleteFilament = async (filament_id) => {
-  await Filament.deleteOne({
-    filament_id
-  });
+  await Filament.deleteOne({ filament_id });
 }
 
 app.post('/api/filament', async (req, res) => {
@@ -782,21 +804,12 @@ app.post('/api/filament', async (req, res) => {
         break;
       default:
         console.error("Invalid Action")
-        return res.status(400).json({
-          status: 'error',
-          message: 'Invalid action'
-        });
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
     }
-    res.json({
-      status: 'success',
-      result
-    });
+    res.json({ status: 'success', result });
   } catch (error) {
     console.error('Error handling filament action:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Internal server error'
-    });
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 });
 
@@ -806,23 +819,17 @@ app.post('/api/filament', async (req, res) => {
 
 const createProduct = async (product_title, product_description, product_features = [], product_image_url, product_fileid, product_author = "Mandarin 3D Prints", product_author_url = "https://mandarin3d.com", product_license = "CC BY-SA 4.0", product_filament_id) => {
   // First, check if the product already exists
-  const existingProduct = await Product.findOne({
-    product_title
-  });
+  const existingProduct = await Product.findOne({ product_title });
   if (existingProduct) {
     return existingProduct;
   }
 
   // Make sure the product_fileid and product_filament_id are valid
-  const file = await File.findOne({
-    fileid: product_fileid
-  });
+  const file = await File.findOne({ fileid: product_fileid });
   if (!file) {
     return null;
   }
-  const filament = await Filament.findOne({
-    filament_id: product_filament_id
-  });
+  const filament = await Filament.findOne({ filament_id: product_filament_id });
   if (!filament) {
     return null;
   }
