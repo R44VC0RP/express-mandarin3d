@@ -37,11 +37,11 @@ function App() {
             <Routes>
               <Route path="/login" element={<LoginRoute />} />
               <Route path="/" element={<Home />} />
-              <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+              <Route path="/cart" element={<Cart />} />
               <Route path="/logout" element={<Logout />} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             </Routes>
-            <AlertManager /> {/* Add this line */}
+            <AlertManager /> 
           </Router>
         </AuthProvider>
       </CartProvider>

@@ -13,42 +13,47 @@ import "slick-carousel/slick/slick-theme.css";
 import FileUploadProgress from '../components/FileUploadProgress';
 import { useCart } from '../context/Cart';
 import ShoppingCartItem from '../components/ShoppingCartItem';
-
+import axios from 'axios';
+import { useAlerts } from '../context/AlertContext';
 // Asset Imports
-import prining_bambu from '../assets/videos/printing_bambu.mp4'
-import fusion360 from '../assets/images/fusion360.gif'
-import building from '../assets/images/outdoor.png'
+import prining_bambu from '../assets/videos/printing_bambu.mp4';
+import fusion360 from '../assets/images/fusion360.gif';
+import building from '../assets/images/outdoor.png';
 
 // Import the useUploadThing hook
 import { useUploadThing } from "../utils/uploadthing";
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
-  const cart = useCart();
+  const { cart, deleteFile } = useCart();
+  const { addAlert } = useAlerts();
   const [localLoading, setLocalLoading] = useState(true);
   const [showAlert, setShowAlert] = useState(false);
   const location = useLocation();
   const [showcaseProducts, setShowcaseProducts] = useState([]);
   const [files, setFiles] = useState([]);
   const [uploadFiles, setUploadFiles] = useState([]);
+  const [cartItems, setCartItems] = useState([]);
+  const [subtotal, setSubtotal] = useState(0);
+  const [cartLoading, setCartLoading] = useState(true);
 
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
     "modelUploader",
     {
       onClientUploadComplete: (res) => {
         console.log("Files: ", res);
-		
+
         setUploadFiles(prevFiles => prevFiles.map(file => ({
           ...file,
           status: 'success'
         })));
 
-		for (const file of res) {
-			cart.addFile(file.serverData.fileid);
-		}
+        for (const file of res) {
+          cart.addFile(file.serverData.fileid);
+        }
       },
       onUploadError: (error) => {
-        alert(`ERROR! ${error.message}`);
+        addAlert('error', 'Error', `ERROR! ${error.message}`);
         setUploadFiles(prevFiles => prevFiles.map(file => ({
           ...file,
           status: 'error'
@@ -139,6 +144,135 @@ function Home() {
     // fetchShowcaseProducts();
   }, []);
 
+  useEffect(() => {
+    fetchCartItems();
+  }, []);
+
+  
+
+  
+
+  const fetchCartItems = async () => {
+    setCartLoading(true);
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/cart`, {
+        params: { cart_id: cart.cart_id }
+      });
+      if (response.data.status === 'success' && Array.isArray(response.data.files)) {
+        console.log("Response data: ", response.data.files);
+        setCartItems(response.data.files);
+        calculateSubtotal(response.data.files);
+      } else {
+        console.error('Unexpected response format:', response.data);
+        setCartItems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching cart items:', error);
+      setCartItems([]);
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
+  const calculateSubtotal = (items) => {
+    const checkoutItems = document.getElementById('checkout-items');
+    checkoutItems.innerHTML = '';
+    const total = items.reduce((acc, item) => {
+      if (item.file_status !== "error") {
+        // set the individual item price with `fileid` + `_price`
+        const priceElement = document.getElementById(`${item.fileid}_price`);
+        if (priceElement) {
+          priceElement.textContent = `$${(item.mass_in_grams * 0.1 * getQualityMultiplier(item.quality)).toFixed(2)}`;
+        }
+        const quantity = item.quantity || 1;
+        const qualityMultiplier = getQualityMultiplier(item.quality);
+        // Assuming the price is stored in the mass_in_grams field for now
+        const price = item.mass_in_grams * 0.1; // Example pricing logic
+        // <div className="flex justify-between">
+        //   <p>lion.3mf</p>
+        //   <p>$6.52</p>
+        // </div>
+        // <p className="text-sm text-gray-400">1x</p>
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex justify-between';
+        itemDiv.innerHTML = `<p>${item.filename}</p><p>$${(price * quantity * qualityMultiplier).toFixed(2)}</p>`;
+        checkoutItems.appendChild(itemDiv);
+        const quantityP = document.createElement('p');
+        quantityP.className = 'text-sm text-gray-400';
+        quantityP.textContent = `${quantity}x`;
+        checkoutItems.appendChild(quantityP);
+
+        return acc + (price * quantity * qualityMultiplier);
+      }
+        
+      return acc;
+    }, 0);
+    setSubtotal(total);
+  };
+
+  const getQualityMultiplier = (quality) => {
+    switch (quality) {
+      case '0.12mm': return 1.1;
+      case '0.20mm': return 1.3;
+      case '0.25mm': return 1.6;
+      default: return 1.3;
+    }
+  };
+
+  const handleQuantityChange = async (fileid, newQuantity) => {
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/cart/update`, {
+        cart_id: cart.cart_id,
+        fileid,
+        quantity: newQuantity
+      });
+      const updatedItems = cartItems.map(item =>
+        item.fileid === fileid ? { ...item, quantity: newQuantity } : item
+      );
+      setCartItems(updatedItems);
+      calculateSubtotal(updatedItems);
+      
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+    }
+  };
+
+  const handleQualityChange = async (fileid, newQuality) => {
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/cart/update`, {
+        cart_id: cart.cart_id,
+        fileid,
+        quality: newQuality
+      });
+      const updatedItems = cartItems.map(item =>
+        item.fileid === fileid ? { ...item, quality: newQuality } : item
+      );
+      setCartItems(updatedItems);
+      calculateSubtotal(updatedItems);
+    } catch (error) {
+      console.error('Error updating quality:', error);
+    }
+  };
+
+  const handleRemove = async (fileid) => {
+    try {
+      console.log("Removing file: ", fileid);
+      const response = await deleteFile(fileid);
+      if (response.status === 'success') {
+        const updatedItems = cartItems.filter(item => item.fileid !== fileid);
+        setCartItems(updatedItems);
+        calculateSubtotal(updatedItems);
+        addAlert('success', 'Success', 'Item removed from cart');
+      } else {
+        addAlert('error', 'Error', 'Failed to remove item from cart');
+      }
+    } catch (error) {
+      console.error('Error removing item:', error);
+      addAlert('error', 'Error', `Error removing item: ${error.message}`);
+    }
+  };
+
   if (localLoading) {
     return <div>Loading...</div>;
   }
@@ -179,7 +313,7 @@ function Home() {
     }
   ];
 
-  
+
   const settings = {
     dots: true,
     infinite: true,
@@ -231,7 +365,7 @@ function Home() {
         <div className="flex items-center justify-left mb-4">
           <p className="ml-4 mr-4 inline-block text-sm font-light"><a href="/" className="text-white">Home</a> / <span className="text-white font-bold">Shopping Cart</span></p>
         </div>
-        
+
       </div>
       <main className="container mx-auto ">
         {showAlert && (
@@ -242,25 +376,59 @@ function Home() {
         )}
         {/* Checkout Section */}
         <section className="px-4">
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-4">
             {/* Left Column: Shopping Cart Items */}
             <div name="checkout-items" className="col-span-2 mt-4 lg:mt-4">
-              <div className=" w-full">
-                <ShoppingCartItem />
+              <div className="w-full">
+                {cartLoading ? (
+                  <p>Loading cart items...</p>
+                ) : cartItems.length > 0 ? (
+                  <>
+                    {cartItems.filter(item => item.file_status === 'unsliced').map((item) => (
+                      <ShoppingCartItem
+                        key={item.fileid}
+                        {...item}
+                        onQuantityChange={handleQuantityChange}
+                        onQualityChange={handleQualityChange}
+                        onRemove={handleRemove}
+                      />
+                    ))}
+                    {cartItems.filter(item => item.file_status === 'error').map((item) => (
+                      <ShoppingCartItem
+                        key={item.fileid}
+                        {...item}
+                        onQuantityChange={handleQuantityChange}
+                        onQualityChange={handleQualityChange}
+                        onRemove={handleRemove}
+                      />
+                    ))}
+                    {cartItems.filter(item => item.file_status !== 'unsliced' && item.file_status !== 'error').map((item) => (
+                      <ShoppingCartItem
+                        key={item.fileid}
+                        {...item}
+                        onQuantityChange={handleQuantityChange}
+                        onQualityChange={handleQualityChange}
+                        onRemove={handleRemove}
+                      />
+                    ))}
+                  </>
+                ) : (
+                  <p>Your cart is empty.</p>
+                )}
               </div>
             </div>
             {/* Right Column: Shopping Cart Config */}
             <div name="checkout-config" className="mt-4 lg:-mt-8">
-            <div className="card-special w-full p-4">
+              <div className="card-special w-full p-4">
                 <div className="flex flex-col items-center mb-4">
                   <p className="text-xl font-bold mb-2 text-[#C7C7C7]" >Subtotal:</p>
-                  <p className="text-4xl font-bold">$39.70</p>
+                  <p className="text-4xl font-bold">${subtotal.toFixed(2)}</p>
                 </div>
-                <div className="mb-4">
-                  
+                <div className="mb-4" id="checkout-items">
+
                   {/* ankermake_castle... */}
-                  
+
                   <div className="flex justify-between">
                     <p className="font-light">ankermake_castle...</p>
                     <p className="font-bold">$7.30</p>
@@ -348,5 +516,6 @@ function Home() {
     </div>
   );
 }
+
 
 export default Home;

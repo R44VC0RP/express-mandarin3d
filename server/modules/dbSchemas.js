@@ -67,8 +67,9 @@ export const userSchema = new mongoose.Schema({
 export const cartSchema = new mongoose.Schema({
     cart_id: String,
     files: [{
-        type: String,
-        ref: 'File'
+        fileid: String,
+        quantity: { type: Number, default: 1 },
+        quality: { type: String, default: '0.20mm' }
     }]
 });
 

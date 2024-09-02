@@ -9,7 +9,7 @@ const backendUrl = process.env.REACT_APP_BACKEND_URL;
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState({ cart_id: null, files: [] });
+  const [cart, setCart] = useState({ cart_id: Cookies.get('cart_id'), files: [] });
 
   useEffect(() => {
     const cartId = Cookies.get('cart_id');
@@ -41,12 +41,12 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const addFile = async (fileid) => {
+  const addFile = async (fileid, quantity = 1, quality = '0.20mm') => {
     const cartId = Cookies.get('cart_id');
     try {
-      const response = await axios.post(backendUrl + '/api/cart/add', { cart_id: cartId, fileid });
+      const response = await axios.post(backendUrl + '/api/cart/add', { cart_id: cartId, fileid, quantity, quality });
       if (response.data.status === 'success') {
-        await getFilesFromCart(cartId); // Refresh the cart after adding
+        await getFilesFromCart(cartId);
       }
       return response.data;
     } catch (error) {
@@ -55,12 +55,26 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  const updateFile = async (fileid, quantity, quality) => {
+    const cartId = Cookies.get('cart_id');
+    try {
+      const response = await axios.post(backendUrl + '/api/cart/update', { cart_id: cartId, fileid, quantity, quality });
+      if (response.data.status === 'success') {
+        await getFilesFromCart(cartId);
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Error updating file in cart:', error);
+      return { status: 'error', message: 'Failed to update file in cart' };
+    }
+  };
+
   const deleteFile = async (fileid) => {
     const cartId = Cookies.get('cart_id');
     try {
       const response = await axios.post(backendUrl + '/api/cart/remove', { cart_id: cartId, fileid });
       if (response.data.status === 'success') {
-        await getFilesFromCart(cartId); // Refresh the cart after removing
+        await getFilesFromCart(cartId);
       }
       return response.data;
     } catch (error) {
@@ -108,7 +122,7 @@ export const CartProvider = ({ children }) => {
   };
 
   return (
-    <CartContext.Provider value={{ cart, addFile, deleteFile, getFilesFromCart, deleteCart }}>
+    <CartContext.Provider value={{ cart, addFile, deleteFile, updateFile, getFilesFromCart, deleteCart }}>
       {children}
     </CartContext.Provider>
   );
