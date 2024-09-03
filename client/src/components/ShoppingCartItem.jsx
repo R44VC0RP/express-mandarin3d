@@ -4,21 +4,19 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import {StlViewer} from "react-stl-viewer";
 
-const Model = ({ url }) => {
-  const { scene } = useGLTF(url);
-  return <primitive object={scene} />;
-};
+
 
 const ModelViewer = ({ url, style }) => {
-  console.log("ModelViewer url: ", url);
   return (
-    <StlViewer
-      style={style}
-      orbitControls
-      shadows
-      showAxes={true}
-      url={url}
-    />
+    <Suspense fallback={<div>Loading...</div>}>
+      <StlViewer
+        style={style}
+        orbitControls
+        shadows
+        showAxes={true}
+        url={url}
+      />
+    </Suspense>
   );
 };
 
@@ -43,8 +41,11 @@ const ShoppingCartItem = ({
   quality = "0.20mm",
   price=0,
   file_error="Your file is being quoted...",
+  filamentColors=[],
+  filament_color="Black PLA",
   onQuantityChange=()=>{},
   onQualityChange=()=>{},
+  onColorChange=()=>{},
   onRemove=()=>{}
 }) => {
   if (file_status === 'unsliced') {
@@ -90,7 +91,11 @@ const ShoppingCartItem = ({
             )}
           </div>
           <div>
-            <p className="text-white font-bold">{filename}</p>
+            <a href={utfile_url} download title="Click to download" className="hover:underline">
+              <p className="text-white font-bold">
+                {filename.length > 15 ? filename.substring(0, 13) + '...' : filename}
+              </p>
+            </a>
             <p className="text-white font-bold">File Mass: <span className="font-light">{mass_in_grams}g</span></p>
             <p className="text-white font-bold">Part Dimensions:</p>
             <p className="text-white font-bold">X: <span className="font-light">{dimensions.x}mm</span></p>
@@ -114,6 +119,21 @@ const ShoppingCartItem = ({
             <option value="0.12mm">0.12mm - Best</option>
             <option value="0.20mm">0.20mm - Default</option>
             <option value="0.25mm">0.25mm - Draft</option>
+          </select>
+          <p className="text-white font-bold mt-2">File Color</p>
+          <select 
+            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full" 
+            value={filament_color}
+            onChange={(e) => onColorChange(fileid, e.target.value)}
+          >
+            {filamentColors.map((color) => (
+              <option 
+                key={color.filament_id} 
+                value={color.filament_name}
+              >
+                {color.filament_name}
+              </option>
+            ))}
           </select>
         </div>
         <div className="flex flex-col items-end space-y-2">

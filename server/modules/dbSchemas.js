@@ -69,7 +69,8 @@ export const cartSchema = new mongoose.Schema({
     files: [{
         fileid: String,
         quantity: { type: Number, default: 1 },
-        quality: { type: String, default: '0.20mm' }
+        quality: { type: String, default: '0.20mm' },
+        filament_color: String
     }]
 });
 

@@ -10,6 +10,7 @@ import AlertManager from './components/AlertManager'; // Add this import
 import { AuthProvider, useAuth } from './context/AuthContext.js';
 import { CartProvider } from './context/Cart';
 import Loading from 'react-fullscreen-loading';
+import { Analytics } from "@vercel/analytics/react"
 // 
 
 const ProtectedRoute = ({ children }) => {

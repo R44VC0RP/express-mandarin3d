@@ -5,7 +5,7 @@ const FileUploadProgress = ({ files, onRemove }) => {
   if (files.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-gray-800 text-white rounded-lg p-4 shadow-lg max-w-md w-full sm:max-w-xs">
+    <div className="fixed bottom-4 right-4 z-50 bg-gray-800 text-white rounded-lg p-4 shadow-lg max-w-xs w-full sm:max-w-xs">
       <div className="flex justify-between items-center mb-2">
         <h3 className="font-bold">File Upload Progress</h3>
         <button onClick={() => onRemove(null)} className="text-gray-400 hover:text-white">

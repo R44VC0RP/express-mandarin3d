@@ -636,6 +636,7 @@ app.get('/api/cart', async (req, res) => {
     return res.json({ status: 'error', message: 'No cart_id provided' });
   }
   const cart = await getCart(cart_id);
+  console.log(cart);
   const filesWithDetails = await Promise.all(cart.files.map(async (file) => {
     const fileDetails = await getFile(file.fileid);
     if (!fileDetails) {
@@ -663,7 +664,8 @@ app.delete('/api/cart', async (req, res) => {
 });
 
 app.post('/api/cart/update', async (req, res) => {
-  const { cart_id, fileid, quantity, quality } = req.body;
+  const { cart_id, fileid, quantity, quality, color } = req.body;
+  console.log("Updating cart with id: ", cart_id, " with fileid: ", fileid, " quantity: ", quantity, " quality: ", quality, " color: ", color);
   if (!cart_id || !fileid) {
     return res.json({ status: 'error', message: 'No cart_id or fileid provided' });
   }
@@ -677,6 +679,9 @@ app.post('/api/cart/update', async (req, res) => {
   }
   if (quality !== undefined) {
     cart.files[fileIndex].quality = quality;
+  }
+  if (color !== undefined) {
+    cart.files[fileIndex].filament_color = color;
   }
   await cart.save();
   res.json({ status: 'success', message: 'Cart updated successfully' });

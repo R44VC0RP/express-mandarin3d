@@ -25,11 +25,12 @@ import { useUploadThing } from "../utils/uploadthing";
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
-  const { cart, deleteFile } = useCart();
+  const { cart, deleteFile, addFile } = useCart();
   const { addAlert } = useAlerts();
   const [localLoading, setLocalLoading] = useState(true);
   const [showAlert, setShowAlert] = useState(false);
   const location = useLocation();
+  const [filamentColors, setFilamentColors] = useState([]);
   const [showcaseProducts, setShowcaseProducts] = useState([]);
   const [files, setFiles] = useState([]);
   const [uploadFiles, setUploadFiles] = useState([]);
@@ -49,8 +50,10 @@ function Home() {
         })));
 
         for (const file of res) {
-          cart.addFile(file.serverData.fileid);
+          addFile(file.serverData.fileid);
+
         }
+        fetchCartItems();
       },
       onUploadError: (error) => {
         addAlert('error', 'Error', `ERROR! ${error.message}`);
@@ -59,8 +62,8 @@ function Home() {
           status: 'error'
         })));
       },
-      onUploadBegin: () => {
-        console.log("Upload has begun");
+      onUploadBegin: (res, file) => {
+        console.log("Upload has begun: ", res, file);
       },
     }
   );
@@ -148,10 +151,24 @@ function Home() {
     fetchCartItems();
   }, []);
 
-  
 
-  
+  const fetchFilamentColors = async () => {
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/filament`, {
+        action: 'list'
+      });
+      console.log("Filament Colors: ", response.data.result);
 
+      setFilamentColors(response.data.result);
+    } catch (error) {
+      console.error('Error fetching filament colors:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchFilamentColors();
+  }, []);
+  
   const fetchCartItems = async () => {
     setCartLoading(true);
     try {
@@ -254,6 +271,27 @@ function Home() {
       console.error('Error updating quality:', error);
     }
   };
+
+  const handleColorChange = async (fileid, newColor) => {
+    console.log("New Color: ", newColor);
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/cart/update`, {
+        cart_id: cart.cart_id,
+        fileid,
+        color: newColor
+      });
+      console.log("Response: ", response.data);
+      const updatedItems = cartItems.map(item =>
+        item.fileid === fileid ? { ...item, filament_color: newColor } : item
+      );
+      setCartItems(updatedItems);
+      calculateSubtotal(updatedItems);
+    } catch (error) {
+      console.error('Error updating color:', error);
+      addAlert('error', 'Error', `Failed to update color: ${error.message}`);
+    }
+  };
+    
 
   const handleRemove = async (fileid) => {
     try {
@@ -382,15 +420,20 @@ function Home() {
             <div name="checkout-items" className="col-span-2 mt-4 lg:mt-4">
               <div className="w-full">
                 {cartLoading ? (
-                  <p>Loading cart items...</p>
+                  <div className="flex flex-col items-center justify-center">
+                    <p className="text-xl font-bold mb-4">Loading Cart</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
+                  </div>
                 ) : cartItems.length > 0 ? (
                   <>
                     {cartItems.filter(item => item.file_status === 'unsliced').map((item) => (
                       <ShoppingCartItem
                         key={item.fileid}
                         {...item}
+                        filamentColors={filamentColors}
                         onQuantityChange={handleQuantityChange}
                         onQualityChange={handleQualityChange}
+                        onColorChange={handleColorChange}
                         onRemove={handleRemove}
                       />
                     ))}
@@ -398,8 +441,10 @@ function Home() {
                       <ShoppingCartItem
                         key={item.fileid}
                         {...item}
+                        filamentColors={filamentColors}
                         onQuantityChange={handleQuantityChange}
                         onQualityChange={handleQualityChange}
+                        onColorChange={handleColorChange}
                         onRemove={handleRemove}
                       />
                     ))}
@@ -407,8 +452,10 @@ function Home() {
                       <ShoppingCartItem
                         key={item.fileid}
                         {...item}
+                        filamentColors={filamentColors}
                         onQuantityChange={handleQuantityChange}
                         onQualityChange={handleQualityChange}
+                        onColorChange={handleColorChange}
                         onRemove={handleRemove}
                       />
                     ))}
