@@ -222,7 +222,7 @@ function Home() {
           </div>
         )}
         {/* Hero Section */}
-        <section className="flex flex-col md:flex-row justify-between items-center max-w-5xl">
+        <section className="flex flex-col md:flex-row justify-center items-center">
           <div className="max-w-md p-2 ">
             <h1 className="text-4xl font-bold mb-3">Custom 3D Prints Done Right</h1>
             <p className="text-lg mb-6 font-light">Bringing your ideas to life, one layer at a time.</p>

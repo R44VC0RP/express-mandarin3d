@@ -22,6 +22,7 @@ import building from '../assets/images/outdoor.png';
 
 // Import the useUploadThing hook
 import { useUploadThing } from "../utils/uploadthing";
+import CheckoutLineItem from '../components/CheckoutLineItem';
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -33,9 +34,12 @@ function Home() {
   const [filamentColors, setFilamentColors] = useState([]);
   const [showcaseProducts, setShowcaseProducts] = useState([]);
   const [files, setFiles] = useState([]);
+  const [shippingOptions, setShippingOptions] = useState([]);
+  const [activeShippingOption, setActiveShippingOption] = useState(0);
   const [uploadFiles, setUploadFiles] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [subtotal, setSubtotal] = useState(0);
+  const [total, setTotal] = useState(0);
   const [cartLoading, setCartLoading] = useState(true);
 
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
@@ -148,9 +152,23 @@ function Home() {
   }, []);
 
   useEffect(() => {
+    if (activeShippingOption && subtotal) {
+      const total = subtotal + activeShippingOption
+      console.log("Total: ", total);
+      setTotal(total);
+    }
+  }, [activeShippingOption, subtotal, cartItems]); // for future use add the other addons here
+
+  useEffect(() => {
     fetchCartItems();
+    fetchFilamentColors();
+    fetchShippingOptions();
   }, []);
 
+  useEffect(() => {
+    const newSubtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+    setSubtotal(newSubtotal);
+  }, [cartItems]);
 
   const fetchFilamentColors = async () => {
     try {
@@ -165,75 +183,54 @@ function Home() {
     }
   };
 
-  useEffect(() => {
-    fetchFilamentColors();
-  }, []);
-  
-  const fetchCartItems = async () => {
-    setCartLoading(true);
+  const handleShippingChange = async (shipping_option_id) => {
+    const shippingOption = shippingOptions.find(option => option.id === shipping_option_id);
+    console.log("Shipping Option: ", shippingOption);
+
+    setActiveShippingOption(shippingOption.fixed_amount.amount / 100);
+  };
+
+  const fetchCartItems = async (reload = true) => {
+    if (reload) {
+      setCartLoading(true);
+    }
     try {
       const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/cart`, {
         params: { cart_id: cart.cart_id }
       });
       if (response.data.status === 'success' && Array.isArray(response.data.files)) {
-        console.log("Response data: ", response.data.files);
+
         setCartItems(response.data.files);
-        calculateSubtotal(response.data.files);
+        //createLineItems();
+        if (reload) {
+          setCartLoading(false);
+        }
       } else {
         console.error('Unexpected response format:', response.data);
         setCartItems([]);
+        if (reload) {
+          setCartLoading(false);
+        }
       }
     } catch (error) {
       console.error('Error fetching cart items:', error);
       setCartItems([]);
     } finally {
-      setCartLoading(false);
+      if (reload) {
+        setCartLoading(false);
+      }
     }
   };
 
-  const calculateSubtotal = (items) => {
-    const checkoutItems = document.getElementById('checkout-items');
-    checkoutItems.innerHTML = '';
-    const total = items.reduce((acc, item) => {
-      if (item.file_status !== "error") {
-        // set the individual item price with `fileid` + `_price`
-        const priceElement = document.getElementById(`${item.fileid}_price`);
-        if (priceElement) {
-          priceElement.textContent = `$${(item.mass_in_grams * 0.1 * getQualityMultiplier(item.quality)).toFixed(2)}`;
-        }
-        const quantity = item.quantity || 1;
-        const qualityMultiplier = getQualityMultiplier(item.quality);
-        // Assuming the price is stored in the mass_in_grams field for now
-        const price = item.mass_in_grams * 0.1; // Example pricing logic
-        // <div className="flex justify-between">
-        //   <p>lion.3mf</p>
-        //   <p>$6.52</p>
-        // </div>
-        // <p className="text-sm text-gray-400">1x</p>
-
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'flex justify-between';
-        itemDiv.innerHTML = `<p>${item.filename}</p><p>$${(price * quantity * qualityMultiplier).toFixed(2)}</p>`;
-        checkoutItems.appendChild(itemDiv);
-        const quantityP = document.createElement('p');
-        quantityP.className = 'text-sm text-gray-400';
-        quantityP.textContent = `${quantity}x`;
-        checkoutItems.appendChild(quantityP);
-
-        return acc + (price * quantity * qualityMultiplier);
-      }
-        
-      return acc;
-    }, 0);
-    setSubtotal(total);
-  };
-
-  const getQualityMultiplier = (quality) => {
-    switch (quality) {
-      case '0.12mm': return 1.1;
-      case '0.20mm': return 1.3;
-      case '0.25mm': return 1.6;
-      default: return 1.3;
+  const fetchShippingOptions = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/shipping`, {
+        params: { action: 'list' }
+      });
+      setShippingOptions(response.data.result);
+      setActiveShippingOption(response.data.result[0].fixed_amount.amount / 100);
+    } catch (error) {
+      console.error('Error fetching shipping options:', error);
     }
   };
 
@@ -247,9 +244,8 @@ function Home() {
       const updatedItems = cartItems.map(item =>
         item.fileid === fileid ? { ...item, quantity: newQuantity } : item
       );
-      setCartItems(updatedItems);
-      calculateSubtotal(updatedItems);
-      
+      fetchCartItems(false);
+
     } catch (error) {
       console.error('Error updating quantity:', error);
     }
@@ -262,11 +258,7 @@ function Home() {
         fileid,
         quality: newQuality
       });
-      const updatedItems = cartItems.map(item =>
-        item.fileid === fileid ? { ...item, quality: newQuality } : item
-      );
-      setCartItems(updatedItems);
-      calculateSubtotal(updatedItems);
+      fetchCartItems(false);
     } catch (error) {
       console.error('Error updating quality:', error);
     }
@@ -281,26 +273,19 @@ function Home() {
         color: newColor
       });
       console.log("Response: ", response.data);
-      const updatedItems = cartItems.map(item =>
-        item.fileid === fileid ? { ...item, filament_color: newColor } : item
-      );
-      setCartItems(updatedItems);
-      calculateSubtotal(updatedItems);
+      fetchCartItems(false);
     } catch (error) {
       console.error('Error updating color:', error);
       addAlert('error', 'Error', `Failed to update color: ${error.message}`);
     }
   };
-    
 
   const handleRemove = async (fileid) => {
     try {
       console.log("Removing file: ", fileid);
       const response = await deleteFile(fileid);
       if (response.status === 'success') {
-        const updatedItems = cartItems.filter(item => item.fileid !== fileid);
-        setCartItems(updatedItems);
-        calculateSubtotal(updatedItems);
+        fetchCartItems(false);
         addAlert('success', 'Success', 'Item removed from cart');
       } else {
         addAlert('error', 'Error', 'Failed to remove item from cart');
@@ -350,7 +335,6 @@ function Home() {
       license: "CC BY-SA 4.0"
     }
   ];
-
 
   const settings = {
     dots: true,
@@ -469,42 +453,35 @@ function Home() {
             <div name="checkout-config" className="mt-4 lg:-mt-8">
               <div className="card-special w-full p-4">
                 <div className="flex flex-col items-center mb-4">
-                  <p className="text-xl font-bold mb-2 text-[#C7C7C7]" >Subtotal:</p>
+                  <p className="text-xl font-bold mb-2 text-[#C7C7C7]" >Parts Subtotal:</p>
                   <p className="text-4xl font-bold">${subtotal.toFixed(2)}</p>
                 </div>
-                <div className="mb-4" id="checkout-items">
-
-                  {/* ankermake_castle... */}
-
-                  <div className="flex justify-between">
-                    <p className="font-light">ankermake_castle...</p>
-                    <p className="font-bold">$7.30</p>
-                  </div>
-                  <p className="text-sm text-gray-400">2x</p>
-
-                  {/* mainecoon.step */}
-                  <div className="flex justify-between">
-                    <p>mainecoon.step</p>
-                    <p>$7.38</p>
-                  </div>
-                  <p className="text-sm text-gray-400">6x</p>
-
-                  {/* lion.3mf */}
-                  <div className="flex justify-between">
-                    <p>lion.3mf</p>
-                    <p>$6.52</p>
-                  </div>
-                  <p className="text-sm text-gray-400">1x</p>
+                <div className="mb-4">
+                  {cartItems.map((item) => (
+                    <CheckoutLineItem
+                      key={item.fileid}
+                      item_name={item.filename}
+                      item_price={item.price}
+                      item_quantity={item.quantity}
+                    />
+                  ))}
                 </div>
 
                 <hr className="border-t border-[#5E5E5E] my-4" />
                 <div className="flex justify-between mb-2">
                   <p className="font-light">Estimated Shipping:</p>
-                  <p className="font-bold">$8.50</p>
+                  <p className="font-bold">${activeShippingOption.toFixed(2)}</p>
                 </div>
+                <p className='text-sm text-gray-400'>Order Addons:</p>
                 <div className="flex justify-between mb-4">
+
                   <p className="font-light">Queue Priority:</p>
                   <p className="font-bold">$10.00</p>
+                </div>
+                <hr className="border-t border-[#5E5E5E] my-4" />
+                <div className="flex justify-between mb-4">
+                  <p className="font-light">Estimated Total:</p>
+                  <p className="font-bold">${(subtotal + activeShippingOption).toFixed(2)}</p>
                 </div>
                 <button className="primary-button w-full py-2 rounded-lg">Checkout</button>
               </div>
@@ -512,7 +489,13 @@ function Home() {
                 <div className="flex flex-col items-center mb-4">
                   <p className="text-lg font-bold mb-2 text-[#C7C7C7]">Order Options and Addons:</p>
                 </div>
-                <p className="text-md text-white">Order Comments</p>
+                <p className="text-md text-white">Shipping Speed</p>
+                <select className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-[#5E5E5E] text-white" onChange={(e) => handleShippingChange(e.target.value)}>
+                  {shippingOptions.map((option) => (
+                    <option key={option.id} value={option.id}>{option.display_name}</option>
+                  ))}
+                </select>
+                <p className="text-md text-white mt-2">Order Comments</p>
                 <textarea className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-[#5E5E5E] text-white" placeholder="Add any special instructions here..."></textarea>
                 <div className="flex items-start mt-2">
                   <div className="flex items-start mt-2 cursor-pointer" onClick={() => document.getElementById('multi-color-checkbox').click()}>

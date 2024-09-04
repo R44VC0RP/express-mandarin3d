@@ -16,11 +16,17 @@ import {
 } from 'uuid';
 import {
     createNewProduct,
-    deleteProduct
+    deleteProduct,
+    createNewShippingOption,
+    deleteShippingOption,
+    getShippingOptions
 } from './modules/stripeConn.js';
 import {
     UTApi
 } from "uploadthing/server";
+import {
+    calculatePrice
+} from './modules/calculatingPrice.js';
 
 const utapi = new UTApi();
 
@@ -631,27 +637,33 @@ app.post('/api/cart/remove', async (req, res) => {
 
 app.get('/api/cart', async (req, res) => {
   const { cart_id } = req.query;
-  console.log("Fetching cart with id: ", cart_id);
   if (!cart_id) {
     return res.json({ status: 'error', message: 'No cart_id provided' });
   }
   const cart = await getCart(cart_id);
-  console.log(cart);
   const filesWithDetails = await Promise.all(cart.files.map(async (file) => {
     const fileDetails = await getFile(file.fileid);
     if (!fileDetails) {
       return null;
     }
+
+    const filament = await getFilamentByName(file.filament_color);
+    
+    // Calculate the price of the file
+    
+    const price = calculatePrice(fileDetails, filament, file);
     return {
       ...fileDetails.toObject(),
       quantity: file.quantity,
-      quality: file.quality
+      quality: file.quality,
+      filament_color: file.filament_color,
+      price: price
     };
   }));
   const validFiles = filesWithDetails.filter(file => file !== null);
   cart.files = validFiles;
   await cart.save();
-  res.json({ status: 'success', cart_id: cart.cart_id, files: validFiles });
+  res.json({ status: 'success', cart_id: cart.cart_id, files: validFiles, cart: cart });
 });
 
 app.delete('/api/cart', async (req, res) => {
@@ -766,6 +778,11 @@ const Filament = mongoose.model('Filament', filamentSchema);
 
 const getFilament = async (filament_id) => {
   const filament = await Filament.findOne({ filament_id });
+  return filament;
+}
+
+const getFilamentByName = async (filament_name) => {
+  const filament = await Filament.findOne({ filament_name });
   return filament;
 }
 
@@ -889,6 +906,58 @@ const createProduct = async (product_title, product_description, product_feature
 }
 
 // #endregion PRODUCT MANAGEMENT
+
+// #region SHIPPING MANAGEMENT
+
+app.post('/api/shipping', requireLogin, requireAdmin, async (req, res) => {
+  const {
+    action,
+    shipping_option_id,
+    name,
+    price,
+    delivery_estimate,
+    notes
+  } = req.body;
+  let result;
+  try {
+    switch (action) {
+      case 'create':
+        result = await createShippingOption(name, price, delivery_estimate, notes);
+        break;
+      case 'delete':
+        result = await deleteShippingOption(shipping_option_id);
+        break;
+      case 'list':
+        result = await getShippingOptions();
+        break;
+    }
+    res.json({ status: 'success', result });
+  } catch (error) {
+    console.error('Error handling shipping action:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
+app.get('/api/shipping', async (req, res) => {
+  const { action } = req.query;
+  let result;
+  try {
+    switch (action) {
+      case 'list':
+        result = await getShippingOptions();
+        break;
+      default:
+        console.error("Invalid Action")
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
+    }
+    res.json({ status: 'success', result });
+  } catch (error) {
+    console.error('Error handling shipping action:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
+// #endregion SHIPPING MANAGEMENT
 
 // #region SETTINGS MANAGEMENT
 

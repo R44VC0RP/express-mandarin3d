@@ -70,7 +70,12 @@ export const cartSchema = new mongoose.Schema({
         fileid: String,
         quantity: { type: Number, default: 1 },
         quality: { type: String, default: '0.20mm' },
-        filament_color: String
+        filament_color: { type: String, default: 'Black PLA' }
+    }],
+    cart_addons: [{
+        addon_name: String,
+        addon_id: String,
+        addon_price: Number
     }]
 });
 
@@ -94,5 +99,17 @@ export const configSchema = new mongoose.Schema({
         y: Number,
         z: Number,
     },
-    // Add more config sections here
+    priceConfig: {
+        profitMargin: Number
+    },
+    stripeConfig: {
+        shippingOptions: [{
+            stripe_id: String,
+            name: String,
+            price: Number,
+            delivery_estimate: String,
+            notes: String
+
+        }]
+    }
 });

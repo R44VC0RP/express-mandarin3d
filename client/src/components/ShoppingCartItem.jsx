@@ -1,22 +1,84 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { FaMinus, FaPlus, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
-import {StlViewer} from "react-stl-viewer";
+import { StlViewer } from "react-stl-viewer";
+
+function hexToRgb(hex) {
+  if (hex.startsWith('#')) {
+    hex = hex.substring(1);
+  }
+  if (hex.length === 3) {
+    hex = hex.split('').map(char => char + char).join('');
+  }
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return { r, g, b };
+}
+
+function calculateLuminance(r, g, b) {
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function getContrastColor(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const colorLuminance = calculateLuminance(r, g, b);
+  const whiteLuminance = calculateLuminance(255, 255, 255);
+  const blackLuminance = calculateLuminance(0, 0, 0);
+
+  const contrastWithWhite = Math.abs(colorLuminance - whiteLuminance);
+  const contrastWithBlack = Math.abs(colorLuminance - blackLuminance);
+
+  return contrastWithWhite > contrastWithBlack ? '#F9FAFB' : '#111827';
+}
+
+
+const LazyModelViewer = ({ url, style, hexColor }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef(null);
 
 
 
-const ModelViewer = ({ url, style }) => {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <StlViewer
-        style={style}
-        orbitControls
-        shadows
-        showAxes={true}
-        url={url}
-      />
-    </Suspense>
+    <div ref={containerRef} style={style}>
+      {isVisible ? (
+        <Suspense fallback={<div>Loading...</div>}>
+          <StlViewer
+            style={style}
+            orbitControls
+            shadows
+            showAxes={true}
+            url={url}
+            modelProps={{ color: hexColor, scale: 1.2 }}
+          />
+        </Suspense>
+      ) : (
+        <div style={style}>Loading...</div>
+      )}
+    </div>
   );
 };
 
@@ -26,28 +88,29 @@ const style = {
 };
 
 const ShoppingCartItem = ({
-  fileid="1",
-  filename="Placeholder",
-  file_status="unsliced",
-  fileurl="https://via.placeholder.com/150",
-  mass_in_grams=0,
-  dimensions={
+  fileid = "1",
+  filename = "Placeholder",
+  file_status = "unsliced",
+  fileurl = "https://via.placeholder.com/150",
+  mass_in_grams = 0,
+  dimensions = {
     x: 0,
     y: 0,
     z: 0
   },
-  utfile_url="https://s2.mandarin3d.com/or_4hioorot5xn/Pylon_Threaded_Version_STEP.stl",
+  utfile_url = "https://s2.mandarin3d.com/or_4hioorot5xn/Pylon_Threaded_Version_STEP.stl",
   quantity = 1,
   quality = "0.20mm",
-  price=0,
-  file_error="Your file is being quoted...",
-  filamentColors=[],
-  filament_color="Black PLA",
-  onQuantityChange=()=>{},
-  onQualityChange=()=>{},
-  onColorChange=()=>{},
-  onRemove=()=>{}
+  price = 0,
+  file_error = "Your file is being quoted...",
+  filamentColors = [],
+  filament_color = "Black PLA",
+  onQuantityChange = () => { },
+  onQualityChange = () => { },
+  onColorChange = () => { },
+  onRemove = () => { }
 }) => {
+  const hexColor = filamentColors.find(color => color.filament_name === filament_color)?.filament_color;
   if (file_status === 'unsliced') {
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between p-4">
@@ -79,23 +142,28 @@ const ShoppingCartItem = ({
     );
   }
 
+  const contrastColor = getContrastColor(hexColor);
+
   return (
     <div className="p-4">
+      <a href={utfile_url} download title="Click to download" className="hover:underline">
+        <p className="text-white font-bold text-2xl">
+          {filename}
+        </p>
+      </a>
       <div className="flex flex-col sm:flex-row items-start justify-between">
+
         <div className="flex flex-col sm:flex-row items-center mb-4 sm:mb-0">
-          <div className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4">
+
+          <div className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4 " style={{ backgroundColor: contrastColor }}>
             {utfile_url ? (
-              <ModelViewer url={utfile_url} style={style}/>
+              <LazyModelViewer url={utfile_url} style={style} hexColor={hexColor} />
             ) : (
               <img src={fileurl} alt={filename} className="w-full h-full object-cover" />
             )}
           </div>
           <div>
-            <a href={utfile_url} download title="Click to download" className="hover:underline">
-              <p className="text-white font-bold">
-                {filename.length > 15 ? filename.substring(0, 13) + '...' : filename}
-              </p>
-            </a>
+
             <p className="text-white font-bold">File Mass: <span className="font-light">{mass_in_grams}g</span></p>
             <p className="text-white font-bold">Part Dimensions:</p>
             <p className="text-white font-bold">X: <span className="font-light">{dimensions.x}mm</span></p>
@@ -111,24 +179,25 @@ const ShoppingCartItem = ({
             <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity + 1)}><FaPlus /></button>
           </div>
           <p className="text-white font-bold mt-2">Layer Height (Quality)</p>
-          <select 
-            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full" 
+          <select
+            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
             value={quality}
             onChange={(e) => onQualityChange(fileid, e.target.value)}
           >
             <option value="0.12mm">0.12mm - Best</option>
+            <option value="0.16mm">0.16mm - Good</option>
             <option value="0.20mm">0.20mm - Default</option>
             <option value="0.25mm">0.25mm - Draft</option>
           </select>
           <p className="text-white font-bold mt-2">File Color</p>
-          <select 
-            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full" 
+          <select
+            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
             value={filament_color}
             onChange={(e) => onColorChange(fileid, e.target.value)}
           >
             {filamentColors.map((color) => (
-              <option 
-                key={color.filament_id} 
+              <option
+                key={color.filament_id}
                 value={color.filament_name}
               >
                 {color.filament_name}
@@ -137,7 +206,8 @@ const ShoppingCartItem = ({
           </select>
         </div>
         <div className="flex flex-col items-end space-y-2">
-          <p className="text-white font-bold" id={`${fileid}_price`}>$</p>
+          {/* <p className="text-white font-bold" id={`${fileid}_price`}>${price}</p> */}
+          <p className="text-white font-bold">${price}</p>
           <button className="github-remove" onClick={() => onRemove(fileid)}>Remove</button>
         </div>
       </div>

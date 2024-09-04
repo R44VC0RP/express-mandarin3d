@@ -21,4 +21,54 @@ export const deleteProduct = async (product_id) => {
     await stripe.products.del(product_id);
 }
 
+export const createNewShippingOption = async (name, price, delivery_estimate="4-5", notes="") => {
+    price = price * 100;
+    delivery_estimate = delivery_estimate.split("-");
+    const shippingRate = await stripe.shippingRates.create({
+        display_name: name,
+        type: 'fixed_amount',
+        fixed_amount: {
+          amount: price,
+          currency: 'usd',
+        },
+        delivery_estimate: {
+          minimum: {
+            unit: 'business_day',
+            value: delivery_estimate[0],
+          },
+          maximum: {
+            unit: 'business_day',
+            value: delivery_estimate[1],
+          },
+        },
+        metadata: {
+            express: true
+        },
+    });
+    return shippingRate.id;
+}
 
+export const deleteShippingOption = async (shipping_option_id) => {
+    await stripe.shippingRates.update(
+        shipping_option_id,
+        {
+            active: false,
+        }
+    )
+    return true;
+}
+
+export const getShippingOptions = async () => {
+    const shippingOptions = await stripe.shippingRates.list({
+        active: true,
+
+    });
+    let shippingOptionsArray = [];
+    for (const shippingOption of shippingOptions.data) {
+        if (shippingOption.metadata.express) {
+            shippingOptionsArray.push(shippingOption);
+        }
+    }
+    console.log(shippingOptionsArray);
+    return shippingOptionsArray;
+}
