@@ -119,6 +119,7 @@ const ShoppingCartItem = ({
           <p className="text-white">{filename}</p>
         </div>
         <p className="text-gray-400">Your file is being quoted...</p>
+        <button className="github-remove mt-2 sm:mt-0" onClick={() => onRemove(fileid)}>Remove</button>
       </div>
     );
   }

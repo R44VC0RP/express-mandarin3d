@@ -43,6 +43,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const addFile = async (fileid, quantity = 1, quality = '0.20mm') => {
+    getFilesFromCart();
     const cartId = Cookies.get('cart_id');
     try {
       const response = await axios.post(backendUrl + '/api/cart/add', { cart_id: cartId, fileid, quantity, quality });
@@ -88,7 +89,6 @@ export const CartProvider = ({ children }) => {
     try {
       const response = await axios.get(backendUrl + `/api/cart?cart_id=${cartId}`);
       if (response.data.status === 'success') {
-        console.log("Response data for getFilesFromCart: ", response.data);
         setCart(prevCart => {
           // Only update if there's a change
           if (JSON.stringify(prevCart) !== JSON.stringify(response.data)) {
@@ -104,8 +104,8 @@ export const CartProvider = ({ children }) => {
         console.log("No cart found for cart_id: ", cartId);
         // Delete the cart
         deleteCart();
-        // Create a new cart
         createNewCart();
+        console.log("Cart created: ", cart);
       }
       return response.data;
     } catch (error) {
