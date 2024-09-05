@@ -13,7 +13,8 @@ import Loading from 'react-fullscreen-loading';
 import { Analytics } from "@vercel/analytics/react"
 // 
 
-console.log(`${process.env.REACT_APP_BACKEND_URL}`)
+
+
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
