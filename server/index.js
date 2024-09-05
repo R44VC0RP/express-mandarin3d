@@ -46,6 +46,12 @@ import {
 
 const app = express();
 
+// Add this middleware before other app.use() calls
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 app.use(cors({
   origin: process.env.FRONTEND_URL, 
   credentials: true
