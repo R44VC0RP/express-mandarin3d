@@ -1020,4 +1020,5 @@ app.post('/api/configs', requireLogin, requireAdmin, async (req, res) => {
 
 app.listen(8080, () => {
   console.log('Server is running on port 8080')
+  console.log('CORS is enabled for: ', process.env.FRONTEND_URL)
 })
