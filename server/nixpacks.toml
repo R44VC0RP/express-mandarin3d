@@ -4,11 +4,14 @@ nixPkgs = ['nodejs', 'nodePackages.npm']
 [phases.install]
 cmds = ['npm ci']
 
+[phases.build]
+cmds = []
+
 [start]
 cmd = 'node index.js'
-
 
 [variables]
 NIXPACKS_PATH = "/app"
 CI = "false"
 PORT = "8080"
+NODE_ENV = "production"
