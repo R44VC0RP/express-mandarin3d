@@ -1,11 +1,13 @@
 [phases.setup]
-nixPkgs = ['nodejs', 'npm']
+nixPkgs = ['nodejs', 'nodePackages.npm']
 
 [phases.install]
 cmds = ['npm ci']
 
-[phases.build]
-cmds = ['npm run build']
-
 [start]
-cmd = 'npm start'
+cmd = 'node index.js'
+
+[variables]
+NIXPACKS_PATH = "/app"
+CI = "false"
+PORT = "8080"
