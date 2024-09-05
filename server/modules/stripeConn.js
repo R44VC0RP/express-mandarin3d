@@ -22,7 +22,7 @@ export const deleteProduct = async (product_id) => {
 }
 
 export const createNewShippingOption = async (name, price, delivery_estimate="4-5", notes="") => {
-    price = price * 100;
+    price = Math.round(price * 100);
     delivery_estimate = delivery_estimate.split("-");
     const shippingRate = await stripe.shippingRates.create({
         display_name: name,

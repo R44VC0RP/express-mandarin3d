@@ -413,6 +413,16 @@ const createNewFile = async (filename, utfile_id, utfile_url, price_override = n
   return newFile;
 }
 
+const updateFile = async (fileid, price_override) => {
+  const file = await File.findOne({
+      fileid
+  });
+  if (!file) {
+      return null;
+  }
+  file.price_override = price_override;
+  await file.save();
+}
 const deleteFile = async (fileid) => {
   // this requires a user to be an admin
   const file = await File.findOne({
@@ -439,7 +449,7 @@ const getFile = async (fileid) => {
 }
 
 const getAllFiles = async () => {
-  const files = await File.find();
+  const files = await File.find().sort({ dateCreated: -1 });
   return files;
 }
 
@@ -468,6 +478,9 @@ app.post('/api/file', async (req, res) => {
         break;
       case 'slice':
         result = await reSliceFile(fileid);
+        break;
+      case 'update':
+        result = await updateFile(fileid, price_override);
         break;
       default:
         return res.status(400).json({
@@ -665,8 +678,16 @@ app.get('/api/cart', async (req, res) => {
     if (!fileDetails) {
       return null;
     }
-    const filament = await getFilamentByName(file.filament_color);
-    const price = calculatePrice(fileDetails, filament, file);
+    let filament = await getFilamentByName(file.filament_color);
+    if (!filament) {
+      filament = await getDefaultFilament();
+    }
+    let price;
+    if (fileDetails.price_override) {
+      price = fileDetails.price_override;
+    } else {
+      price = calculatePrice(fileDetails, filament, file);
+    }
     return {
       ...fileDetails.toObject(),
       quantity: file.quantity,
@@ -794,6 +815,11 @@ const getFilament = async (filament_id) => {
 
 const getFilamentByName = async (filament_name) => {
   const filament = await Filament.findOne({ filament_name });
+  return filament;
+}
+
+const getDefaultFilament = async () => {
+  const filament = await Filament.findOne();
   return filament;
 }
 
@@ -933,7 +959,7 @@ app.post('/api/shipping', requireLogin, requireAdmin, async (req, res) => {
   try {
     switch (action) {
       case 'create':
-        result = await createShippingOption(name, price, delivery_estimate, notes);
+        result = await createNewShippingOption(name, price, delivery_estimate, notes);
         break;
       case 'delete':
         result = await deleteShippingOption(shipping_option_id);

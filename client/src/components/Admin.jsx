@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FaBars, FaUser, FaCog, FaChartBar, FaBoxes, FaFileAlt, FaShoppingCart } from 'react-icons/fa';
+import { FaBars, FaUser, FaCog, FaChartBar, FaBoxes, FaFileAlt, FaShoppingCart, FaTruck } from 'react-icons/fa';
 import Dashboard from '../components/admin/Dashboard';
 import FilamentInventory from '../components/admin/Filaments';
 import FileManagement from '../components/admin/Files';
 import UserManagement from '../components/admin/UserManagement';
 import Settings from '../components/admin/Settings';
+import ShippingInfo from './admin/ShippingInfo.jsx';
 import logo from '../assets/images/m3d_logo.png';
 
 
@@ -30,6 +31,7 @@ function Sidebar({ activeTab, setActiveTab }) {
                 { name: 'Filaments', icon: FaBoxes },
                 { name: 'Files', icon: FaFileAlt },
                 { name: 'Carts', icon: FaShoppingCart },
+                { name: 'Shipping Info', icon: FaTruck },
             ]
         }
     ];
@@ -74,6 +76,7 @@ function Content({ activeTab }) {
             {activeTab === 'Files' && <FileManagement />}
             {activeTab === 'Users' && <UserManagement />}
             {activeTab === 'Settings' && <Settings />}
+            {activeTab === 'Shipping Info' && <ShippingInfo />}
         </div>
     );
 }
@@ -88,7 +91,7 @@ function Admin() {
     }, [activeTab]);
 
     return (
-        <div className="flex h-screen bg-[#0F0F0F] text-white">
+        <div className="flex bg-[#0F0F0F] text-white">
             <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
             <div className="flex flex-col flex-grow">
                 <Content activeTab={activeTab} />

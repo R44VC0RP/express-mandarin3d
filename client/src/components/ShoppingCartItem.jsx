@@ -88,6 +88,7 @@ const style = {
 };
 
 const ShoppingCartItem = ({
+  isAuthenticated,
   fileid = "1",
   filename = "Placeholder",
   file_status = "unsliced",
@@ -114,6 +115,12 @@ const ShoppingCartItem = ({
   if (file_status === 'unsliced') {
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between p-4">
+        {isAuthenticated && (
+          <div className="flex items-center mb-2 sm:mb-0">
+            <code className="text-white">{fileid}</code>
+          </div>
+        )}
+
         <div className="flex items-center mb-2 sm:mb-0">
           <FaSpinner className="animate-spin mr-2" />
           <p className="text-white">{filename}</p>
@@ -128,6 +135,11 @@ const ShoppingCartItem = ({
     return (
       <div className="p-4">
         <div className="flex flex-col sm:flex-row items-start justify-between">
+        {isAuthenticated && (
+          <div className="flex items-center mb-2 sm:mb-0">
+            <code className="text-white">{fileid}</code>
+            </div>
+          )}
           <div className="flex items-center mb-2 sm:mb-0">
             <FaExclamationTriangle className="text-red-500 mr-2" />
             <p className="text-white">{filename}</p>
@@ -151,9 +163,15 @@ const ShoppingCartItem = ({
         <p className="text-white font-bold text-2xl">
           {filename}
         </p>
+        
       </a>
+      {isAuthenticated && (
+          <div className="flex items-center mb-2 sm:mb-0">
+            <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md mb-2">{fileid}</code>
+          </div>
+        )}
       <div className="flex flex-col sm:flex-row items-start justify-between">
-
+        
         <div className="flex flex-col sm:flex-row items-center mb-4 sm:mb-0">
 
           <div className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4 " style={{ backgroundColor: contrastColor }}>

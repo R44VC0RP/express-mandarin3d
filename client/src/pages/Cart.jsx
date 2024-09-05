@@ -15,6 +15,7 @@ import { useCart } from '../context/Cart';
 import ShoppingCartItem from '../components/ShoppingCartItem';
 import axios from 'axios';
 import { useAlerts } from '../context/AlertContext';
+import Loading from 'react-fullscreen-loading';
 // Asset Imports
 import prining_bambu from '../assets/videos/printing_bambu.mp4';
 import fusion360 from '../assets/images/fusion360.gif';
@@ -297,7 +298,7 @@ function Home() {
   };
 
   if (localLoading) {
-    return <div>Loading...</div>;
+    return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
   }
 
   const pricingPlans = [
@@ -419,6 +420,7 @@ function Home() {
                         onQualityChange={handleQualityChange}
                         onColorChange={handleColorChange}
                         onRemove={handleRemove}
+                        isAuthenticated={isAuthenticated}
                       />
                     ))}
                     {cartItems.filter(item => item.file_status === 'error').map((item) => (
@@ -430,6 +432,7 @@ function Home() {
                         onQualityChange={handleQualityChange}
                         onColorChange={handleColorChange}
                         onRemove={handleRemove}
+                        isAuthenticated={isAuthenticated}
                       />
                     ))}
                     {cartItems.filter(item => item.file_status !== 'unsliced' && item.file_status !== 'error').map((item) => (
@@ -441,6 +444,8 @@ function Home() {
                         onQualityChange={handleQualityChange}
                         onColorChange={handleColorChange}
                         onRemove={handleRemove}
+                        isAuthenticated={isAuthenticated}
+                        
                       />
                     ))}
                   </>

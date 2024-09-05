@@ -79,7 +79,7 @@ const Footer = () => {
                 <Link to="/admin" className="text-white hover:text-gray-400 font-light text-sm">Admin</Link>
               ) : null}
               <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 items-center">
-                <Link to="/account" className="text-white hover:text-gray-400 font-light text-sm">{user.username}'s account</Link>
+                <Link to="/logout" className="text-white hover:text-gray-400 font-light text-sm">Logout</Link>
               </div>
             </>
           )}

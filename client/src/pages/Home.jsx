@@ -262,7 +262,7 @@ function Home() {
         </section>
         {/* End Hero Section */}
         {/* Product Showcase Section */}
-        <section className="py-8">
+        <section className="py-8 max-w-screen-lg mx-auto" >
           <h2 className="text-3xl font-bold mb-6">Our Products</h2>
           <div className="md:px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {showcaseProducts.map((product, index) => (
@@ -272,7 +272,7 @@ function Home() {
         </section>
 
         {/* Pricing Plans Section */}
-        <section className="py-8 px-4">
+        <section className="py-8 px-4 max-w-screen-lg mx-auto">
           <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
           <Slider {...settings}>
             {productShowcases.map((plan, index) => (
