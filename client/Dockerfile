@@ -10,6 +10,6 @@ COPY . .
 
 RUN npm run build
 
-ENV REACT_APP_BACKEND_URL
+ENV REACT_APP_BACKEND_URL=https://api.ci.mandarin3d.com
 
 CMD ["npm", "run", "start"]
