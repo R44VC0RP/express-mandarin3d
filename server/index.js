@@ -663,6 +663,7 @@ app.get('/api/cart', async (req, res) => {
     return res.json({ status: 'error', message: 'No cart_id provided' });
   }
   const cart = await getCart(cart_id);
+  console.log("Cart: ", cart);
   const filesWithDetails = await Promise.all(cart.files.map(async (file) => {
     const fileDetails = await getFile(file.fileid);
     if (!fileDetails) {
