@@ -47,15 +47,15 @@ const Footer = () => {
                       {cart.files.map((file, index) => (
                         <li key={index} className="mb-1">
                           <button
-                            onClick={() => handleCopy(file)}
+                            onClick={() => handleCopy(file.fileid)}
                             className="flex items-center hover:bg-gray-700 p-1 rounded w-full"
                           >
-                            {copiedId === file ? (
+                            {copiedId === file.fileid ? (
                               <FaCheck className="mr-2 text-green-500 flex-shrink-0" />
                             ) : (
                               <FaCopy className="mr-2 flex-shrink-0" />
                             )}
-                            <span className="truncate">{file}</span>
+                            <span className="truncate">{file.fileid}</span>
                           </button>
                         </li>
                       ))}
