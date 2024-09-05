@@ -33,6 +33,7 @@ function Home() {
   const [files, setFiles] = useState([]);
   const [uploadFiles, setUploadFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  console.log("Page Rendered");
 
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
     "modelUploader",
