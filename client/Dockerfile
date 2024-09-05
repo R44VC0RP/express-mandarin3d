@@ -10,4 +10,6 @@ COPY . .
 
 RUN npm run build
 
+ENV REACT_APP_BACKEND_URL
+
 CMD ["npm", "run", "start"]
