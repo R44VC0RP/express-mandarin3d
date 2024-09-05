@@ -4,8 +4,10 @@ FROM node:20
 # Set the working directory in the container
 WORKDIR /app
 
+RUN ls -la
+
 # Copy package.json to the working directory
-COPY package.json ./
+COPY ./package.json ./
 
 # Install project dependencies
 RUN npm install
