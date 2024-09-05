@@ -3,6 +3,7 @@
 
 
 export const calculatePrice = (fileDetails, filament, file, profitMargin = 0.5) => {
+    
     const quantity = file.quality;
     const quantityMultiplier = {
         '0.12mm': 1.9,

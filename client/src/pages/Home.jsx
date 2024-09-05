@@ -34,8 +34,6 @@ function Home() {
   const [uploadFiles, setUploadFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  console.log(`${process.env.REACT_APP_BACKEND_URL}`)
-
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
     "modelUploader",
     {

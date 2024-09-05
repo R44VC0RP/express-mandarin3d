@@ -37,7 +37,8 @@ import {
   cartSchema,
   fileSchema,
   userSchema,
-  configSchema
+  configSchema,
+  filamentSchema
 } from './modules/dbSchemas.js';
 
 
@@ -53,25 +54,13 @@ app.use((req, res, next) => {
 });
 
 // Update CORS configuration
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:3000'];
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked for origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: process.env.FRONTEND_URL,
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
-
-// Enable pre-flight requests for all routes
-app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
@@ -606,13 +595,19 @@ async function getCart(cart_id) {
 async function createCart() {
   const cart_id = "cart_" + uuidv4();
   console.log("Creating new cart with id: ", cart_id);
-  const newCart = new Cart({ cart_id, files: [] });
+  const filaments = await getFilamentList();
+  console.log("Filaments: ", filaments);
+  const newCart = new Cart({ cart_id, files: [],  });
   await newCart.save();
   return newCart.cart_id;
 }
 
 async function addFileToCart(cart_id, fileid, quantity = 1, quality = '0.20mm') {
   const cart = await getCart(cart_id);
+  if (!cart) {
+    console.error("No cart found for cart_id: ", cart_id);
+    return { status: 'error', message: 'No cart found', cart_found: false };
+  }
   console.log("Updating cartid: ", cart.cart_id, " with fileid: ", fileid);
   const existingFileIndex = cart.files.findIndex(file => file.fileid === fileid);
   if (existingFileIndex === -1) {
@@ -663,7 +658,10 @@ app.get('/api/cart', async (req, res) => {
     return res.json({ status: 'error', message: 'No cart_id provided' });
   }
   const cart = await getCart(cart_id);
-  console.log("Cart: ", cart);
+  if (!cart) {
+    console.log("No cart found for cart_id: ", cart_id);
+    return res.json({ status: 'error', message: 'No cart found', cart_found: false });
+  }
   const filesWithDetails = await Promise.all(cart.files.map(async (file) => {
     const fileDetails = await getFile(file.fileid);
     if (!fileDetails) {
@@ -673,7 +671,6 @@ app.get('/api/cart', async (req, res) => {
     const filament = await getFilamentByName(file.filament_color);
     
     // Calculate the price of the file
-    
     const price = calculatePrice(fileDetails, filament, file);
     return {
       ...fileDetails.toObject(),
@@ -786,16 +783,6 @@ app.get('/user-data', requireLogin, requireAdmin, async (req, res) => {
 
 // #region INVENTORY MANAGEMENT
 
-const filamentSchema = new mongoose.Schema({
-  filament_id: String,
-  filament_brand: String,
-  filament_name: String,
-  filament_color: String,
-  filament_unit_price: Number,
-  filament_image_url: String,
-  filament_mass_in_grams: Number,
-  filament_link: String
-});
 
 const Filament = mongoose.model('Filament', filamentSchema);
 

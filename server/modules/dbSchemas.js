@@ -113,3 +113,15 @@ export const configSchema = new mongoose.Schema({
         }]
     }
 });
+
+export const filamentSchema = new mongoose.Schema({
+    filament_id: String,
+    filament_brand: String,
+    filament_name: String,
+    filament_color: String,
+    filament_unit_price: Number,
+    filament_image_url: String,
+    filament_mass_in_grams: Number,
+    filament_link: String
+  });
+  
