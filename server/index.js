@@ -595,9 +595,7 @@ async function getCart(cart_id) {
 async function createCart() {
   const cart_id = "cart_" + uuidv4();
   console.log("Creating new cart with id: ", cart_id);
-  const filaments = await getFilamentList();
-  console.log("Filaments: ", filaments);
-  const newCart = new Cart({ cart_id, files: [],  });
+  const newCart = new Cart({ cart_id, files: [] });
   await newCart.save();
   return newCart.cart_id;
 }
@@ -612,14 +610,11 @@ async function addFileToCart(cart_id, fileid, quantity = 1, quality = '0.20mm') 
   const existingFileIndex = cart.files.findIndex(file => file.fileid === fileid);
   if (existingFileIndex === -1) {
     cart.files.push({ fileid, quantity, quality });
-    await cart.save();
-    console.log("Cart updated successfully");
-    return { status: "success", message: "File added to cart successfully" };
   } else {
     cart.files[existingFileIndex].quantity += quantity;
-    await cart.save();
-    return { status: "success", message: "File quantity updated in cart" };
   }
+  await cart.save();
+  return { status: "success", message: "Cart updated successfully" };
 }
 
 app.post('/api/cart/create', async (req, res) => {
@@ -635,7 +630,7 @@ app.post('/api/cart/create', async (req, res) => {
 app.post('/api/cart/add', async (req, res) => {
   const { cart_id, fileid, quantity, quality } = req.body;
   if (!fileid || !cart_id) {
-    return res.json({ status: 'error', message: 'No fileid or cart_id provided' });
+    return res.status(400).json({ status: 'error', message: 'No fileid or cart_id provided' });
   }
   const result = await addFileToCart(cart_id, fileid, quantity, quality);
   res.json(result);
@@ -644,9 +639,12 @@ app.post('/api/cart/add', async (req, res) => {
 app.post('/api/cart/remove', async (req, res) => {
   const { cart_id, fileid } = req.body;
   if (!fileid || !cart_id) {
-    return res.json({ status: 'error', message: 'No fileid or cart_id provided' });
+    return res.status(400).json({ status: 'error', message: 'No fileid or cart_id provided' });
   }
   const cart = await getCart(cart_id);
+  if (!cart) {
+    return res.status(404).json({ status: 'error', message: 'Cart not found', cart_found: false });
+  }
   cart.files = cart.files.filter(file => file.fileid !== fileid);
   await cart.save();
   res.json({ status: 'success', message: 'File removed from cart successfully' });
@@ -655,22 +653,19 @@ app.post('/api/cart/remove', async (req, res) => {
 app.get('/api/cart', async (req, res) => {
   const { cart_id } = req.query;
   if (!cart_id) {
-    return res.json({ status: 'error', message: 'No cart_id provided' });
+    return res.status(400).json({ status: 'error', message: 'No cart_id provided' });
   }
   const cart = await getCart(cart_id);
   if (!cart) {
     console.log("No cart found for cart_id: ", cart_id);
-    return res.json({ status: 'error', message: 'No cart found', cart_found: false });
+    return res.status(404).json({ status: 'error', message: 'No cart found', cart_found: false });
   }
   const filesWithDetails = await Promise.all(cart.files.map(async (file) => {
     const fileDetails = await getFile(file.fileid);
     if (!fileDetails) {
       return null;
     }
-
     const filament = await getFilamentByName(file.filament_color);
-    
-    // Calculate the price of the file
     const price = calculatePrice(fileDetails, filament, file);
     return {
       ...fileDetails.toObject(),
@@ -689,9 +684,12 @@ app.get('/api/cart', async (req, res) => {
 app.delete('/api/cart', async (req, res) => {
   const { cart_id } = req.query;
   if (!cart_id) {
-    return res.json({ status: 'error', message: 'No cart_id provided' });
+    return res.status(400).json({ status: 'error', message: 'No cart_id provided' });
   }
-  await Cart.findOneAndDelete({ cart_id });
+  const result = await Cart.findOneAndDelete({ cart_id });
+  if (!result) {
+    return res.status(404).json({ status: 'error', message: 'Cart not found' });
+  }
   res.json({ status: 'success', message: 'Cart deleted successfully' });
 });
 
@@ -699,12 +697,15 @@ app.post('/api/cart/update', async (req, res) => {
   const { cart_id, fileid, quantity, quality, color } = req.body;
   console.log("Updating cart with id: ", cart_id, " with fileid: ", fileid, " quantity: ", quantity, " quality: ", quality, " color: ", color);
   if (!cart_id || !fileid) {
-    return res.json({ status: 'error', message: 'No cart_id or fileid provided' });
+    return res.status(400).json({ status: 'error', message: 'No cart_id or fileid provided' });
   }
   const cart = await getCart(cart_id);
+  if (!cart) {
+    return res.status(404).json({ status: 'error', message: 'Cart not found', cart_found: false });
+  }
   const fileIndex = cart.files.findIndex(file => file.fileid === fileid);
   if (fileIndex === -1) {
-    return res.json({ status: 'error', message: 'File not found in cart' });
+    return res.status(404).json({ status: 'error', message: 'File not found in cart' });
   }
   if (quantity !== undefined) {
     cart.files[fileIndex].quantity = quantity;
