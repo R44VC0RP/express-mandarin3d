@@ -10,6 +10,12 @@ export const calculatePrice = (fileDetails, filament, file, profitMargin = 0.5) 
         '0.20mm': 1.5,
         '0.25mm': 1.3
     };
+    if (fileDetails.mass_in_grams === null) {
+        return 1;
+    }
+    if (filament.filament_unit_price === null) {
+        return 1;
+    }
     const massInGrams = parseFloat(fileDetails.mass_in_grams);
     const filamentUnitPrice = parseFloat(filament.filament_unit_price);
 
