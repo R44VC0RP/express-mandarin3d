@@ -1,21 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaTimes, FaTrash, FaSpinner, FaCheck, FaSync, FaCalendarAlt, FaSearch } from 'react-icons/fa';
-import DataTable from 'react-data-table-component';
-import { useAlerts } from '../../context/AlertContext';
+import { FaPlus, FaTrash, FaSearch } from 'react-icons/fa';
+import { Input } from '@/components/ui/input'
+import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+  } from "@/components/ui/sheet"
+  
+
 import axios from 'axios';
+import { toast } from 'sonner';
 
 function ShippingManagement() {
-    const { addAlert } = useAlerts();
-
-    const showAlert = (type, title, message) => {
-        addAlert(type, title, message);
-    };
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [newShipping, setNewShipping] = useState({ name: '', price: '', delivery_estimate: '', notes: '' });
     const [shippingOptions, setShippingOptions] = useState([]);
     const [filterText, setFilterText] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
 
     useEffect(() => {
         fetchShippingOptions();
@@ -33,11 +56,11 @@ function ShippingManagement() {
             if (response.data.status === 'success') {
                 setShippingOptions(response.data.result);
             } else {
-                showAlert('error', 'Error', 'Failed to fetch shipping options');
+                toast.error('Failed to fetch shipping options');
             }
         } catch (error) {
             console.error('Error fetching shipping options:', error);
-            showAlert('error', 'Error', 'Failed to fetch shipping options');
+            toast.error('Failed to fetch shipping options');
         } finally {
             setIsLoading(false);
         }
@@ -56,13 +79,13 @@ function ShippingManagement() {
 
             if (response.data.status === 'success') {
                 setShippingOptions(shippingOptions.filter(option => option.id !== shipping_option_id));
-                showAlert('success', 'Success', 'Shipping option deleted successfully');
+                toast.success('Shipping option deleted successfully');
             } else {
-                showAlert('error', 'Error', 'Failed to delete shipping option');
+                toast.error('Failed to delete shipping option');
             }
         } catch (error) {
             console.error('Error deleting shipping option:', error);
-            showAlert('error', 'Error', 'Failed to delete shipping option');
+            toast.error('Failed to delete shipping option');
         }
     };
 
@@ -80,16 +103,15 @@ function ShippingManagement() {
                 }
             });
             if (response.data.status === 'success') {
-                showAlert('success', 'Success', 'Shipping option added successfully');
+                toast.success('Shipping option added successfully');
                 setNewShipping({ name: '', price: '', delivery_estimate: '', notes: '' });
-                setIsModalOpen(false);
                 fetchShippingOptions();
             } else {
-                showAlert('error', 'Error', 'Failed to add shipping option');
+                toast.error('Failed to add shipping option');
             }
         } catch (error) {
             console.error('Error adding shipping option:', error);
-            showAlert('error', 'Error', 'Failed to add shipping option');
+            toast.error('Failed to add shipping option');
         }
     };
 
@@ -127,15 +149,21 @@ function ShippingManagement() {
         )
     );
 
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
     const subHeaderComponent = (
         <div className="flex items-center mb-4">
             <FaSearch className="text-gray-400 mr-2" />
-            <input
+            <Input
                 type="text"
                 placeholder="Search..."
-                className="p-2 bg-gray-700 rounded text-white"
                 value={filterText}
                 onChange={e => setFilterText(e.target.value)}
+                className="max-w-sm"
             />
         </div>
     );
@@ -144,10 +172,58 @@ function ShippingManagement() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Shipping Management</h2>
-                <button className="github-primary" onClick={() => setIsModalOpen(true)}>
-                    <FaPlus className="mr-2 inline" />
-                    Add Shipping Option
-                </button>
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <button className="github-primary">
+                            <FaPlus className="mr-2 inline" />
+                            Add Shipping Option
+                        </button>
+                    </SheetTrigger>
+                    <SheetContent>
+                        <SheetHeader>
+                            <SheetTitle>Add New Shipping Option</SheetTitle>
+                            <SheetDescription>Enter the details for the new shipping option.</SheetDescription>
+                        </SheetHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="space-y-2">
+                                <label htmlFor="name" className="text-sm font-medium leading-none">Name</label>
+                                <Input
+                                    id="name"
+                                    value={newShipping.name}
+                                    onChange={e => setNewShipping({ ...newShipping, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="price" className="text-sm font-medium leading-none">Price</label>
+                                <Input
+                                    id="price"
+                                    value={newShipping.price}
+                                    onChange={e => setNewShipping({ ...newShipping, price: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="delivery_estimate" className="text-sm font-medium leading-none">Delivery Estimate</label>
+                                <Input
+                                    id="delivery_estimate"
+                                    value={newShipping.delivery_estimate}
+                                    onChange={e => setNewShipping({ ...newShipping, delivery_estimate: e.target.value })}
+                                    placeholder="Min-Max business days"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="notes" className="text-sm font-medium leading-none">Notes</label>
+                                <Input
+                                    id="notes"
+                                    value={newShipping.notes}
+                                    onChange={e => setNewShipping({ ...newShipping, notes: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end mt-4">
+                            <button className="github-primary" onClick={handleAddShipping}>Add Shipping Option</button>
+                        </div>
+                    </SheetContent>
+                </Sheet>
             </div>
 
             {isLoading ? (
@@ -156,110 +232,67 @@ function ShippingManagement() {
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
                 </div>
             ) : (
-                <DataTable
-                    columns={columns}
-                    data={filteredItems}
-                    pagination
-                    highlightOnHover
-                    responsive
-                    subHeader
-                    subHeaderComponent={subHeaderComponent}
-                    customStyles={{
-                        headCells: {
-                            style: {
-                                backgroundColor: '#282828',
-                                color: 'white',
-                            },
-                        },
-                        cells: {
-                            style: {
-                                backgroundColor: '#383838',
-                                color: 'white',
-                            },
-                        },
-                        rows: {
-                            style: {
-                                '&:nth-of-type(odd)': {
-                                    backgroundColor: '#303030',
-                                },
-                                '&:nth-of-type(even)': {
-                                    backgroundColor: '#383838',
-                                },
-                            },
-                        },
-                        pagination: {
-                            style: {
-                                backgroundColor: '#282828',
-                                color: 'white',
-                                border: 'none',
-                                borderBottomLeftRadius: '0.5rem',
-                                borderBottomRightRadius: '0.5rem',
-                            },
-                        },
-                        noData: {
-                            style: {
-                                backgroundColor: '#282828',
-                                color: 'white',
-                                textAlign: 'center',
-                                padding: '20px',
-                            },
-                        },
-                        subHeader: {
-                            style: {
-                                backgroundColor: '#282828',
-                                color: 'white',
-                                padding: '10px',
-                            },
-                        },
-                    }}
-                />
-            )}
+                <>
+                    {subHeaderComponent}
+                    <Table>
+                        <TableCaption>List of Shipping Options</TableCaption>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Price</TableHead>
+                                <TableHead>Delivery Estimate</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {currentItems.map((row) => (
+                                <TableRow key={row.id}>
+                                    <TableCell className="font-medium">{row.display_name}</TableCell>
+                                    <TableCell>${(row.fixed_amount.amount / 100).toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        {`${row.delivery_estimate.minimum.value}-${row.delivery_estimate.maximum.value} ${row.delivery_estimate.minimum.unit}${row.delivery_estimate.maximum.value > 1 ? 's' : ''}`}
+                                    </TableCell>
+                                    <TableCell>
+                                        <button
+                                            onClick={() => handleDelete(row.id)}
+                                            className="github-secondary text-red-500 hover:text-red-700"
+                                        >
+                                            <FaTrash className="mr-2 inline" />
+                                            Delete
+                                        </button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="card-special bg-gray-800 p-6 rounded-lg w-96 w-[50vw]">
-                        <h3 className="text-xl font-bold mb-4">Add New Shipping Option</h3>
-                        <div>
-                            <label htmlFor="name" className="block mb-1">Name</label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={newShipping.name}
-                                onChange={e => setNewShipping({ ...newShipping, name: e.target.value })}
-                                className="w-full p-2 mb-2 bg-gray-700 rounded"
-                            />
-                            <label htmlFor="price" className="block mb-1">Price</label>
-                            <input
-                                type="text"
-                                name="price"
-                                value={newShipping.price}
-                                onChange={e => setNewShipping({ ...newShipping, price: e.target.value })}
-                                className="w-full p-2 mb-2 bg-gray-700 rounded"
-                            />
-                            <label htmlFor="delivery_estimate" className="block mb-1">Delivery Estimate (e.g., 1-3)</label>
-                            <input
-                                type="text"
-                                name="delivery_estimate"
-                                value={newShipping.delivery_estimate}
-                                onChange={e => setNewShipping({ ...newShipping, delivery_estimate: e.target.value })}
-                                className="w-full p-2 mb-2 bg-gray-700 rounded"
-                                placeholder="Min-Max business days"
-                            />
-                            <label htmlFor="notes" className="block mb-1">Notes</label>
-                            <input
-                                type="text"
-                                name="notes"
-                                value={newShipping.notes}
-                                onChange={e => setNewShipping({ ...newShipping, notes: e.target.value })}
-                                className="w-full p-2 mb-2 bg-gray-700 rounded"
-                            />
-                            <div className="flex justify-end mt-4">
-                                <button className="github-secondary mr-2" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button className="github-primary" onClick={handleAddShipping}>Add</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    <Pagination className="mt-4">
+                        <PaginationContent>
+                            <PaginationItem>
+                                <PaginationPrevious 
+                                    onClick={() => paginate(currentPage - 1)}
+                                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                                />
+                            </PaginationItem>
+                            {Array.from({ length: Math.ceil(filteredItems.length / itemsPerPage) }, (_, i) => (
+                                <PaginationItem key={i}>
+                                    <PaginationLink 
+                                        onClick={() => paginate(i + 1)}
+                                        isActive={currentPage === i + 1}
+                                    >
+                                        {i + 1}
+                                    </PaginationLink>
+                                </PaginationItem>
+                            ))}
+                            <PaginationItem>
+                                <PaginationNext 
+                                    onClick={() => paginate(currentPage + 1)}
+                                    className={currentPage === Math.ceil(filteredItems.length / itemsPerPage) ? 'pointer-events-none opacity-50' : ''}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </>
             )}
         </div>
     );

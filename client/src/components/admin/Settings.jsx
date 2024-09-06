@@ -1,67 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { FaSave, FaPlus, FaTrash } from 'react-icons/fa';
-import { useAlerts } from '../../context/AlertContext'; // Add this import
+import { toast } from 'sonner';
+import axios from 'axios';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 
-const ConfigSection = ({ title, fields, values, onChange, protected: isProtected }) => {
+const ConfigSection = ({ title, description, fields, values, onChange }) => {
   return (
-    <div className="mb-4">
-      <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">{title}</h3>
-      {fields.map((field) => (
-        <div key={field.name} className="mb-2">
-          <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {field.label}
-          </label>
-          <input
-            type={field.type}
-            id={field.name}
-            name={field.name}
-            value={isProtected ? '••••••' : values[field.name] || ''}
-            onChange={(e) => onChange(field.name, e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 h-10"
-            disabled={isProtected}
-            placeholder=""
-          />
-        </div>
-      ))}
-    </div>
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {fields.map((field) => (
+          <div key={field.name} className="mb-4">
+            <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {field.label}
+            </label>
+            <Input
+              type={field.type}
+              id={field.name}
+              name={field.name}
+              value={values[field.name] || ''}
+              onChange={(e) => onChange(field.name, e.target.value)}
+              placeholder={field.placeholder || ""}
+            />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 };
 
-
-
 const Settings = () => {
-  const { addAlert } = useAlerts(); // Add this line
-
   const [configs, setConfigs] = useState({
-    dimensionConfig: {},
-    priceConfig: {},
-    stripeConfig: {
-      shippingOptions: []
-    },
+    dimensionConfig: { x: 0, y: 0, z: 0 },
+    priceConfig: { profitMargin: 0 },
+    stripeConfig: { shippingOptions: [] }
   });
 
   useEffect(() => {
-    const fetchConfigs = async () => {
-      try {
-        const token = localStorage.getItem('token'); // Assuming you store the token in localStorage after login
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/configs`, {
-          headers: {
-            'Authorization': `Bearer ${token}` // Include the token in the Authorization header
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setConfigs(data);
-        } else {
-          console.error('Failed to fetch configs:', response.statusText);
-        }
-      } catch (error) {
-        console.error('Error fetching configs:', error);
-      }
-    };
-
     fetchConfigs();
   }, []);
+
+  const fetchConfigs = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/configs`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.data) {
+        setConfigs(response.data);
+      } else {
+        toast.error('Failed to fetch configs');
+      }
+    } catch (error) {
+      console.error('Error fetching configs:', error);
+      toast.error('Error fetching configs');
+    }
+  };
 
   const handleConfigChange = (section, field, value) => {
     setConfigs((prevConfigs) => ({
@@ -92,7 +100,13 @@ const Settings = () => {
       ...prevConfigs,
       stripeConfig: {
         ...prevConfigs.stripeConfig,
-        shippingOptions: [...prevConfigs.stripeConfig.shippingOptions, {}]
+        shippingOptions: [...prevConfigs.stripeConfig.shippingOptions, { 
+          stripe_id: '', 
+          name: '', 
+          price: 0, 
+          delivery_estimate: '',
+          notes: ''
+        }]
       }
     }));
   };
@@ -107,59 +121,109 @@ const Settings = () => {
     }));
   };
 
-  const showAlert = (type, title, message) => {
-    addAlert(type, title, message);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token'); // Get the token
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/configs`, {
-        method: 'POST',
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/configs`, configs, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Include the token in the Authorization header
-        },
-        body: JSON.stringify(configs),
+          'Authorization': `Bearer ${token}`
+        }
       });
-      if (response.ok) {
-        showAlert('success', 'Success', 'Configs updated successfully');
+      if (response.data.status === 'success') {
+        toast.success('Configs updated successfully');
       } else {
-        showAlert('error', 'Error', 'Failed to update configs');
+        toast.error('Failed to update configs');
       }
     } catch (error) {
       console.error('Error updating configs:', error);
-      showAlert('error', 'Error', 'Error updating configs');
+      toast.error('Error updating configs');
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-2">
-      <h2 className="text-2xl font-bold mb-6">Settings</h2>
+    <div className="max-w-2xl mx-auto p-6">
+      <h2 className="text-3xl font-bold mb-6">Settings</h2>
       <form onSubmit={handleSubmit}>
         <ConfigSection
           title="Dimension Config"
+          description="Set the maximum dimensions for 3D prints"
           fields={[
-            { name: 'x', label: 'X (INT)', type: 'number' },
-            { name: 'y', label: 'Y (INT)', type: 'number' },
-            { name: 'z', label: 'Z (INT)', type: 'number' },
+            { name: 'x', label: 'X (mm)', type: 'number', placeholder: 'Enter X dimension' },
+            { name: 'y', label: 'Y (mm)', type: 'number', placeholder: 'Enter Y dimension' },
+            { name: 'z', label: 'Z (mm)', type: 'number', placeholder: 'Enter Z dimension' },
           ]}
-          values={configs.dimensionConfig || ""}
+          values={configs.dimensionConfig}
           onChange={(field, value) => handleConfigChange('dimensionConfig', field, value)}
         />
         <ConfigSection
           title="Price Config"
+          description="Set the profit margin for pricing calculations"
           fields={[
-            { name: 'profitMargin', label: 'Profit Margin (%)', type: 'number' },
+            { name: 'profitMargin', label: 'Profit Margin (%)', type: 'number', placeholder: 'Enter profit margin' },
           ]}
-          values={configs.priceConfig || ""}
+          values={configs.priceConfig}
           onChange={(field, value) => handleConfigChange('priceConfig', field, value)}
         />
-        <button type="submit" className="github-primary flex items-center justify-center">
-          <FaSave className="mr-2 inline-block" />
-          Save Changes
-        </button>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Shipping Options</CardTitle>
+            <CardDescription>Configure shipping options for orders</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {configs.stripeConfig.shippingOptions.map((option, index) => (
+              <div key={index} className="flex flex-col mb-4 p-4 border rounded">
+                <Input
+                  className="mb-2"
+                  placeholder="Stripe ID"
+                  value={option.stripe_id}
+                  onChange={(e) => handleShippingOptionChange(index, 'stripe_id', e.target.value)}
+                />
+                <Input
+                  className="mb-2"
+                  placeholder="Shipping option name"
+                  value={option.name}
+                  onChange={(e) => handleShippingOptionChange(index, 'name', e.target.value)}
+                />
+                <Input
+                  className="mb-2"
+                  type="number"
+                  placeholder="Price"
+                  value={option.price}
+                  onChange={(e) => handleShippingOptionChange(index, 'price', parseFloat(e.target.value))}
+                />
+                <Input
+                  className="mb-2"
+                  placeholder="Delivery estimate"
+                  value={option.delivery_estimate}
+                  onChange={(e) => handleShippingOptionChange(index, 'delivery_estimate', e.target.value)}
+                />
+                <Input
+                  className="mb-2"
+                  placeholder="Notes"
+                  value={option.notes}
+                  onChange={(e) => handleShippingOptionChange(index, 'notes', e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => removeShippingOption(index)}
+                  className="mt-2"
+                >
+                  <FaTrash className="mr-2" /> Remove Option
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+          <CardFooter>
+            <Button type="button" onClick={addShippingOption} className="w-full">
+              <FaPlus className="mr-2" /> Add Shipping Option
+            </Button>
+          </CardFooter>
+        </Card>
+        <Button type="submit" className="w-full">
+          <FaSave className="mr-2" /> Save Changes
+        </Button>
       </form>
     </div>
   );

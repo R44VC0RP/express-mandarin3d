@@ -1,36 +1,69 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaTimes, FaTrash } from 'react-icons/fa';
-import DataTable from 'react-data-table-component';
+import { FaPlus, FaTimes, FaTrash, FaEdit } from 'react-icons/fa';
 import { UploadButton } from "../../utils/uploadthing";
-import { useAlerts } from '../../context/AlertContext'; // Make sure this path is correct
 import axios from 'axios';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+
+import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 
 function FilamentInventory() {
-    const { addAlert } = useAlerts();
-
-    const showAlert = (type, title, message) => {
-        addAlert(type, title, message);
-    };
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [newFilament, setNewFilament] = useState({ brand: '', name: '', color: '', weight: '', price: '', image_url: '', description: '' });
     const [filaments, setFilaments] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
+    const [filterText, setFilterText] = useState('');
 
     useEffect(() => {
         fetchFilaments();
     }, []);
 
     const fetchFilaments = async () => {
+        setIsLoading(true);
         try {
-            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/filament`, { action: 'list' });
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/filament`, 
+                { action: 'list' },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
             if (response.data.status === 'success') {
                 setFilaments(response.data.result);
             } else {
-                showAlert('error', 'Error', 'Failed to fetch filaments');
+                toast.error('Failed to fetch filaments');
             }
         } catch (error) {
             console.error('Error fetching filaments:', error);
-            showAlert('error', 'Error', 'Failed to fetch filaments');
+            toast.error('Failed to fetch filaments');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -39,41 +72,23 @@ function FilamentInventory() {
             const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/filament`, {
                 action: 'delete',
                 filament_id: filament_id,
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
             });
 
             if (response.data.status === 'success') {
-                // Remove the deleted filament from the state
                 setFilaments(filaments.filter(f => f.filament_id !== filament_id));
+                toast.success('Filament deleted successfully');
             } else {
-                console.error('Failed to delete filament');
+                toast.error('Failed to delete filament');
             }
         } catch (error) {
             console.error('Error deleting filament:', error);
+            toast.error('Failed to delete filament');
         }
     };
-
-    const columns = [
-        { 
-            name: 'Image', 
-            selector: row => <img src={row.filament_image_url} alt={row.filament_name} className="w-16 h-16 object-cover rounded-md" />
-        },
-        { name: 'Brand', selector: row => row.filament_brand, sortable: true },
-        { name: 'Name', selector: row => row.filament_name, sortable: true },
-        { name: 'Color', selector: row => row.filament_color, sortable: true },
-        { name: 'Weight', selector: row => `${row.filament_mass_in_grams}g`, sortable: true },
-        { name: 'Price', selector: row => `$${row.filament_unit_price.toFixed(2)}`, sortable: true },
-        {
-            name: 'Actions',
-            cell: (row) => (
-                <button
-                    onClick={() => handleDelete(row.filament_id)}
-                    className="github-secondary text-red-500 hover:text-red-700"
-                >
-                    <FaTrash />
-                </button>
-            ),
-        },
-    ];
 
     const handleInputChange = (e) => {
         setNewFilament({ ...newFilament, [e.target.name]: e.target.value });
@@ -90,200 +105,211 @@ function FilamentInventory() {
                 filament_image_url: newFilament.image_url,
                 filament_mass_in_grams: parseInt(newFilament.weight),
                 filament_link: newFilament.description
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
             });
 
             if (response.data.status === 'success') {
-                showAlert('success', 'Success', 'Filament added successfully');
-                setNewFilament({ name: '', color: '', weight: '', price: '', image_url: '', description: '' });
-                setIsModalOpen(false);
-                fetchFilaments(); // Refresh the filament list
+                toast.success('Filament added successfully');
+                setNewFilament({ brand: '', name: '', color: '', weight: '', price: '', image_url: '', description: '' });
+                fetchFilaments();
             } else {
-                showAlert('error', 'Error', 'Failed to add filament');
+                toast.error('Failed to add filament');
             }
         } catch (error) {
             console.error('Error adding filament:', error);
-            showAlert('error', 'Error', 'Failed to add filament');
+            toast.error('Failed to add filament');
         }
     };
+
+    const filteredItems = filaments.filter(
+        item => Object.values(item).some(
+            val => val && val.toString().toLowerCase().includes(filterText.toLowerCase())
+        )
+    );
+
+    const subHeaderComponent = (
+        <div className="flex items-center mb-4">
+            <Input
+                type="text"
+                placeholder="Search filaments..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                className="max-w-sm"
+            />
+        </div>
+    );
 
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Filaments</h2>
-                <button className="github-primary" onClick={() => setIsModalOpen(true)}>
-                    <FaPlus className="mr-2 inline" />
-                    Add Filament
-                </button>
-            </div>
-
-
-            <DataTable
-                columns={columns}
-                data={filaments}
-                pagination
-                highlightOnHover
-                responsive
-                customStyles={{
-                    headCells: {
-                        style: {
-                            backgroundColor: '#282828',
-                            color: 'white',
-                        },
-                    },
-                    cells: {
-                        style: {
-                            backgroundColor: '#383838',
-                            color: 'white',
-                            marginTop: '5px', 
-                            marginBottom: '5px',
-                        },
-                    },
-                    rows: {
-                        style: {
-                            '&:nth-of-type(odd)': {
-                                backgroundColor: '#303030',
-                            },
-                            '&:nth-of-type(even)': {
-                                backgroundColor: '#383838',
-                            },
-                        },
-                    },
-                    pagination: {
-                        style: {
-                            backgroundColor: '#282828',
-                            color: 'white',
-                            border: 'none',
-                            borderBottomLeftRadius: '0.5rem',
-                            borderBottomRightRadius: '0.5rem',
-                        },
-                    },
-                noData: {
-                    style: {
-                        backgroundColor: '#282828',
-                        color: 'white',
-                        textAlign: 'center',
-                        padding: '20px',
-                    },
-                },
-                }}
-            />
-
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="card-special bg-gray-800 p-6 rounded-lg w-96">
-                        <h3 className="text-xl font-bold mb-4">Add New Filament</h3>
-                        <label htmlFor="brand">Brand <span className="text-red-500">*</span></label>
-                        <input
-                            type="text"
-                            name="brand"
-                            value={newFilament.brand}
-                            onChange={handleInputChange}
-                            placeholder="SUNLU"
-                            className="w-full p-2 mb-2 bg-gray-700 rounded"
-                        />
-                        <label htmlFor="name">Name <span className="text-red-500">*</span></label>
-                        <input
-                            type="text"
-                            name="name"
-                            value={newFilament.name}
-                            onChange={handleInputChange}
-                            placeholder="White PLA"
-                            className="w-full p-2 mb-2 bg-gray-700 rounded"
-                        />
-                        <label htmlFor="color" className="block mb-1">Color <span className="text-red-500">*</span></label>
-                        <div className="flex items-center mb-2">
-                            <input
-                                type="text"
-                                name="color"
-                                value={newFilament.color}
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <button className="github-primary">
+                            <FaPlus className="mr-2 inline" />
+                            Add Filament
+                        </button>
+                    </SheetTrigger>
+                    <SheetContent>
+                        <SheetHeader>
+                            <SheetTitle>Add New Filament</SheetTitle>
+                            <SheetDescription>Enter the details for the new filament.</SheetDescription>
+                        </SheetHeader>
+                        <div className="grid gap-4 py-4">
+                            <Input
+                                name="brand"
+                                value={newFilament.brand}
                                 onChange={handleInputChange}
-                                placeholder="Color"
-                                className="flex-grow p-2 mr-2 bg-gray-700 rounded"
+                                placeholder="Brand"
                             />
-                            <input
-                                type="color"
-                                name="colorPicker"
-                                value={newFilament.color}
-                                onChange={(e) => setNewFilament({ ...newFilament, color: e.target.value })}
-                                className="w-10 h-10 p-1 bg-gray-700 rounded cursor-pointer"
+                            <Input
+                                name="name"
+                                value={newFilament.name}
+                                onChange={handleInputChange}
+                                placeholder="Name"
                             />
-                        </div>
-                        <label htmlFor="weight" className="block mb-1">Weight (in grams)<span className="text-red-500">*</span></label>
-                        <input
-                            type="text"
-                            name="weight"
-                            value={newFilament.weight}
-                            onChange={handleInputChange}
-                            placeholder="1000"
-                            className="w-full p-2 mb-2 bg-gray-700 rounded"
-                        />
-                        <label htmlFor="price" className="block mb-1">Unit Price <span className="text-red-500">*</span></label>
-                        <div className="flex items-center mb-2">
-                            <span className="text-white mr-2">$</span>
-                            <input
-                                type="number"
+                            <div className="flex items-center">
+                                <Input
+                                    name="color"
+                                    value={newFilament.color}
+                                    onChange={handleInputChange}
+                                    placeholder="Color"
+                                    className="flex-grow mr-2"
+                                />
+                                <input
+                                    type="color"
+                                    name="colorPicker"
+                                    value={newFilament.color}
+                                    onChange={(e) => setNewFilament({ ...newFilament, color: e.target.value })}
+                                    className="w-10 h-10 p-1 rounded cursor-pointer"
+                                />
+                            </div>
+                            <Input
+                                name="weight"
+                                value={newFilament.weight}
+                                onChange={handleInputChange}
+                                placeholder="Weight (in grams)"
+                            />
+                            <Input
                                 name="price"
                                 value={newFilament.price}
                                 onChange={handleInputChange}
-                                placeholder="24.50"
-                                className="flex-grow p-2 bg-gray-700 rounded"
+                                placeholder="Price"
+                            />
+                            <label htmlFor="image" className="block mb-1">Image of Filament</label>
+                            {newFilament.image_url ? (
+                                <div className="relative w-full p-2 mb-2 bg-gray-700 rounded flex justify-center items-center">
+                                    <img src={newFilament.image_url} alt="Uploaded Filament" className="w-1/2 h-auto rounded" />
+                                    <button
+                                        className="absolute top-0 right-0 p-1 text-white bg-red-500 rounded-full"
+                                        onClick={() => setNewFilament({ ...newFilament, image_url: '' })}
+                                    >
+                                        <FaTimes />
+                                    </button>
+                                </div>
+                            ) : (
+                                <UploadButton
+                                    className='w-full p-2 mb-2 bg-gray-700 rounded'
+                                    endpoint="imageUploader"
+                                    onClientUploadComplete={(res) => {
+                                        console.log("Files: ", res);
+                                        setNewFilament({ ...newFilament, image_url: res[0].url });
+                                        toast.success("Image uploaded successfully.");
+                                    }}
+                                    onUploadError={(error) => {
+                                        toast.error(`Upload Error: ${error.message}`);
+                                    }}
+                                />
+                            )}
+                            <Input
+                                name="description"
+                                value={newFilament.description}
+                                onChange={handleInputChange}
+                                placeholder="Internal Link (Optional)"
                             />
                         </div>
-                        <label htmlFor="image" className="block mb-1">Image of Filament</label>
-                        {newFilament.image_url ? (
-                            <div className="relative w-full p-2 mb-2 bg-gray-700 rounded flex justify-center items-center">
-                                <img src={newFilament.image_url} alt="Uploaded Filament" className="w-1/2 h-auto rounded" />
-                                <button
-                                    className="absolute top-0 right-0 p-1 text-white bg-red-500 rounded-full"
-                                    onClick={() => setNewFilament({ ...newFilament, image_url: '' })}
-                                >
-                                    <FaTimes />
-                                </button>
-                            </div>
-                        ) : (
-                            <UploadButton
-                                // appearance={{
-                                //     container: {
-                                //         width: '100%',
-                                //         height: '100%',
-                                //     },
-                                //     button: {
-                                //         backgroundColor: '#000',
-                                //         color: '#fff',
-                                //         width: '100%',
-                                //         height: '100%',
-                                //     },
-                                // }}
-                                className='w-full p-2 mb-2 bg-gray-700 rounded'
-                                endpoint="imageUploader"
-                                onClientUploadComplete={(res) => {
-                                    console.log("Files: ", res);
-                                    setNewFilament({ ...newFilament, image_url: res[0].url });
-                                    showAlert("success", "Upload Completed", "Image uploaded successfully.");
-                                }}
-                                onUploadError={(error) => {
-                                    showAlert("error", "Upload Error", `ERROR! ${error.message}`);
-                                }}
-                            />
-                        )}
-                        <label htmlFor="description" className="block mb-1">Internal Link (Optional)</label>
-                        <input
-                            type="text"
-                            name="description"
-                            value={newFilament.description}
-                            onChange={handleInputChange}
-                            placeholder="https://amazon.com/thisrandomfilament"
-                            className="w-full p-2 mb-2 bg-gray-700 rounded"
-                        />
                         <div className="flex justify-end mt-4">
-                            <button className="github-secondary mr-2" onClick={() => { setIsModalOpen(false) }}>Cancel</button>
-                            <button className="github-primary" onClick={handleAddFilament}>Add</button>
-                            
+                            <button className="github-primary" onClick={handleAddFilament}>Add Filament</button>
                         </div>
-                    </div>
+                    </SheetContent>
+                </Sheet>
+            </div>
+
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center">
+                    <p className="text-xl font-bold mb-4">Loading Filaments</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
                 </div>
+            ) : (
+                <>
+                    {subHeaderComponent}
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Image</TableHead>
+                                <TableHead>Brand</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Color</TableHead>
+                                <TableHead>Weight</TableHead>
+                                <TableHead>Price</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((filament) => (
+                                <TableRow key={filament.filament_id}>
+                                    <TableCell>
+                                        <img src={filament.filament_image_url} alt={filament.filament_name} className="w-16 h-16 object-cover rounded-md" />
+                                    </TableCell>
+                                    <TableCell>{filament.filament_brand}</TableCell>
+                                    <TableCell>{filament.filament_name}</TableCell>
+                                    <TableCell>{filament.filament_color}</TableCell>
+                                    <TableCell>{filament.filament_mass_in_grams}g</TableCell>
+                                    <TableCell>${filament.filament_unit_price.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        <button
+                                            onClick={() => handleDelete(filament.filament_id)}
+                                            className="github-secondary text-red-500 hover:text-red-700"
+                                        >
+                                            <FaTrash />
+                                        </button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+
+                    <Pagination className="mt-4">
+                        <PaginationContent>
+                            <PaginationItem>
+                                <PaginationPrevious
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                                />
+                            </PaginationItem>
+                            {Array.from({ length: Math.ceil(filaments.length / itemsPerPage) }, (_, i) => (
+                                <PaginationItem key={i}>
+                                    <PaginationLink
+                                        onClick={() => setCurrentPage(i + 1)}
+                                        isActive={currentPage === i + 1}
+                                    >
+                                        {i + 1}
+                                    </PaginationLink>
+                                </PaginationItem>
+                            ))}
+                            <PaginationItem>
+                                <PaginationNext
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filaments.length / itemsPerPage)))}
+                                    className={currentPage === Math.ceil(filaments.length / itemsPerPage) ? 'pointer-events-none opacity-50' : ''}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </>
             )}
-            
         </div>
     );
 }

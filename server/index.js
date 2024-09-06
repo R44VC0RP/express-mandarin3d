@@ -15,8 +15,8 @@ import {
   v4 as uuidv4
 } from 'uuid';
 import {
-    createNewProduct,
-    deleteProduct,
+    createNewStripeProduct,
+    deleteStripeProduct,
     createNewShippingOption,
     deleteShippingOption,
     getShippingOptions
@@ -38,7 +38,8 @@ import {
   fileSchema,
   userSchema,
   configSchema,
-  filamentSchema
+  filamentSchema,
+  productSchema
 } from './modules/dbSchemas.js';
 
 
@@ -76,6 +77,8 @@ const Cart = mongoose.model('Cart', cartSchema);
 const File = mongoose.model('File', fileSchema);
 const User = mongoose.model('User', userSchema);
 const Config = mongoose.model('Config', configSchema);
+const Product = mongoose.model('Product', productSchema);
+
 
 
 // #region LOGIN AND AUTHENTICATION
@@ -396,7 +399,7 @@ const sliceFile = async (fileid) => {
 
 const createNewFile = async (filename, utfile_id, utfile_url, price_override = null) => {
   const fileid = "file_" + uuidv4();
-  const stripeProduct = await createNewProduct(filename, fileid, utfile_id, utfile_url);
+  const stripeProduct = await createNewStripeProduct(filename, fileid, utfile_id, utfile_url);
   const newFile = new File({
       fileid,
       stripe_product_id: stripeProduct.id,
@@ -431,12 +434,20 @@ const deleteFile = async (fileid) => {
   if (!file) {
       return null;
   }
+  const product = await checkIfFileIsInProduct(fileid);
+  if (product) {
+    console.log("File is in product: ", product);
+    return {
+      status: 'error',
+      message: 'File is in product'
+    };
+  }
   const stripeid = file.stripe_product_id;
   const utid = file.utfile_id;
   await File.deleteOne({
       fileid
   });
-  await deleteProduct(stripeid);
+  await deleteStripeProduct(stripeid);
   await utapi.deleteFiles(utid); // Delete the file from UploadThing
   return file;
 }
@@ -450,7 +461,16 @@ const getFile = async (fileid) => {
 
 const getAllFiles = async () => {
   const files = await File.find().sort({ dateCreated: -1 });
-  return files;
+  const filesWithProductNames = await Promise.all(files.map(async (file) => {
+    const product = await checkIfFileIsInProduct(file.fileid);
+    const fileObject = file.toObject(); // Convert to a plain JavaScript object
+    if (product) {
+      fileObject.productName = product.product_title;
+    }
+    return fileObject;
+  }));
+  
+  return filesWithProductNames;
 }
 
 app.post('/api/file', async (req, res) => {
@@ -582,7 +602,7 @@ app.use(
 // Add this endpoint to get the status of all files
 app.get('/api/file-status', async (req, res) => {
   try {
-    const files = await File.find();
+    const files = await getAllFiles();
     res.json({
       status: 'success',
       files
@@ -603,6 +623,11 @@ app.get('/api/file-status', async (req, res) => {
 async function getCart(cart_id) {
   const cart = await Cart.findOne({ cart_id });
   return cart;
+}
+
+async function getAllCarts() {
+  const carts = await Cart.find();
+  return carts;
 }
 
 async function createCart() {
@@ -741,6 +766,48 @@ app.post('/api/cart/update', async (req, res) => {
   res.json({ status: 'success', message: 'Cart updated successfully' });
 });
 
+app.post('/api/mgmt/cart', requireLogin, requireAdmin, async (req, res) => {
+  const {
+    action,
+    cart_id,
+    fileid,
+    quantity,
+    quality,
+    color
+  } = req.body;
+  let result;
+  try {
+    switch (action) {
+      case 'get':
+        result = await getCart(cart_id);
+        break;
+      case 'list':
+        result = await getAllCarts();
+        break;
+      case 'addFile':
+        result = await addFileToCart(cart_id, fileid, quantity, quality, color);
+        break;
+      case 'removeFile':
+        result = await removeFileFromCart(cart_id, fileid);
+        break;
+      default:
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid action'
+        });
+    }
+    res.json({
+      status: 'success',
+      result
+    });
+  } catch (error) {
+    console.error('Error handling cart action:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+});
 // #endregion CART MANAGEMENT
 
 // #region ADMIN MANAGEMENT
@@ -909,7 +976,7 @@ app.post('/api/filament', async (req, res) => {
 
 // #region PRODUCT MANAGEMENT
 
-const createProduct = async (product_title, product_description, product_features = [], product_image_url, product_fileid, product_author = "Mandarin 3D Prints", product_author_url = "https://mandarin3d.com", product_license = "CC BY-SA 4.0", product_filament_id) => {
+const createProduct = async (product_title, product_description, product_features = [], product_image_url, product_fileid, product_author = "Mandarin 3D Prints", product_author_url = "https://mandarin3d.com", product_license = "CC BY-SA 4.0") => {
   // First, check if the product already exists
   const existingProduct = await Product.findOne({ product_title });
   if (existingProduct) {
@@ -919,10 +986,6 @@ const createProduct = async (product_title, product_description, product_feature
   // Make sure the product_fileid and product_filament_id are valid
   const file = await File.findOne({ fileid: product_fileid });
   if (!file) {
-    return null;
-  }
-  const filament = await Filament.findOne({ filament_id: product_filament_id });
-  if (!filament) {
     return null;
   }
   const product_id = "product_" + uuidv4();
@@ -936,11 +999,116 @@ const createProduct = async (product_title, product_description, product_feature
     product_author,
     product_author_url,
     product_license,
-    product_filament_id
+
   });
   await newProduct.save();
   return newProduct;
 }
+
+const checkIfFileIsInProduct = async (fileid) => {
+  const product = await Product.findOne({ product_fileid: fileid });
+  if (product) {
+    return product;
+  }
+  return false;
+}
+
+const getProduct = async (product_id) => {
+  const product = await Product.findOne({ product_id });
+  return product;
+}
+
+const getProductList = async () => {
+  const products = await Product.find();
+  return products;
+}
+
+const updateProduct = async (product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license) => {
+  const product = await Product.findOne({ product_id });
+  if (!product) {
+    return null;
+  }
+  product.product_title = product_title;
+  product.product_description = product_description;
+  product.product_features = product_features;
+  product.product_image_url = product_image_url;
+  product.product_fileid = product_fileid;
+  product.product_author = product_author;
+  product.product_author_url = product_author_url;
+  product.product_license = product_license;
+  await product.save();
+  return product;
+}
+
+const deleteProduct = async (product_id) => {
+  await Product.deleteOne({ product_id });
+}
+
+app.get('/api/product', async (req, res) => {
+  const { action } = req.query;
+  let result;
+  try {
+    switch (action) {
+      case 'list':
+        result = await getProductList();
+        break;
+      default:
+        console.error("Invalid Action")
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
+    }
+    res.json({ status: 'success', result });
+  } catch (error) {
+    console.error('Error handling product action:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
+
+app.post('/api/product', async (req, res) => {
+  const {
+    action,
+    product_id,
+    product_title,
+    product_description,
+    product_features,
+    product_image_url,
+    product_fileid,
+    product_author,
+    product_author_url,
+    product_license
+  } = req.body;
+  try {
+    let result;
+    switch (action) {
+      case 'create':
+        result = await createProduct(product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license);
+        break;
+      case 'get':
+        result = await getProduct(product_id);
+        break;
+      case 'list':
+        result = await getProductList();
+        break;
+      case 'update':
+        result = await updateProduct(product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license);
+        break;
+      case 'delete':
+        result = await deleteProduct(product_id);
+        break;
+      case 'checkIfFileIsInProduct':
+        result = await checkIfFileIsInProduct(product_fileid);
+        break;
+      default:
+        console.error("Invalid Action")
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
+    }
+    res.json({ status: 'success', result });
+  } catch (error) {
+    console.error('Error handling product action:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
 
 // #endregion PRODUCT MANAGEMENT
 

@@ -76,7 +76,11 @@ export const cartSchema = new mongoose.Schema({
         addon_name: String,
         addon_id: String,
         addon_price: Number
-    }]
+    }],
+    dateCreated: {
+        type: Date,
+        default: Date.now
+    }
 });
 
 export const productSchema = new mongoose.Schema({
@@ -89,7 +93,6 @@ export const productSchema = new mongoose.Schema({
     product_author: String,
     product_author_url: String,
     product_license: String,
-    product_filament_id: String
 });
 
 // Config schema

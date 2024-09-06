@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { FaBars, FaUser, FaCog, FaChartBar, FaBoxes, FaFileAlt, FaShoppingCart, FaTruck } from 'react-icons/fa';
+import { FaBars, FaUser, FaCog, FaChartBar, FaBoxes, FaFileAlt, FaShoppingCart, FaTruck, FaBox } from 'react-icons/fa';
 import Dashboard from '../components/admin/Dashboard';
 import FilamentInventory from '../components/admin/Filaments';
 import FileManagement from '../components/admin/Files';
 import UserManagement from '../components/admin/UserManagement';
 import Settings from '../components/admin/Settings';
 import ShippingInfo from './admin/ShippingInfo.jsx';
+import ProductManagement from './admin/Products.jsx';
+import CartManagement from './admin/Cart.jsx';
 import logo from '../assets/images/m3d_logo.png';
 
 
@@ -30,8 +32,10 @@ function Sidebar({ activeTab, setActiveTab }) {
             tabs: [
                 { name: 'Filaments', icon: FaBoxes },
                 { name: 'Files', icon: FaFileAlt },
-                { name: 'Carts', icon: FaShoppingCart },
                 { name: 'Shipping Info', icon: FaTruck },
+                { name: 'Products', icon: FaBox },
+                { name: 'Carts', icon: FaShoppingCart },
+                
             ]
         }
     ];
@@ -77,6 +81,8 @@ function Content({ activeTab }) {
             {activeTab === 'Users' && <UserManagement />}
             {activeTab === 'Settings' && <Settings />}
             {activeTab === 'Shipping Info' && <ShippingInfo />}
+            {activeTab === 'Products' && <ProductManagement />}
+            {activeTab === 'Carts' && <CartManagement />}
         </div>
     );
 }
