@@ -3,21 +3,33 @@ import { FaMinus, FaPlus, FaSpinner, FaExclamationTriangle } from 'react-icons/f
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { StlViewer } from "react-stl-viewer";
+import { toast } from 'sonner'; 
 
 function hexToRgb(hex) {
   try {
+    if (typeof hex !== 'string' || !hex) {
+      toast.error('Invalid hex value');
+      return { r: 0, g: 0, b: 0 };
+    }
+    
     if (hex.startsWith('#')) {
       hex = hex.substring(1);
-  }
-  if (hex.length === 3) {
-    hex = hex.split('').map(char => char + char).join('');
-  }
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
+    }
+    if (hex.length === 3) {
+      hex = hex.split('').map(char => char + char).join('');
+    }
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
+    
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      toast.error('Invalid hex color');
+      return { r: 0, g: 0, b: 0 };
+    }
+    
     return { r, g, b };
   } catch (error) {
-    console.error('Error converting hex to RGB:', error);
+    toast.error('Error converting hex to RGB:', error);
     return { r: 0, g: 0, b: 0 };
   }
 }
