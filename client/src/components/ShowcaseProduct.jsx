@@ -3,29 +3,10 @@ import { FaCheck } from 'react-icons/fa';
 import { useCart } from '../context/Cart';
 import { toast } from 'sonner';
 
-function ShowcaseProduct({ product_title, product_description, product_image_url="https://via.placeholder.com/300", product_price, product_features=[], product_fileid, product_author="Mandarin 3D", product_author_url="https://mandarin3d.com", product_license="Public Domain" }) {
+function ShowcaseProduct({ product_title, product_description, product_image_url="https://via.placeholder.com/300", product_price, product_features=[], product_fileid, product_author="Mandarin 3D", product_author_url="https://mandarin3d.com", product_license="Public Domain", onAddToCart }) {
   const cart = useCart();
 
-  const handleAddToCart = async () => {
-    if (!cart || !cart.addFile) {
-      console.error('Cart context is not available');
-      toast.error('Unable to add file to cart at this time');
-      return;
-    }
-
-    try {
-      const result = await cart.addFile(product_fileid);
-      if (result.status === 'success') {
-        toast.success('File added to cart successfully');
-      } else {
-        toast.error(result.message || 'Failed to add file to cart');
-      }
-    } catch (error) {
-      console.error('Error adding file to cart:', error);
-      toast.error('An error occurred while adding the file to cart');
-    }
-  };
-
+  
   return (
     <div className="bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-[15px] overflow-hidden">
       <div className="p-4">
@@ -44,7 +25,7 @@ function ShowcaseProduct({ product_title, product_description, product_image_url
           </ul>
           <p className="text-lg font-bold ml-4">${product_price}</p>
         </div>
-        <button className="primary-button w-full" onClick={handleAddToCart}>Add to Cart</button>
+        <button className="primary-button w-full" onClick={() => onAddToCart(product_fileid)}>Add to Cart</button>
       </div>
     </div>
   );
