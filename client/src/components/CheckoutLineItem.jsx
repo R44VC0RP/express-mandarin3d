@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CheckoutLineItem = ({ item_name, item_price, item_quantity }) => (
+const CheckoutLineItem = ({ item_name, item_price, item_quantity, item_status }) => (
   <div className="flex justify-between items-center mb-2">
     <div className="flex-grow">
       <p className="truncate">{item_name}</p>

@@ -93,6 +93,8 @@ export const productSchema = new mongoose.Schema({
     product_author: String,
     product_author_url: String,
     product_license: String,
+    product_price: Number,
+    product_url: { type: String, required: false },
 });
 
 // Config schema
@@ -128,3 +130,10 @@ export const filamentSchema = new mongoose.Schema({
     filament_link: String
   });
   
+
+export const addonSchema = new mongoose.Schema({
+    addon_id: String,
+    addon_name: String,
+    addon_price: Number,
+    addon_description: String,
+});

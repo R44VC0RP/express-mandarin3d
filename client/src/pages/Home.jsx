@@ -14,6 +14,8 @@ import "slick-carousel/slick/slick-theme.css";
 import FileUploadProgress from '../components/FileUploadProgress';
 import { useCart } from '../context/Cart';
 import Loading from 'react-fullscreen-loading';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 // Asset Imports
 import prining_bambu from '../assets/videos/printing_bambu.mp4'
@@ -22,6 +24,8 @@ import building from '../assets/images/outdoor.png'
 
 // Import the useUploadThing hook
 import { useUploadThing } from "../utils/uploadthing";
+
+
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -33,6 +37,29 @@ function Home() {
   const [files, setFiles] = useState([]);
   const [uploadFiles, setUploadFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/product?action=list`);
+      if (response.data.status === 'success') {
+        setProducts(response.data.result);
+        console.log("Products: ", response.data.result);
+      } else {
+        console.error('Error fetching products:', response.data.message);
+        toast.error('Failed to fetch products. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('An error occurred while fetching products. Please try again later.');
+    }
+  };
   console.log("Page Rendered");
 
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
@@ -275,7 +302,7 @@ function Home() {
         <section className="py-8 px-4 max-w-screen-lg mx-auto">
           <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
           <Slider {...settings}>
-            {productShowcases.map((plan, index) => (
+            {products.map((plan, index) => (
               <div key={index} className="px-2">
                 <PricingPlan {...plan} />
               </div>

@@ -122,7 +122,8 @@ function FileManagement() {
         product_author: 'N/A',
         product_author_url: 'N/A',
         product_license: 'N/A',
-        product_filament_id: 'N/A'
+        product_filament_id: 'N/A',
+        product_url: 'N/A'
     });
     const [newProduct, setNewProduct] = useState({
         product_title: '',
@@ -132,7 +133,8 @@ function FileManagement() {
         product_fileid: '',
         product_author: '',
         product_author_url: '',
-        product_license: ''
+        product_license: '',
+        product_url: ''
     });
     const [fileProduct, setFileProduct] = useState(null);
 
@@ -557,6 +559,11 @@ function FileManagement() {
                                                         value={newProduct.product_license}
                                                         onChange={(e) => setNewProduct({...newProduct, product_license: e.target.value})}
                                                     />
+                                                    <Input
+                                                        placeholder="Product URL"
+                                                        value={newProduct.product_url}
+                                                        onChange={(e) => setNewProduct({...newProduct, product_url: e.target.value})}
+                                                    />
                                                 </div>
                                                 <div className="flex justify-end mt-4">
                                                     <button className="github-primary" onClick={() => handleProductAdd(fileDetails.fileid)}>
@@ -566,15 +573,14 @@ function FileManagement() {
                                             </div>
                                             <div className="flex-1">
                                                 <ShowcaseProduct
-                                                    title={newProduct.product_title || "Product Title"}
-                                                    description={newProduct.product_description || "Product Description"}
-                                                    image={newProduct.product_image_url || "https://via.placeholder.com/300"}
-                                                    price={fileDetails.price_override ? (fileDetails.price_override / 100).toFixed(2) : "0.00"}
-                                                    features={newProduct.product_features ? newProduct.product_features.split(',').map(f => f.trim()) : []}
-                                                    fileid={fileDetails.fileid}
-                                                    author={newProduct.product_author || "Mandarin 3D"}
-                                                    author_url={newProduct.product_author_url || "https://mandarin3d.com"}
-                                                    license={newProduct.product_license || "Public Domain"}
+                                                    product_title={newProduct.product_title || "Product Title"}
+                                                    product_description={newProduct.product_description || "Product Description"}
+                                                    product_image_url={newProduct.product_image_url || "https://via.placeholder.com/300"}
+                                                    product_features={newProduct.product_features ? newProduct.product_features.split(',').map(f => f.trim()) : []}
+                                                    product_fileid={fileDetails.fileid}
+                                                    product_author={newProduct.product_author || "Mandarin 3D"}
+                                                    product_author_url={newProduct.product_author_url || "https://mandarin3d.com"}
+                                                    product_license={newProduct.product_license || "Public Domain"}
                                                 />
                                             </div>
                                         </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaTrash, FaSearch } from 'react-icons/fa';
 import { Input } from '@/components/ui/input'
+import { Textarea } from "@/components/ui/textarea"
+
 import {
     Table,
     TableBody,
@@ -31,6 +33,16 @@ import {
 
 import axios from 'axios';
 import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 function ShippingManagement() {
     const [newShipping, setNewShipping] = useState({ name: '', price: '', delivery_estimate: '', notes: '' });
@@ -39,9 +51,13 @@ function ShippingManagement() {
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
+    const [addons, setAddons] = useState([]);
+    const [newAddon, setNewAddon] = useState({ addon_name: '', addon_description: '', addon_price: '0' });
+    const [selectedAddon, setSelectedAddon] = useState(null);
 
     useEffect(() => {
         fetchShippingOptions();
+        fetchAddons();
     }, []);
 
     const fetchShippingOptions = async () => {
@@ -167,6 +183,99 @@ function ShippingManagement() {
             />
         </div>
     );
+
+    const fetchAddons = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/addon`, {
+                action: 'list'
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.data.status === 'success') {
+                setAddons(response.data.result);
+            } else {
+                toast.error('Failed to fetch addons');
+            }
+        } catch (error) {
+            console.error('Error fetching addons:', error);
+            toast.error('Failed to fetch addons');
+        }
+    };
+
+    const handleAddAddon = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/addon`, {
+                action: 'create',
+                addon_name: newAddon.addon_name,
+                addon_description: newAddon.addon_description,
+                addon_price: parseFloat(newAddon.addon_price) * 100 // Convert to cents
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.data.status === 'success') {
+                toast.success('Addon added successfully');
+                setNewAddon({ addon_name: '', addon_description: '', addon_price: '0' });
+                fetchAddons();
+            } else {
+                toast.error('Failed to add addon');
+            }
+        } catch (error) {
+            console.error('Error adding addon:', error);
+            toast.error('Failed to add addon');
+        }
+    };
+
+    const handleUpdateAddon = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/addon`, {
+                action: 'update',
+                addon_id: selectedAddon.addon_id,
+                addon_name: selectedAddon.addon_name,
+                addon_description: selectedAddon.addon_description,
+                addon_price: parseFloat(selectedAddon.addon_price) * 100 // Convert to cents
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.data.status === 'success') {
+                toast.success('Addon updated successfully');
+                setSelectedAddon(null);
+                fetchAddons();
+            } else {
+                toast.error('Failed to update addon');
+            }
+        } catch (error) {
+            console.error('Error updating addon:', error);
+            toast.error('Failed to update addon');
+        }
+    };
+
+    const handleDeleteAddon = async (addon_id) => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/addon`, {
+                action: 'delete',
+                addon_id
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.data.status === 'success') {
+                toast.success('Addon deleted successfully');
+                fetchAddons();
+            } else {
+                toast.error('Failed to delete addon');
+            }
+        } catch (error) {
+            console.error('Error deleting addon:', error);
+            toast.error('Failed to delete addon');
+        }
+    };
 
     return (
         <div className="p-6">
@@ -294,6 +403,134 @@ function ShippingManagement() {
                     </Pagination>
                 </>
             )}
+
+            <div className="flex justify-between items-center mt-8 mb-6">
+                <h2 className="text-2xl font-bold">Checkout Addons</h2>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <button className="github-primary">
+                            <FaPlus className="mr-2 inline" />
+                            Add Addon
+                        </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add New Addon</DialogTitle>
+                            <DialogDescription>Enter the details for the new addon.</DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="space-y-2">
+                                <label htmlFor="addon-name" className="text-sm font-medium leading-none">Name</label>
+                                <Input
+                                    id="addon-name"
+                                    value={newAddon.addon_name}
+                                    onChange={e => setNewAddon({ ...newAddon, addon_name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="addon-description" className="text-sm font-medium leading-none">Description</label>
+                                <Textarea
+                                    id="addon-description"
+                                    value={newAddon.addon_description}
+                                    onChange={e => setNewAddon({ ...newAddon, addon_description: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="addon-price" className="text-sm font-medium leading-none">Price</label>
+                                <Input
+                                    id="addon-price"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={newAddon.addon_price}
+                                    onChange={e => setNewAddon({ ...newAddon, addon_price: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleAddAddon} className="github-primary">Add Addon</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <Table>
+                <TableCaption>List of Checkout Addons</TableCaption>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {addons.map((addon) => (
+                        <TableRow key={addon.addon_id}>
+                            <TableCell>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="link" onClick={() => setSelectedAddon(addon)}>{addon.addon_name}</Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Edit Addon</DialogTitle>
+                                            <DialogDescription>Update the details for this addon.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="grid gap-4 py-4">
+                                            <div className="space-y-2">
+                                                <label htmlFor="edit-addon-name" className="text-sm font-medium leading-none">Name</label>
+                                                <Input
+                                                    id="edit-addon-name"
+                                                    value={selectedAddon?.addon_name || ''}
+                                                    onChange={e => setSelectedAddon({ ...selectedAddon, addon_name: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label htmlFor="edit-addon-description" className="text-sm font-medium leading-none">Description</label>
+                                                <Textarea
+                                                    id="edit-addon-description"
+                                                    value={selectedAddon?.addon_description || ''}
+                                                    onChange={e => setSelectedAddon({ ...selectedAddon, addon_description: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label htmlFor="edit-addon-price" className="text-sm font-medium leading-none">Price</label>
+                                                <Input
+                                                    id="edit-addon-price"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={selectedAddon?.addon_price || ''}
+                                                    onChange={e => setSelectedAddon({ ...selectedAddon, addon_price: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button onClick={handleUpdateAddon} className="github-primary">Update Addon</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </TableCell>
+                            <TableCell>{addon.addon_description}</TableCell>
+                            <TableCell>${(addon.addon_price / 100).toFixed(2)}</TableCell>
+                            <TableCell>
+                                <button
+                                    onClick={() => handleDeleteAddon(addon.addon_id)}
+                                    className="github-secondary text-red-500 hover:text-red-700"
+                                >
+                                    <FaTrash className="mr-2 inline" />
+                                    Delete
+                                </button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     );
 }

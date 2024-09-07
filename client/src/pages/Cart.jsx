@@ -14,12 +14,12 @@ import FileUploadProgress from '../components/FileUploadProgress';
 import { useCart } from '../context/Cart';
 import ShoppingCartItem from '../components/ShoppingCartItem';
 import axios from 'axios';
-import { useAlerts } from '../context/AlertContext';
 import Loading from 'react-fullscreen-loading';
 // Asset Imports
 import prining_bambu from '../assets/videos/printing_bambu.mp4';
 import fusion360 from '../assets/images/fusion360.gif';
 import building from '../assets/images/outdoor.png';
+import { toast } from 'sonner';
 
 // Import the useUploadThing hook
 import { useUploadThing } from "../utils/uploadthing";
@@ -28,7 +28,6 @@ import CheckoutLineItem from '../components/CheckoutLineItem';
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
   const { cart, deleteFile, addFile } = useCart();
-  const { addAlert } = useAlerts();
   const [localLoading, setLocalLoading] = useState(true);
   const [showAlert, setShowAlert] = useState(false);
   const location = useLocation();
@@ -42,6 +41,31 @@ function Home() {
   const [subtotal, setSubtotal] = useState(0);
   const [total, setTotal] = useState(0);
   const [cartLoading, setCartLoading] = useState(true);
+
+  const [addons, setAddons] = useState([]);
+  const [selectedAddons, setSelectedAddons] = useState([]);
+
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/product?action=list`);
+      if (response.data.status === 'success') {
+        setProducts(response.data.result);
+        console.log("Products: ", response.data.result);
+      } else {
+        console.error('Error fetching products:', response.data.message);
+        toast.error('Failed to fetch products. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('An error occurred while fetching products. Please try again later.');
+    }
+  };
 
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
     "modelUploader",
@@ -61,7 +85,7 @@ function Home() {
         fetchCartItems();
       },
       onUploadError: (error) => {
-        addAlert('error', 'Error', `ERROR! ${error.message}`);
+        toast.error(`ERROR! ${error.message}`);
         setUploadFiles(prevFiles => prevFiles.map(file => ({
           ...file,
           status: 'error'
@@ -72,6 +96,8 @@ function Home() {
       },
     }
   );
+
+
 
   const onDrop = useCallback((acceptedFiles) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -154,16 +180,18 @@ function Home() {
 
   useEffect(() => {
     if (activeShippingOption && subtotal) {
-      const total = subtotal + activeShippingOption
+      const addonTotal = selectedAddons.reduce((total, addon) => total + addon.addon_price / 100, 0);
+      const total = subtotal + activeShippingOption + addonTotal;
       console.log("Total: ", total);
       setTotal(total);
     }
-  }, [activeShippingOption, subtotal, cartItems]); // for future use add the other addons here
+  }, [activeShippingOption, subtotal, cartItems, selectedAddons]);
 
   useEffect(() => {
     fetchCartItems();
     fetchFilamentColors();
     fetchShippingOptions();
+    fetchAddons();
   }, []);
 
   useEffect(() => {
@@ -202,6 +230,7 @@ function Home() {
       if (response.data.status === 'success' && Array.isArray(response.data.files)) {
 
         setCartItems(response.data.files);
+        setSelectedAddons(response.data.cart.cart_addons || []);
         //createLineItems();
         if (reload) {
           setCartLoading(false);
@@ -232,6 +261,45 @@ function Home() {
       setActiveShippingOption(response.data.result[0].fixed_amount.amount / 100);
     } catch (error) {
       console.error('Error fetching shipping options:', error);
+    }
+  };
+
+  const fetchAddons = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/addon/list`);
+      if (response.data.status === 'success') {
+        setAddons(response.data.addons);
+        
+      }
+    } catch (error) {
+      console.error('Error fetching addons:', error);
+      toast.error('Failed to fetch addons');
+    }
+  };
+
+  const handleAddonToggle = async (addon) => {
+    const isSelected = selectedAddons.some(a => a.addon_id === addon.addon_id);
+    let newSelectedAddons;
+    if (isSelected) {
+      newSelectedAddons = selectedAddons.filter(a => a.addon_id !== addon.addon_id);
+    } else {
+      newSelectedAddons = [...selectedAddons, addon];
+    }
+    setSelectedAddons(newSelectedAddons);
+
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/cart/update`, {
+        cart_id: cart.cart_id,
+        cart_addons: newSelectedAddons.map(a => ({
+          addon_id: a.addon_id,
+          addon_name: a.addon_name,
+          addon_price: a.addon_price
+        }))
+      });
+      fetchCartItems(); // Refresh cart items to reflect the changes
+    } catch (error) {
+      console.error('Error updating cart addons:', error);
+      toast.error('Failed to update cart addons');
     }
   };
 
@@ -277,7 +345,7 @@ function Home() {
       fetchCartItems(false);
     } catch (error) {
       console.error('Error updating color:', error);
-      addAlert('error', 'Error', `Failed to update color: ${error.message}`);
+      toast.error(`Failed to update color: ${error.message}`);
     }
   };
 
@@ -287,13 +355,13 @@ function Home() {
       const response = await deleteFile(fileid);
       if (response.status === 'success') {
         fetchCartItems(false);
-        addAlert('success', 'Success', 'Item removed from cart');
+        toast.success('Item removed from cart');
       } else {
-        addAlert('error', 'Error', 'Failed to remove item from cart');
+        toast.error('Failed to remove item from cart');
       }
     } catch (error) {
       console.error('Error removing item:', error);
-      addAlert('error', 'Error', `Error removing item: ${error.message}`);
+      toast.error(`Error removing item: ${error.message}`);
     }
   };
 
@@ -462,7 +530,7 @@ function Home() {
                   <p className="text-4xl font-bold">${subtotal.toFixed(2)}</p>
                 </div>
                 <div className="mb-4">
-                  {cartItems.map((item) => (
+                  {cartItems.filter(item => item.file_status === "success").map((item) => (
                     <CheckoutLineItem
                       key={item.fileid}
                       item_name={item.filename}
@@ -477,18 +545,25 @@ function Home() {
                   <p className="font-light">Estimated Shipping:</p>
                   <p className="font-bold">${activeShippingOption.toFixed(2)}</p>
                 </div>
-                <p className='text-sm text-gray-400'>Order Addons:</p>
-                <div className="flex justify-between mb-4">
-
-                  <p className="font-light">Queue Priority:</p>
-                  <p className="font-bold">$10.00</p>
-                </div>
+                {selectedAddons.map(addon => (
+                  <div key={addon.addon_id} className="flex justify-between mb-2">
+                    <p className="font-light">{addon.addon_name}</p>
+                    {addon.addon_price > 0 && (
+                      <p className="font-bold">${(addon.addon_price / 100).toFixed(2)}</p>
+                    )}
+                  </div>
+                ))}
                 <hr className="border-t border-[#5E5E5E] my-4" />
                 <div className="flex justify-between mb-4">
                   <p className="font-light">Estimated Total:</p>
-                  <p className="font-bold">${(subtotal + activeShippingOption).toFixed(2)}</p>
+                  <p className="font-bold">${total.toFixed(2)}</p>
                 </div>
-                <button className="primary-button w-full py-2 rounded-lg">Checkout</button>
+                <button 
+                  className={`primary-button w-full py-2 rounded-lg ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={cartItems.length === 0}
+                >
+                  Checkout
+                </button>
               </div>
               <div className="card-special w-full p-4 mt-4">
                 <div className="flex flex-col items-center mb-4">
@@ -502,33 +577,26 @@ function Home() {
                 </select>
                 <p className="text-md text-white mt-2">Order Comments</p>
                 <textarea className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-[#5E5E5E] text-white" placeholder="Add any special instructions here..."></textarea>
-                <div className="flex items-start mt-2">
-                  <div className="flex items-start mt-2 cursor-pointer" onClick={() => document.getElementById('multi-color-checkbox').click()}>
-                    <input id="multi-color-checkbox" type="checkbox" className="mr-2 mt-1" />
-                    <div>
-                      <p className="text-md text-white font-bold">Enable MultiColor Printing?</p>
-                      <p className="text-sm text-gray-400">Requires a followup email with our design team, we will reach out with you before your order goes to print.</p>
+                {addons.map((addon) => (
+                  <div key={addon.addon_id} className="flex items-start mt-2">
+                    <div className="flex items-start mt-2 cursor-pointer" onClick={() => handleAddonToggle(addon)}>
+                      <input
+                        id={`addon-${addon.addon_id}`}
+                        type="checkbox"
+                        className="mr-2 mt-1"
+                        checked={selectedAddons.some(a => a.addon_id === addon.addon_id)}
+                        readOnly
+                      />
+                      <div>
+                        <p className="text-md text-white font-bold">
+                          {addon.addon_name}
+                          {addon.addon_price > 0 && ` (+$${(addon.addon_price / 100).toFixed(2)})`}
+                        </p>
+                        <p className="text-sm text-gray-400">{addon.addon_description}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-start mt-2">
-                  <div className="flex items-start mt-2 cursor-pointer" onClick={() => document.getElementById('queue-priority-checkbox').click()}>
-                    <input id="queue-priority-checkbox" type="checkbox" className="mr-2 mt-1" />
-                    <div>
-                      <p className="text-md text-white font-bold">Queue Priority? +$10.00</p>
-                      <p className="text-sm text-gray-400">Move your order once placed to the top of the queue. This normally speeds up order fulfillment time by 2-3 days.</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start mt-2">
-                  <div className="flex items-start mt-2 cursor-pointer" onClick={() => document.getElementById('print-assistance-checkbox').click()}>
-                    <input id="print-assistance-checkbox" type="checkbox" className="mr-2 mt-1" />
-                    <div>
-                      <p className="text-md text-white font-bold">Print Assistance?</p>
-                      <p className="text-sm text-gray-400">Get help making sure that print presets and print options are setup correctly for the best print quality. We will reach out to you before your order goes to print.</p>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -538,7 +606,7 @@ function Home() {
         <section className="py-8 px-4">
           <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
           <Slider {...settings}>
-            {pricingPlans.map((plan, index) => (
+            {products.map((plan, index) => (
               <div key={index} className="px-2">
                 <PricingPlan {...plan} />
               </div>

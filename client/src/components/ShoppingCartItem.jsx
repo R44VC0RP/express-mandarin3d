@@ -160,74 +160,70 @@ const ShoppingCartItem = ({
   return (
     <div className="p-4">
       <a href={utfile_url} download title="Click to download" className="hover:underline">
-        <p className="text-white font-bold text-2xl">
+        <p className="text-white font-bold text-xl sm:text-2xl mb-2">
           {filename}
         </p>
-        
       </a>
       {isAuthenticated && (
-          <div className="flex items-center mb-2 sm:mb-0">
-            <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md mb-2">{fileid}</code>
-          </div>
-        )}
-      <div className="flex flex-col sm:flex-row items-start justify-between">
-        
-        <div className="flex flex-col sm:flex-row items-center mb-4 sm:mb-0">
-
-          <div className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4 " style={{ backgroundColor: contrastColor }}>
+        <div className="mb-2">
+          <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md">{fileid}</code>
+        </div>
+      )}
+      <div className="flex flex-col lg:flex-row items-start justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 lg:mb-0 w-full lg:w-auto">
+          <div className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4" style={{ backgroundColor: contrastColor }}>
             {utfile_url ? (
               <LazyModelViewer url={utfile_url} style={style} hexColor={hexColor} />
             ) : (
               <img src={fileurl} alt={filename} className="w-full h-full object-cover" />
             )}
           </div>
-          <div>
-
+          <div className="w-full sm:w-auto">
             <p className="text-white font-bold">File Mass: <span className="font-light">{mass_in_grams}g</span></p>
             <p className="text-white font-bold">Part Dimensions:</p>
-            <p className="text-white font-bold">X: <span className="font-light">{dimensions.x}mm</span></p>
-            <p className="text-white font-bold">Y: <span className="font-light">{dimensions.y}mm</span></p>
-            <p className="text-white font-bold">Z: <span className="font-light">{dimensions.z}mm</span></p>
+            <p className="text-white">X: <span className="font-light">{dimensions.x}mm</span></p>
+            <p className="text-white">Y: <span className="font-light">{dimensions.y}mm</span></p>
+            <p className="text-white">Z: <span className="font-light">{dimensions.z}mm</span></p>
           </div>
         </div>
-        <div className="flex flex-col items-start mb-4 sm:mb-0">
-          <p className="text-white font-bold">Part Quantity</p>
-          <div className="flex items-center">
-            <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity - 1)}><FaMinus /></button>
-            <p className="mx-2 text-white">{quantity}</p>
-            <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity + 1)}><FaPlus /></button>
+        <div className="flex flex-col sm:flex-row lg:flex-col items-start mb-4 lg:mb-0 w-full lg:w-auto">
+          <div className="w-full sm:w-1/2 lg:w-full mb-4 sm:mb-0 sm:mr-2 lg:mr-0">
+            <p className="text-white font-bold mb-1">Part Quantity</p>
+            <div className="flex items-center">
+              <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity - 1)}><FaMinus /></button>
+              <p className="mx-2 text-white">{quantity}</p>
+              <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity + 1)}><FaPlus /></button>
+            </div>
           </div>
-          <p className="text-white font-bold mt-2">Layer Height (Quality)</p>
+          <div className="w-full sm:w-1/2 lg:w-full">
+            <p className="text-white font-bold mb-1">Layer Height (Quality)</p>
+            <select
+              className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
+              value={quality}
+              onChange={(e) => onQualityChange(fileid, e.target.value)}
+            >
+              <option value="0.12mm">0.12mm - Best</option>
+              <option value="0.16mm">0.16mm - Good</option>
+              <option value="0.20mm">0.20mm - Default</option>
+              <option value="0.25mm">0.25mm - Draft</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex flex-col items-start lg:items-end w-full lg:w-auto">
+          <p className="text-white font-bold mb-1">File Color</p>
           <select
-            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
-            value={quality}
-            onChange={(e) => onQualityChange(fileid, e.target.value)}
-          >
-            <option value="0.12mm">0.12mm - Best</option>
-            <option value="0.16mm">0.16mm - Good</option>
-            <option value="0.20mm">0.20mm - Default</option>
-            <option value="0.25mm">0.25mm - Draft</option>
-          </select>
-          <p className="text-white font-bold mt-2">File Color</p>
-          <select
-            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
+            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full lg:w-auto mb-2"
             value={filament_color}
             onChange={(e) => onColorChange(fileid, e.target.value)}
           >
             {filamentColors.map((color) => (
-              <option
-                key={color.filament_id}
-                value={color.filament_name}
-              >
+              <option key={color.filament_id} value={color.filament_name}>
                 {color.filament_name}
               </option>
             ))}
           </select>
-        </div>
-        <div className="flex flex-col items-end space-y-2">
-          {/* <p className="text-white font-bold" id={`${fileid}_price`}>${price}</p> */}
-          <p className="text-white font-bold">${price}</p>
-          <button className="github-remove" onClick={() => onRemove(fileid)}>Remove</button>
+          <p className="text-white font-bold text-lg mb-2">${price}</p>
+          <button className="github-remove w-full lg:w-auto" onClick={() => onRemove(fileid)}>Remove</button>
         </div>
       </div>
       <hr className="w-full border-[#5E5E5E] mt-4" />

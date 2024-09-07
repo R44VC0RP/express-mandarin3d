@@ -39,6 +39,7 @@ import {
   userSchema,
   configSchema,
   filamentSchema,
+  addonSchema,
   productSchema
 } from './modules/dbSchemas.js';
 
@@ -78,6 +79,7 @@ const File = mongoose.model('File', fileSchema);
 const User = mongoose.model('User', userSchema);
 const Config = mongoose.model('Config', configSchema);
 const Product = mongoose.model('Product', productSchema);
+const Addon = mongoose.model('Addon', addonSchema);
 
 
 
@@ -620,8 +622,126 @@ app.get('/api/file-status', async (req, res) => {
 
 // #region CART MANAGEMENT
 
+async function getAddon(addon_id) {
+  const addon = await Addon.findOne({ addon_id });
+  return addon;
+}
+
+async function getAddonByName(addon_name) {
+  const addon = await Addon.findOne({ addon_name });
+  return addon;
+}
+
+async function getAddonList() {
+  const addons = await Addon.find();
+  return addons;
+}
+
+async function createAddon(addon_name, addon_price, addon_description) {
+  const addon_id = "addon_" + uuidv4();
+  const newAddon = new Addon({
+    addon_id,
+    addon_name,
+    addon_price,
+    addon_description
+  });
+
+  await newAddon.save();
+  return newAddon;
+}
+
+async function updateAddon(addon_id, addon_name, addon_price, addon_description) {
+  const addon = await Addon.findOne({ addon_id });
+  if (!addon) {
+    return null;
+  }
+  addon.addon_name = addon_name;
+  addon.addon_price = addon_price;
+  addon.addon_description = addon_description;
+  await addon.save();
+  return addon;
+}
+
+async function deleteAddon(addon_id) {
+  const addon = await Addon.findOne({ addon_id });
+  if (!addon) {
+    return null;
+  }
+  await Addon.deleteOne({ addon_id });
+  return addon;
+}
+
+app.post('/api/addon', requireLogin, requireAdmin, async (req, res) => {
+  const {
+    action,
+    addon_id,
+    addon_name,
+    addon_price,
+    addon_description
+  } = req.body;
+  let result;
+  try {
+    switch (action) {
+      case 'create':
+        result = await createAddon(addon_name, addon_price, addon_description);
+        break;
+      case 'get':
+        result = await getAddon(addon_id);
+        break;
+      case 'getByName':
+        result = await getAddonByName(addon_name);
+        break;
+      case 'list':
+        result = await getAddonList();
+        break;
+      case 'update':
+        result = await updateAddon(addon_id, addon_name, addon_price, addon_description);
+        break;
+      case 'delete':
+        result = await deleteAddon(addon_id);
+        break;
+      default:
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid action'
+        });
+    }
+    res.json({
+      status: 'success',
+      result
+    });
+  } catch (error) {
+    console.error('Error handling addon action:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+});
+
+app.get('/api/addon', async (req, res) => {
+  const { addon_id } = req.query;
+  if (!addon_id) {
+    return res.status(400).json({ status: 'error', message: 'No addon_id provided' });
+  }
+  const addon = await getAddon(addon_id);
+  if (!addon) {
+    return res.status(404).json({ status: 'error', message: 'Addon not found' });
+  }
+  res.json({ status: 'success', addon });
+});
+
+app.get('/api/addon/list', async (req, res) => {
+  const addons = await getAddonList();
+  for (const addon of addons) {
+    addon.addon_price = (addon.addon_price / 100).toFixed(2);
+  }
+  res.json({ status: 'success', addons });
+});
+
+
 async function getCart(cart_id) {
-  const cart = await Cart.findOne({ cart_id });
+  const cart = await Cart.findOne({ cart_id }).populate('cart_addons');
   return cart;
 }
 
@@ -723,8 +843,15 @@ app.get('/api/cart', async (req, res) => {
   }));
   const validFiles = filesWithDetails.filter(file => file !== null);
   cart.files = validFiles;
+  
+  // Fetch full addon details
+  const addonsWithDetails = await Promise.all(cart.cart_addons.map(async (addon) => {
+    const addonDetails = await getAddon(addon.addon_id);
+    return addonDetails;
+  }));
+  
   await cart.save();
-  res.json({ status: 'success', cart_id: cart.cart_id, files: validFiles, cart: cart });
+  res.json({ status: 'success', cart_id: cart.cart_id, files: validFiles, cart: { ...cart.toObject(), cart_addons: addonsWithDetails } });
 });
 
 app.delete('/api/cart', async (req, res) => {
@@ -740,28 +867,36 @@ app.delete('/api/cart', async (req, res) => {
 });
 
 app.post('/api/cart/update', async (req, res) => {
-  const { cart_id, fileid, quantity, quality, color } = req.body;
-  console.log("Updating cart with id: ", cart_id, " with fileid: ", fileid, " quantity: ", quantity, " quality: ", quality, " color: ", color);
-  if (!cart_id || !fileid) {
-    return res.status(400).json({ status: 'error', message: 'No cart_id or fileid provided' });
+  const { cart_id, fileid, quantity, quality, color, cart_addons } = req.body;
+  console.log("Updating cart with id: ", cart_id, " with fileid: ", fileid, " quantity: ", quantity, " quality: ", quality, " color: ", color, " addons: ", cart_addons);
+  if (!cart_id) {
+    return res.status(400).json({ status: 'error', message: 'No cart_id provided' });
   }
   const cart = await getCart(cart_id);
   if (!cart) {
     return res.status(404).json({ status: 'error', message: 'Cart not found', cart_found: false });
   }
-  const fileIndex = cart.files.findIndex(file => file.fileid === fileid);
-  if (fileIndex === -1) {
-    return res.status(404).json({ status: 'error', message: 'File not found in cart' });
+  
+  if (fileid) {
+    const fileIndex = cart.files.findIndex(file => file.fileid === fileid);
+    if (fileIndex === -1) {
+      return res.status(404).json({ status: 'error', message: 'File not found in cart' });
+    }
+    if (quantity !== undefined) {
+      cart.files[fileIndex].quantity = quantity;
+    }
+    if (quality !== undefined) {
+      cart.files[fileIndex].quality = quality;
+    }
+    if (color !== undefined) {
+      cart.files[fileIndex].filament_color = color;
+    }
   }
-  if (quantity !== undefined) {
-    cart.files[fileIndex].quantity = quantity;
+  
+  if (cart_addons) {
+    cart.cart_addons = cart_addons;
   }
-  if (quality !== undefined) {
-    cart.files[fileIndex].quality = quality;
-  }
-  if (color !== undefined) {
-    cart.files[fileIndex].filament_color = color;
-  }
+  
   await cart.save();
   res.json({ status: 'success', message: 'Cart updated successfully' });
 });
@@ -976,12 +1111,14 @@ app.post('/api/filament', async (req, res) => {
 
 // #region PRODUCT MANAGEMENT
 
-const createProduct = async (product_title, product_description, product_features = [], product_image_url, product_fileid, product_author = "Mandarin 3D Prints", product_author_url = "https://mandarin3d.com", product_license = "CC BY-SA 4.0") => {
+const createProduct = async (product_title, product_description, product_features = [], product_image_url, product_fileid, product_author = "Mandarin 3D Prints", product_author_url = "https://mandarin3d.com", product_license = "CC BY-SA 4.0", product_url = "https://mandarin3d.com") => {
   // First, check if the product already exists
   const existingProduct = await Product.findOne({ product_title });
   if (existingProduct) {
     return existingProduct;
   }
+
+  const product_features_array = product_features.split(',');
 
   // Make sure the product_fileid and product_filament_id are valid
   const file = await File.findOne({ fileid: product_fileid });
@@ -993,7 +1130,7 @@ const createProduct = async (product_title, product_description, product_feature
     product_id,
     product_title,
     product_description,
-    product_features,
+    product_features: product_features_array,
     product_image_url,
     product_fileid,
     product_author,
@@ -1020,10 +1157,16 @@ const getProduct = async (product_id) => {
 
 const getProductList = async () => {
   const products = await Product.find();
+  for (const product of products) {
+    const file = await File.findOne({ fileid: product.product_fileid });
+    const filament = await Filament.findOne({ });
+    const price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
+    product.product_price = price;
+  }
   return products;
 }
 
-const updateProduct = async (product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license) => {
+const updateProduct = async (product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url) => {
   const product = await Product.findOne({ product_id });
   if (!product) {
     return null;
@@ -1036,6 +1179,7 @@ const updateProduct = async (product_id, product_title, product_description, pro
   product.product_author = product_author;
   product.product_author_url = product_author_url;
   product.product_license = product_license;
+  product.product_url = product_url;
   await product.save();
   return product;
 }
@@ -1075,13 +1219,14 @@ app.post('/api/product', async (req, res) => {
     product_fileid,
     product_author,
     product_author_url,
-    product_license
+    product_license,
+    product_url=null
   } = req.body;
   try {
     let result;
     switch (action) {
       case 'create':
-        result = await createProduct(product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license);
+        result = await createProduct(product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url);
         break;
       case 'get':
         result = await getProduct(product_id);
@@ -1090,7 +1235,7 @@ app.post('/api/product', async (req, res) => {
         result = await getProductList();
         break;
       case 'update':
-        result = await updateProduct(product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license);
+        result = await updateProduct(product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url);
         break;
       case 'delete':
         result = await deleteProduct(product_id);

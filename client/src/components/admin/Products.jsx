@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaSearch, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { UploadButton } from '@uploadthing/react';
+import ShowcaseProduct from '@/components/ShowcaseProduct';
 
 function ProductManagement() {
     const [products, setProducts] = useState([]);
@@ -37,6 +39,7 @@ function ProductManagement() {
     const [itemsPerPage] = useState(10);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchProducts();
@@ -115,6 +118,11 @@ function ProductManagement() {
         }
     };
 
+    const handleViewProduct = (product) => {
+        setSelectedProduct(product);
+        setIsViewDialogOpen(true);
+    };
+
     const filteredItems = products.filter(
         item => Object.values(item).some(
             val => val && val.toString().toLowerCase().includes(filterText.toLowerCase())
@@ -165,7 +173,9 @@ function ProductManagement() {
                         <TableBody>
                             {sortProductsByDate(filteredItems).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((product) => (
                                 <TableRow key={product.product_id}>
-                                    <TableCell className="font-medium">{product.product_title}</TableCell>
+                                    <TableCell className="font-medium cursor-pointer hover:text-[#0D939B]" onClick={() => handleViewProduct(product)}>
+                                        {product.product_title}
+                                    </TableCell>
                                     <TableCell>{product.product_description.substring(0, 50)}...</TableCell>
                                     <TableCell>{product.product_fileid}</TableCell>
                                     <TableCell>{product.product_author}</TableCell>
@@ -238,11 +248,81 @@ function ProductManagement() {
                                 <label htmlFor="license" className="text-right">License</label>
                                 <Input id="license" value={selectedProduct.product_license} onChange={(e) => setSelectedProduct({...selectedProduct, product_license: e.target.value})} className="col-span-3" />
                             </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="url" className="text-right">URL</label>
+                                <Input id="url" value={selectedProduct.product_url} onChange={(e) => setSelectedProduct({...selectedProduct, product_url: e.target.value})} className="col-span-3" />
+                            </div>
                         </div>
                     )}
                     <div className="flex justify-end mt-4">
                         <button className="github-primary" onClick={handleUpdate}>Save changes</button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+                <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>View Product</DialogTitle>
+                        <DialogDescription>
+                            Product details and preview.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedProduct && (
+                        <div className="flex gap-8">
+                            <div className="flex-1">
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <label className="text-right">Title</label>
+                                        <div className="col-span-3">{selectedProduct.product_title}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <label className="text-right">Description</label>
+                                        <div className="col-span-3">{selectedProduct.product_description}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <label className="text-right">Features</label>
+                                        <div className="col-span-3">{selectedProduct.product_features}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <label className="text-right">Image</label>
+                                        <div className="col-span-3">
+                                            {selectedProduct.product_image_url && (
+                                                <img src={selectedProduct.product_image_url} alt="Product" className="w-1/2 h-auto rounded" />
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <label className="text-right">Author</label>
+                                        <div className="col-span-3">{selectedProduct.product_author}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <label className="text-right">Author URL</label>
+                                        <div className="col-span-3">{selectedProduct.product_author_url}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <label className="text-right">License</label>
+                                        <div className="col-span-3">{selectedProduct.product_license}</div>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <label className="text-right">URL</label>
+                                        <div className="col-span-3">{selectedProduct.product_url}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <ShowcaseProduct
+                                    product_title={selectedProduct.product_title}
+                                    product_description={selectedProduct.product_description}
+                                    product_image_url={selectedProduct.product_image_url || "https://via.placeholder.com/300"}
+                                    product_fileid={selectedProduct.product_fileid}
+                                    product_author={selectedProduct.product_author}
+                                    product_author_url={selectedProduct.product_author_url}
+                                    product_license={selectedProduct.product_license}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>
