@@ -36,3 +36,34 @@ IF (FILE is ABLE TO BE SLICED):
     get mass, dimensions
     create product in stripe
     create file in database (attach stripe product id)
+
+
+## Other Services:
+
+1. Custom Nameplate (existing example)
+    - requires:
+        - nameplate text
+        - nameplate font (select from options)
+        - nameplate plate color (select from options)
+        - nameplate text color
+
+2. Custom Cookie Cutter
+    - requires:
+        - cookie cutter source (image, pdf)
+        - cookie cutter color (select from options)
+
+3. Custom Business Plaque (uploadthing example)
+    - requires:
+        - business logo (image, pdf)
+        - business name
+        - plaque color (select from options)
+        - plaque font (select from options)
+        - plaque text color
+
+4. Custom Keychains (multicolor)
+    - requires:
+        - keychain source (image, pdf)
+        - keychain color (select from options)
+        - keychain text
+        - keychain text color
+

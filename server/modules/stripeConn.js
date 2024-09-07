@@ -69,6 +69,5 @@ export const getShippingOptions = async () => {
             shippingOptionsArray.push(shippingOption);
         }
     }
-    console.log(shippingOptionsArray);
     return shippingOptionsArray;
 }

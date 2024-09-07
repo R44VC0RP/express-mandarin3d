@@ -10,8 +10,8 @@ import { AlertProvider } from './context/AlertContext';
 import AlertManager from './components/AlertManager'; // Add this import
 import { AuthProvider, useAuth } from './context/AuthContext.js';
 import { CartProvider } from './context/Cart';
+import Hex from './pages/Hex';
 import Loading from 'react-fullscreen-loading';
-import { Analytics } from "@vercel/analytics/react"
 // 
 
 
@@ -45,6 +45,7 @@ function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/logout" element={<Logout />} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              <Route path="/hex" element={<Hex />} />
             </Routes>
             <AlertManager /> 
             <Toaster richColors  />

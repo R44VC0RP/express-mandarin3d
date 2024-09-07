@@ -810,12 +810,12 @@ app.post('/api/cart/remove', async (req, res) => {
 
 app.get('/api/cart', async (req, res) => {
   const { cart_id } = req.query;
-  if (!cart_id) {
+  if (!cart_id || cart_id === undefined) {
     return res.status(400).json({ status: 'error', message: 'No cart_id provided' });
   }
   const cart = await getCart(cart_id);
+  
   if (!cart) {
-    console.log("No cart found for cart_id: ", cart_id);
     return res.status(404).json({ status: 'error', message: 'No cart found', cart_found: false });
   }
   const filesWithDetails = await Promise.all(cart.files.map(async (file) => {

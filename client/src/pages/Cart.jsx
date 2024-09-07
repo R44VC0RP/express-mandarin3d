@@ -21,6 +21,19 @@ import fusion360 from '../assets/images/fusion360.gif';
 import building from '../assets/images/outdoor.png';
 import { toast } from 'sonner';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alertdialog"
+
+
 // Import the useUploadThing hook
 import { useUploadThing } from "../utils/uploadthing";
 import CheckoutLineItem from '../components/CheckoutLineItem';
@@ -240,10 +253,14 @@ function Home() {
     if (reload) {
       setCartLoading(true);
     }
+    console.log("Fetching cart items: ", cart.cart_id);
+    if (!cart.cart_id) {
+      console.log("No cart found");
+      return;
+    }
+
     try {
-      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/cart`, {
-        params: { cart_id: cart.cart_id }
-      });
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/cart?cart_id=${cart.cart_id}`);
       if (response.data.status === 'success' && Array.isArray(response.data.files)) {
         console.log("Cart Updated: ");
         setCartItems(response.data.files);

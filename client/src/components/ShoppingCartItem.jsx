@@ -5,6 +5,19 @@ import { OrbitControls, useGLTF } from '@react-three/drei';
 import { StlViewer } from "react-stl-viewer";
 import { toast } from 'sonner'; 
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alertdialog"
+
+
 function hexToRgb(hex) {
   try {
     if (typeof hex !== 'string' || !hex) {
@@ -143,7 +156,23 @@ const ShoppingCartItem = ({
           <p className="text-white">{filename}</p>
         </div>
         <p className="text-gray-400">Your file is being quoted...</p>
-        <button className="github-remove mt-2 sm:mt-0" onClick={() => onRemove(fileid)}>Remove</button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="github-remove mt-2 sm:mt-0">Remove</button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to remove this file?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently remove the file from your cart.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onRemove(fileid)}>Remove</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -165,7 +194,23 @@ const ShoppingCartItem = ({
             <p className="text-red-500">There was an error processing your file.</p>
             <p className="text-red-500"><span className="font-bold">Error:</span> {file_error}</p>
           </div>
-          <button className="github-remove mt-2 sm:mt-0" onClick={() => onRemove(fileid)}>Remove</button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="github-remove mt-2 sm:mt-0">Remove</button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to remove this file?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently remove the file from your cart.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onRemove(fileid)}>Remove</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         <hr className="w-full border-[#5E5E5E] mt-2" />
       </div>
@@ -176,11 +221,29 @@ const ShoppingCartItem = ({
 
   return (
     <div className="p-4">
-      <a href={utfile_url} download title="Click to download" className="hover:underline">
-        <p className="text-white font-bold text-xl sm:text-2xl mb-2">
-          {filename}
-        </p>
-      </a>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <a href="#" className="hover:underline">
+            <p className="text-white font-bold text-xl sm:text-2xl mb-2">
+              {filename}
+            </p>
+          </a>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Download File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to download {filename}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction>
+              <a href={utfile_url} download>Download</a>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {isAuthenticated && (
         <div className="mb-2">
           <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md">{fileid}</code>
@@ -240,7 +303,23 @@ const ShoppingCartItem = ({
             ))}
           </select>
           <p className="text-white font-bold text-lg mb-2">${price}</p>
-          <button className="github-remove w-full lg:w-auto" onClick={() => onRemove(fileid)}>Remove</button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="github-remove w-full lg:w-auto">Remove</button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to remove this file?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently remove the file from your cart.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onRemove(fileid)}>Remove</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       <hr className="w-full border-[#5E5E5E] mt-4" />

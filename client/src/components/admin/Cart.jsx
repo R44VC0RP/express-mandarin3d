@@ -203,11 +203,14 @@ function CartManagement() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sortCartsByDate(filteredItems).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((cartItems) => (
+                            {sortCartsByDate(filteredItems)
+                                .sort((a, b) => (b.cart_id === cart?.cart_id) - (a.cart_id === cart?.cart_id))
+                                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                .map((cartItems) => (
                                 <TableRow 
                                     key={cartItems.cart_id} 
                                     onClick={() => handleCartClick(cartItems)} 
-                                    className={`cursor-pointer ${cartItems.cart_id === cart?.cart_id ? 'bg-blue-900' : ''}`}
+                                    className={`cursor-pointer ${cartItems.cart_id === cart?.cart_id ? 'bg-[#0D939B]' : ''}`}
                                 >
                                     <TableCell>{cartItems.cart_id}</TableCell>
                                     <TableCell>{cartItems.user_id}</TableCell>

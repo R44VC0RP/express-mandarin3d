@@ -18,12 +18,6 @@ export const CartProvider = ({ children }) => {
     } else {
       getFilesFromCart(cartId);
     }
-
-    const intervalId = setInterval(() => {
-      getFilesFromCart(Cookies.get('cart_id'));
-    }, 10000);
-
-    return () => clearInterval(intervalId);
   }, []);
 
   const createNewCart = async () => {
@@ -91,6 +85,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const getFilesFromCart = async (cartId) => {
+    console.log("(cart.js) Fetching cart items (func): ", cartId);
     try {
       const response = await axios.get(`${backendUrl}/api/cart?cart_id=${cartId}`);
       if (response.data.status === 'success') {
