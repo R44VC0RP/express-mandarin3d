@@ -23,7 +23,7 @@ const ConfigSection = ({ title, description, fields, values, onChange }) => {
       <CardContent>
         {fields.map((field) => (
           <div key={field.name} className="mb-4">
-            <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor={field.name} className="block text-sm font-medium text-white dark:text-gray-300 mb-1">
               {field.label}
             </label>
             <Input
@@ -44,7 +44,7 @@ const ConfigSection = ({ title, description, fields, values, onChange }) => {
 const Settings = () => {
   const [configs, setConfigs] = useState({
     dimensionConfig: { x: 0, y: 0, z: 0 },
-    priceConfig: { profitMargin: 0 },
+    priceConfig: { profitMargin: 0, freeShippingThreshold: 0 }, // Add freeShippingThreshold here
     stripeConfig: { shippingOptions: [] }
   });
 
@@ -158,9 +158,10 @@ const Settings = () => {
         />
         <ConfigSection
           title="Price Config"
-          description="Set the profit margin for pricing calculations"
+          description="Set the profit margin and free shipping threshold"
           fields={[
             { name: 'profitMargin', label: 'Profit Margin (%)', type: 'number', placeholder: 'Enter profit margin' },
+            { name: 'freeShippingThreshold', label: 'Free Shipping Threshold ($)', type: 'number', step: '0.01', placeholder: 'Enter free shipping threshold' },
           ]}
           values={configs.priceConfig}
           onChange={(field, value) => handleConfigChange('priceConfig', field, value)}
@@ -216,14 +217,14 @@ const Settings = () => {
             ))}
           </CardContent>
           <CardFooter>
-            <Button type="button" onClick={addShippingOption} className="w-full">
-              <FaPlus className="mr-2" /> Add Shipping Option
-            </Button>
+            <button type="button" onClick={addShippingOption} className="w-full github-primary">
+              <FaPlus className="mr-2 inline" /> Add Shipping Option
+            </button>
           </CardFooter>
         </Card>
-        <Button type="submit" className="w-full">
-          <FaSave className="mr-2" /> Save Changes
-        </Button>
+        <button type="submit" className="w-full github-primary">
+          <FaSave className="mr-2 inline" /> Save Changes
+        </button>
       </form>
     </div>
   );

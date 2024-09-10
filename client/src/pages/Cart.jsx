@@ -5,7 +5,7 @@ import { generateClientDropzoneAccept } from "uploadthing/client";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { FaInfoCircle, FaArrowLeft } from 'react-icons/fa';
+import { FaInfoCircle, FaArrowLeft, FaArrowDown, FaArrowUp } from 'react-icons/fa';
 import ShowcaseProduct from '../components/ShowcaseProduct';
 import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
@@ -20,6 +20,7 @@ import prining_bambu from '../assets/videos/printing_bambu.mp4';
 import fusion360 from '../assets/images/fusion360.gif';
 import building from '../assets/images/outdoor.png';
 import { toast } from 'sonner';
+import { AnimatedProgressBar } from '../components/progressbar';
 
 import {
   AlertDialog,
@@ -54,7 +55,8 @@ function Home() {
   const [subtotal, setSubtotal] = useState(0);
   const [total, setTotal] = useState(0);
   const [cartLoading, setCartLoading] = useState(true);
-
+  const [freeShippingProgress, setFreeShippingProgress] = useState(0);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
   const [addons, setAddons] = useState([]);
   const [selectedAddons, setSelectedAddons] = useState([]);
 
@@ -109,8 +111,6 @@ function Home() {
       },
     }
   );
-
-
 
   const onDrop = useCallback((acceptedFiles) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -194,7 +194,12 @@ function Home() {
   useEffect(() => {
     if (activeShippingOption && subtotal) {
       const addonTotal = selectedAddons.reduce((total, addon) => total + addon.addon_price / 100, 0);
-      const total = subtotal + activeShippingOption + addonTotal;
+      let total;
+      if (freeShippingProgress === 100) {
+        total = subtotal + addonTotal;
+      } else {
+        total = subtotal + activeShippingOption + addonTotal;
+      }
       console.log("Total: ", total);
       setTotal(total);
     }
@@ -217,17 +222,33 @@ function Home() {
     }
   };
 
-  useEffect(() => {
+  useEffect(() => { // THIS IS THE DEFAULT LOAD ALL THE THINGS
+    fetchAddons();
+    fetchShippingThreshold();
     fetchCartItems();
     fetchFilamentColors();
     fetchShippingOptions();
-    fetchAddons();
+    
   }, []);
 
-  useEffect(() => {
-    const newSubtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  useEffect(() => { // SUBTOTAL CALCULATION
+    const newSubtotal = cartItems.reduce((total, item) => {
+      if (item.file_status === "success") {
+        if (item.price) {
+          return total + item.price * item.quantity;
+        } else {
+          return total;
+        }
+      }
+      return total;
+    }, 0);
     setSubtotal(newSubtotal);
-  }, [cartItems]);
+    if (newSubtotal >= freeShippingThreshold) {
+      setFreeShippingProgress(100);
+    } else {
+      setFreeShippingProgress(newSubtotal / freeShippingThreshold * 100);
+    }
+  }, [cartItems, freeShippingThreshold]);
 
   const fetchFilamentColors = async () => {
     try {
@@ -239,6 +260,15 @@ function Home() {
       setFilamentColors(response.data.result);
     } catch (error) {
       console.error('Error fetching filament colors:', error);
+    }
+  };
+
+  const fetchShippingThreshold = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/configs/shippingthreshold`);
+      setFreeShippingThreshold(response.data.freeShippingThreshold);
+    } catch (error) {
+      console.error('Error fetching shipping threshold:', error);
     }
   };
 
@@ -301,12 +331,41 @@ function Home() {
     try {
       const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/addon/list`);
       if (response.data.status === 'success') {
-        setAddons(response.data.addons);
+        const fetchedAddons = response.data.addons;
+        setAddons(fetchedAddons);
         
+        // Filter out any selected addons that are no longer valid
+        const validSelectedAddons = selectedAddons.filter(selectedAddon => 
+          fetchedAddons.some(addon => addon.addon_id === selectedAddon.addon_id)
+        );
+        
+        // Update selectedAddons if any invalid addons were removed
+        if (validSelectedAddons.length !== selectedAddons.length) {
+          setSelectedAddons(validSelectedAddons);
+          // Optionally, update the cart on the server with the new valid addons
+          updateCartAddons(validSelectedAddons);
+        }
       }
     } catch (error) {
       console.error('Error fetching addons:', error);
       toast.error('Failed to fetch addons');
+    }
+  };
+
+  const updateCartAddons = async (validAddons) => {
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/cart/update`, {
+        cart_id: cart.cart_id,
+        cart_addons: validAddons.map(a => ({
+          addon_id: a.addon_id,
+          addon_name: a.addon_name,
+          addon_price: a.addon_price
+        }))
+      });
+      toast.success('Cart addons updated');
+    } catch (error) {
+      console.error('Error updating cart addons:', error);
+      toast.error('Failed to update cart addons');
     }
   };
 
@@ -337,6 +396,10 @@ function Home() {
   };
 
   const handleQuantityChange = async (fileid, newQuantity) => {
+    if (newQuantity === 0) {
+      handleRemove(fileid);
+      return;
+    }
     try {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/cart/update`, {
         cart_id: cart.cart_id,
@@ -468,8 +531,23 @@ function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-4">
             {/* Left Column: Shopping Cart Items */}
+            
             <div name="checkout-items" className="col-span-2 mt-4 lg:mt-4">
               <div className="w-full">
+                <div className="lg:hidden">
+                  <button 
+                    onClick={() => {
+                      const checkoutConfig = document.querySelector('div[name="checkout-config"]');
+                      if (checkoutConfig) {
+                        checkoutConfig.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    className="flex items-center justify-center w-full py-2 mb-4 bg-[#0D939B] text-white rounded-md"
+                  >
+                    Go to Checkout
+                    <FaArrowDown className="ml-2" />
+                  </button>
+                </div>
                 {cartLoading ? (
                   <div className="flex flex-col items-center justify-center">
                     <p className="text-xl font-bold mb-4">Loading Cart</p>
@@ -539,10 +617,23 @@ function Home() {
                 </div>
 
                 <hr className="border-t border-[#5E5E5E] my-4" />
-                <div className="flex justify-between mb-2">
-                  <p className="font-light">Estimated Shipping:</p>
-                  <p className="font-bold">${activeShippingOption.toFixed(2)}</p>
-                </div>
+                {freeShippingProgress === 100 ? (
+                  <div className="flex justify-between mb-2">
+                    <p className="font-light">Shipping:</p>
+                    <p className="font-bold text-green-500">Free</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between mb-2">
+                      <p className="font-light">Estimated Shipping:</p>
+                      <p className="font-bold">${activeShippingOption.toFixed(2)}</p>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <p className="font-light">Free Shipping Progress (${freeShippingThreshold} Threshold):</p>
+                    </div>
+                    <AnimatedProgressBar progress={freeShippingProgress} />
+                  </>
+                )}
                 {selectedAddons.map(addon => (
                   <div key={addon.addon_id} className="flex justify-between mb-2">
                     <p className="font-light">{addon.addon_name}</p>
@@ -588,7 +679,7 @@ function Home() {
                       <div>
                         <p className="text-md text-white font-bold">
                           {addon.addon_name}
-                          {addon.addon_price > 0 && ` (+$${(addon.addon_price / 100).toFixed(2)})`}
+                          {addon.addon_price > 0 && ` (+$${(addon.addon_price).toFixed(2)})`}
                         </p>
                         <p className="text-sm text-gray-400">{addon.addon_description}</p>
                       </div>

@@ -122,11 +122,12 @@
                                 <NavigationMenuTrigger>Model Library</NavigationMenuTrigger>
                                 <NavigationMenuContent>
                                     <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px]">
-                                        <ListItem href="/models/featured" title="Featured Models">
+                                        <ListItem href="/models/featured" title="Featured Models" >
                                             Explore our curated collection of popular 3D models.
                                         </ListItem>
                                         <ListItem href="/models/categories" title="Categories">
                                             Browse models by category for easy navigation.
+                                            
                                         </ListItem>
                                         <ListItem href="/models/custom" title="Custom Requests">
                                             Learn how to request custom 3D models tailored to your needs.

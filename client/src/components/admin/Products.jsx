@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaEdit, FaTrash, FaTimes, FaTags, FaLayerGroup } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,14 @@ import {
 } from "@/components/ui/dialog";
 import { UploadButton } from '@uploadthing/react';
 import ShowcaseProduct from '@/components/ShowcaseProduct';
+import { Badge } from '@/components/ui/badge';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 function ProductManagement() {
     const [products, setProducts] = useState([]);
@@ -40,9 +48,17 @@ function ProductManagement() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+    const [collections, setCollections] = useState([]);
+    const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+    const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false);
+    const [tagInput, setTagInput] = useState('');
+    const [newCollectionName, setNewCollectionName] = useState('');
+    const [newCollectionDescription, setNewCollectionDescription] = useState('');
+    const [newCollectionImageUrl, setNewCollectionImageUrl] = useState('');
 
     useEffect(() => {
         fetchProducts();
+        fetchCollections();
     }, []);
 
     const fetchProducts = async () => {
@@ -63,6 +79,26 @@ function ProductManagement() {
             toast.error('Failed to fetch products');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchCollections = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/collection`, {
+                action: 'list'
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.data.status === 'success') {
+                setCollections(response.data.result);
+            } else {
+                toast.error('Failed to fetch collections');
+            }
+        } catch (error) {
+            console.error('Error fetching collections:', error);
+            toast.error('Failed to fetch collections');
         }
     };
 
@@ -123,6 +159,116 @@ function ProductManagement() {
         setIsViewDialogOpen(true);
     };
 
+    const handleTagsEdit = (product) => {
+        setSelectedProduct(product);
+        setIsTagDialogOpen(true);
+    };
+
+    const handleCollectionEdit = (product) => {
+        setSelectedProduct(product);
+        setIsCollectionDialogOpen(true);
+    };
+
+    const handleTagsUpdate = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/product`, {
+                action: 'update',
+                product_id: selectedProduct.product_id,
+                product_tags: selectedProduct.product_tags
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.data.status === 'success') {
+                toast.success('Tags updated successfully');
+                setIsTagDialogOpen(false);
+                fetchProducts();
+            } else {
+                toast.error('Failed to update tags');
+            }
+        } catch (error) {
+            console.error('Error updating tags:', error);
+            toast.error('Failed to update tags');
+        }
+    };
+
+    const handleAddTag = () => {
+        if (tagInput && !selectedProduct.product_tags.includes(tagInput)) {
+            setSelectedProduct({
+                ...selectedProduct,
+                product_tags: [...selectedProduct.product_tags, tagInput]
+            });
+            setTagInput('');
+        }
+    };
+
+    const handleRemoveTag = (tag) => {
+        setSelectedProduct({
+            ...selectedProduct,
+            product_tags: selectedProduct.product_tags.filter(t => t !== tag)
+        });
+    };
+
+    const handleCollectionUpdate = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/product`, {
+                action: 'update',
+                product_id: selectedProduct.product_id,
+                product_collection: selectedProduct.product_collection
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.data.status === 'success') {
+                toast.success('Collection updated successfully');
+                setIsCollectionDialogOpen(false);
+                fetchProducts();
+            } else {
+                toast.error('Failed to update collection');
+            }
+        } catch (error) {
+            console.error('Error updating collection:', error);
+            toast.error('Failed to update collection');
+        }
+    };
+
+    const getCollectionName = (collection_id) => {
+        const collection = collections.find(c => c.collection_id === collection_id);
+        return collection ? collection.collection_name : 'No collection';
+    }
+
+    const handleCreateCollection = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/collection`, {
+                action: 'create',
+                collection_name: newCollectionName,
+                collection_description: newCollectionDescription,
+                collection_image_url: newCollectionImageUrl
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.data.status === 'success') {
+                toast.success('Collection created successfully');
+                fetchCollections();
+                setNewCollectionName('');
+                setNewCollectionDescription('');
+                setNewCollectionImageUrl('');
+            } else {
+                toast.error('Failed to create collection');
+            }
+        } catch (error) {
+            console.error('Error creating collection:', error);
+            toast.error('Failed to create collection');
+        }
+    };
+
     const filteredItems = products.filter(
         item => Object.values(item).some(
             val => val && val.toString().toLowerCase().includes(filterText.toLowerCase())
@@ -145,7 +291,7 @@ function ProductManagement() {
             />
         </div>
     );
-
+    console.log(products);
     return (
         <div className="p-6">
             <h2 className="text-2xl font-bold mb-6">Product Management</h2>
@@ -167,6 +313,8 @@ function ProductManagement() {
                                 <TableHead>File ID</TableHead>
                                 <TableHead>Author</TableHead>
                                 <TableHead>License</TableHead>
+                                <TableHead>Tags</TableHead>
+                                <TableHead>Collection</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -180,12 +328,28 @@ function ProductManagement() {
                                     <TableCell>{product.product_fileid}</TableCell>
                                     <TableCell>{product.product_author}</TableCell>
                                     <TableCell>{product.product_license}</TableCell>
+                                    <TableCell>{product.product_tags?.join(', ') || 'No tags'}</TableCell>
+                                    <TableCell>
+                                        {product.product_collection ? (
+                                            <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                                                {getCollectionName(product.product_collection)}
+                                            </Badge>
+                                        ) : (
+                                            'No collection'
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <button onClick={() => handleEdit(product)} className="github-secondary text-blue-500 hover:text-blue-700 mr-2">
                                             <FaEdit />
                                         </button>
-                                        <button onClick={() => handleDelete(product.product_id)} className="github-secondary text-red-500 hover:text-red-700">
+                                        <button onClick={() => handleDelete(product.product_id)} className="github-secondary text-red-500 hover:text-red-700 mr-2">
                                             <FaTrash />
+                                        </button>
+                                        <button onClick={() => handleTagsEdit(product)} className="github-secondary text-green-500 hover:text-green-700 mr-2">
+                                            <FaTags />
+                                        </button>
+                                        <button onClick={() => handleCollectionEdit(product)} className="github-secondary text-purple-500 hover:text-purple-700">
+                                            <FaLayerGroup />
                                         </button>
                                     </TableCell>
                                 </TableRow>
@@ -323,6 +487,97 @@ function ProductManagement() {
                             </div>
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isTagDialogOpen} onOpenChange={setIsTagDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Tags</DialogTitle>
+                        <DialogDescription>
+                            Add or remove tags for this product.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        {selectedProduct?.product_tags.map((tag, index) => (
+                            <Badge key={index} className=" px-2 py-1 rounded-full flex items-center">
+                                <span>{tag}</span>
+                                <button onClick={() => handleRemoveTag(tag)} className="ml-2 text-red-500">
+                                    <FaTimes />
+                                </button>
+                            </Badge>
+                        ))}
+                    </div>
+                    <div className="flex gap-2">
+                        <Input
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            placeholder="Enter a new tag"
+                        />
+                        <button onClick={handleAddTag} className="github-primary">
+                            Add Tag
+                        </button>
+                    </div>
+                    <div className="flex justify-end mt-4">
+                        <button className="github-primary" onClick={handleTagsUpdate}>Save Tags</button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isCollectionDialogOpen} onOpenChange={setIsCollectionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Collection</DialogTitle>
+                        <DialogDescription>
+                            Assign this product to a collection or create a new one.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="mb-4">
+                        <label htmlFor="collection" className="block text-sm font-medium text-foreground mb-2">Select Collection</label>
+                        <Select
+                            value={selectedProduct?.product_collection || null}
+                            onValueChange={(value) => setSelectedProduct({...selectedProduct, product_collection: value})}
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a collection" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="no_collection">No Collection</SelectItem>
+                                {collections.map((collection) => (
+                                    <SelectItem key={collection.collection_id} value={collection.collection_id}>
+                                        {collection.collection_name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="mt-4">
+                        <h4 className="text-lg font-medium">Create New Collection</h4>
+                        <Input
+                            value={newCollectionName}
+                            onChange={(e) => setNewCollectionName(e.target.value)}
+                            placeholder="Collection Name"
+                            className="mt-2"
+                        />
+                        <Input
+                            value={newCollectionDescription}
+                            onChange={(e) => setNewCollectionDescription(e.target.value)}
+                            placeholder="Collection Description"
+                            className="mt-2"
+                        />
+                        <Input
+                            value={newCollectionImageUrl}
+                            onChange={(e) => setNewCollectionImageUrl(e.target.value)}
+                            placeholder="Collection Image URL"
+                            className="mt-2"
+                        />
+                        <button onClick={handleCreateCollection} className="github-primary mt-2">
+                            Create Collection
+                        </button>
+                    </div>
+                    <div className="flex justify-end mt-4">
+                        <button className="github-primary" onClick={handleCollectionUpdate}>Save Collection</button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

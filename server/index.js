@@ -40,7 +40,8 @@ import {
   configSchema,
   filamentSchema,
   addonSchema,
-  productSchema
+  productSchema,
+  collectionSchema
 } from './modules/dbSchemas.js';
 
 
@@ -80,6 +81,7 @@ const User = mongoose.model('User', userSchema);
 const Config = mongoose.model('Config', configSchema);
 const Product = mongoose.model('Product', productSchema);
 const Addon = mongoose.model('Addon', addonSchema);
+const Collection = mongoose.model('Collection', collectionSchema);
 
 
 
@@ -1111,7 +1113,7 @@ app.post('/api/filament', async (req, res) => {
 
 // #region PRODUCT MANAGEMENT
 
-const createProduct = async (product_title, product_description, product_features = [], product_image_url, product_fileid, product_author = "Mandarin 3D Prints", product_author_url = "https://mandarin3d.com", product_license = "CC BY-SA 4.0", product_url = "https://mandarin3d.com") => {
+const createProduct = async (product_title, product_description, product_features = [], product_image_url, product_fileid, product_author = "Mandarin 3D Prints", product_author_url = "https://mandarin3d.com", product_license = "CC BY-SA 4.0", product_url = "https://mandarin3d.com", product_tags = [], product_collection = null) => {
   // First, check if the product already exists
   const existingProduct = await Product.findOne({ product_title });
   if (existingProduct) {
@@ -1136,7 +1138,9 @@ const createProduct = async (product_title, product_description, product_feature
     product_author,
     product_author_url,
     product_license,
-
+    product_url,
+    product_tags,
+    product_collection
   });
   await newProduct.save();
   return newProduct;
@@ -1160,32 +1164,102 @@ const getProductList = async () => {
   for (const product of products) {
     const file = await File.findOne({ fileid: product.product_fileid });
     const filament = await Filament.findOne({ });
-    const price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
-    product.product_price = price;
+    if (file && file.file_status === "success") {
+      const price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
+      product.product_price = price;
+    } else {
+      product.product_price = 1;
+    }
+    
   }
   return products;
 }
 
-const updateProduct = async (product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url) => {
+const updateProduct = async (product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url, product_tags, product_collection) => {
   const product = await Product.findOne({ product_id });
   if (!product) {
     return null;
   }
-  product.product_title = product_title;
-  product.product_description = product_description;
-  product.product_features = product_features;
-  product.product_image_url = product_image_url;
-  product.product_fileid = product_fileid;
-  product.product_author = product_author;
-  product.product_author_url = product_author_url;
-  product.product_license = product_license;
-  product.product_url = product_url;
+  if (product_title) {
+    product.product_title = product_title;
+  }
+  if (product_description) {
+    product.product_description = product_description;
+  }
+  if (product_features) {
+    product.product_features = product_features;
+  }
+  if (product_image_url) {
+    product.product_image_url = product_image_url;
+  }
+  if (product_fileid) {
+    product.product_fileid = product_fileid;
+  }
+  if (product_author) {
+    product.product_author = product_author;
+  }
+  if (product_author_url) {
+    product.product_author_url = product_author_url;
+  }
+  if (product_license) {
+    product.product_license = product_license;
+  }
+  if (product_url) {
+    product.product_url = product_url;
+  }
+  if (product_tags) {
+    product.product_tags = product_tags;
+  }
+  if (product_collection) {
+    product.product_collection = product_collection;
+  }
   await product.save();
   return product;
 }
 
 const deleteProduct = async (product_id) => {
   await Product.deleteOne({ product_id });
+}
+
+// Add new functions for collection management
+const createCollection = async (collection_name, collection_description, collection_image_url) => {
+  const collection_id = "collection_" + uuidv4();
+  const newCollection = new Collection({
+    collection_id,
+    collection_name,
+    collection_description,
+    collection_image_url
+  });
+  await newCollection.save();
+  return newCollection;
+}
+
+const getCollection = async (collection_id) => {
+  const collection = await Collection.findOne({ collection_id });
+  return collection;
+}
+
+const getCollectionList = async () => {
+  const collections = await Collection.find();
+  return collections;
+}
+
+const updateCollection = async (collection_id, collection_name, collection_description, collection_image_url) => {
+  const collection = await Collection.findOne({ collection_id });
+  if (!collection) {
+    return null;
+  }
+  collection.collection_name = collection_name;
+  collection.collection_description = collection_description;
+  collection.collection_image_url = collection_image_url;
+  await collection.save();
+  return collection;
+}
+
+const deleteCollection = async (collection_id) => {
+  await Collection.deleteOne({ collection_id });
+  // Remove the collection from all products
+  await Product.updateMany({ product_collection: collection_id }, { $unset: { product_collection: "" } });
 }
 
 app.get('/api/product', async (req, res) => {
@@ -1220,13 +1294,15 @@ app.post('/api/product', async (req, res) => {
     product_author,
     product_author_url,
     product_license,
-    product_url=null
+    product_url=null,
+    product_tags,
+    product_collection
   } = req.body;
   try {
     let result;
     switch (action) {
       case 'create':
-        result = await createProduct(product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url);
+        result = await createProduct(product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url, product_tags, product_collection);
         break;
       case 'get':
         result = await getProduct(product_id);
@@ -1235,7 +1311,7 @@ app.post('/api/product', async (req, res) => {
         result = await getProductList();
         break;
       case 'update':
-        result = await updateProduct(product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url);
+        result = await updateProduct(product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url, product_tags, product_collection);
         break;
       case 'delete':
         result = await deleteProduct(product_id);
@@ -1254,6 +1330,43 @@ app.post('/api/product', async (req, res) => {
   }
 });
 
+// Add a new API endpoint for collection management
+app.post('/api/collection', requireLogin, requireAdmin, async (req, res) => {
+  const {
+    action,
+    collection_id,
+    collection_name,
+    collection_description,
+    collection_image_url
+  } = req.body;
+  try {
+    let result;
+    switch (action) {
+      case 'create':
+        result = await createCollection(collection_name, collection_description, collection_image_url);
+        break;
+      case 'get':
+        result = await getCollection(collection_id);
+        break;
+      case 'list':
+        result = await getCollectionList();
+        break;
+      case 'update':
+        result = await updateCollection(collection_id, collection_name, collection_description, collection_image_url);
+        break;
+      case 'delete':
+        result = await deleteCollection(collection_id);
+        break;
+      default:
+        console.error("Invalid Action")
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
+    }
+    res.json({ status: 'success', result });
+  } catch (error) {
+    console.error('Error handling collection action:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
 
 // #endregion PRODUCT MANAGEMENT
 
@@ -1323,18 +1436,58 @@ app.get('/api/configs', requireLogin, requireAdmin, async (req, res) => {
   }
 });
 
+app.get('/api/configs/shippingthreshold', async (req, res) => {
+  try {
+    const config = await Config.findOne();
+    if (!config) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Config not found'
+      });
+    }
+    res.json({
+      status: 'success',
+      freeShippingThreshold: config.priceConfig.freeShippingThreshold
+    });
+  } catch (error) {
+    console.error('Error fetching free shipping threshold:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error fetching free shipping threshold'
+    });
+  }
+});
+
 // Update configs
 app.post('/api/configs', requireLogin, requireAdmin, async (req, res) => {
   try {
-    const updatedConfig = await Config.findOneAndUpdate({}, req.body, {
+    const { dimensionConfig, priceConfig, stripeConfig } = req.body;
+    
+    // Validate the freeShippingThreshold
+    if (priceConfig && priceConfig.freeShippingThreshold !== undefined) {
+      if (isNaN(priceConfig.freeShippingThreshold) || priceConfig.freeShippingThreshold < 0) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Free shipping threshold must be a non-negative number'
+        });
+      }
+    }
+
+    const updatedConfig = await Config.findOneAndUpdate({}, {
+      dimensionConfig,
+      priceConfig,
+      stripeConfig
+    }, {
       new: true,
       upsert: true
     });
+
     res.json({
       status: 'success',
       config: updatedConfig
     });
   } catch (error) {
+    console.error('Error updating configs:', error);
     res.status(500).json({
       status: 'error',
       message: 'Error updating configs'

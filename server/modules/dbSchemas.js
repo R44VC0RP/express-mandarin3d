@@ -95,6 +95,8 @@ export const productSchema = new mongoose.Schema({
     product_license: String,
     product_price: Number,
     product_url: { type: String, required: false },
+    product_tags: [String],
+    product_collection: { type: String, required: false }
 });
 
 // Config schema
@@ -105,7 +107,8 @@ export const configSchema = new mongoose.Schema({
         z: Number,
     },
     priceConfig: {
-        profitMargin: Number
+        profitMargin: Number,
+        freeShippingThreshold: Number // Add this line
     },
     stripeConfig: {
         shippingOptions: [{
@@ -114,7 +117,6 @@ export const configSchema = new mongoose.Schema({
             price: Number,
             delivery_estimate: String,
             notes: String
-
         }]
     }
 });
@@ -136,4 +138,12 @@ export const addonSchema = new mongoose.Schema({
     addon_name: String,
     addon_price: Number,
     addon_description: String,
+});
+
+// Add a new schema for collections
+export const collectionSchema = new mongoose.Schema({
+    collection_id: String,
+    collection_name: String,
+    collection_description: String,
+    collection_image_url: String
 });
