@@ -28,7 +28,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { UploadButton } from '@uploadthing/react';
+import { UploadButton } from "../../utils/uploadthing";
 import ShowcaseProduct from '@/components/ShowcaseProduct';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -38,6 +38,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 function ProductManagement() {
     const [products, setProducts] = useState([]);
@@ -55,6 +56,9 @@ function ProductManagement() {
     const [newCollectionName, setNewCollectionName] = useState('');
     const [newCollectionDescription, setNewCollectionDescription] = useState('');
     const [newCollectionImageUrl, setNewCollectionImageUrl] = useState('');
+    const [selectedCollection, setSelectedCollection] = useState(null);
+    const [isEditCollectionDialogOpen, setIsEditCollectionDialogOpen] = useState(false);
+    const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchProducts();
@@ -260,12 +264,70 @@ function ProductManagement() {
                 setNewCollectionName('');
                 setNewCollectionDescription('');
                 setNewCollectionImageUrl('');
+                setIsNewCollectionDialogOpen(false);
             } else {
                 toast.error('Failed to create collection');
             }
         } catch (error) {
             console.error('Error creating collection:', error);
             toast.error('Failed to create collection');
+        }
+    };
+
+    const handleEditCollection = (collection) => {
+        setSelectedCollection(collection);
+        setIsEditCollectionDialogOpen(true);
+    };
+
+    const handleUpdateCollection = async () => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/collection`, {
+                action: 'update',
+                collection_id: selectedCollection.collection_id,
+                collection_name: selectedCollection.collection_name,
+                collection_description: selectedCollection.collection_description,
+                collection_image_url: selectedCollection.collection_image_url
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.data.status === 'success') {
+                toast.success('Collection updated successfully');
+                setIsEditCollectionDialogOpen(false);
+                fetchCollections();
+            } else {
+                toast.error('Failed to update collection');
+            }
+        } catch (error) {
+            console.error('Error updating collection:', error);
+            toast.error('Failed to update collection');
+        }
+    };
+
+    const handleDeleteCollection = async (collectionId) => {
+        if (window.confirm('Are you sure you want to delete this collection?')) {
+            try {
+                const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/collection`, {
+                    action: 'delete',
+                    collection_id: collectionId
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.data.status === 'success') {
+                    toast.success('Collection deleted successfully');
+                    fetchCollections();
+                } else {
+                    toast.error('Failed to delete collection');
+                }
+            } catch (error) {
+                console.error('Error deleting collection:', error);
+                toast.error('Failed to delete collection');
+            }
         }
     };
 
@@ -383,6 +445,57 @@ function ProductManagement() {
                             </PaginationItem>
                         </PaginationContent>
                     </Pagination>
+                </>
+            )}
+
+            <h2 className="text-2xl font-bold my-6">Collection Management</h2>
+            
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center">
+                    <p className="text-xl font-bold mb-4">Loading Collections</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
+                </div>
+            ) : (
+                <>
+                    <div className="mb-4">
+                        <Button onClick={() => setIsNewCollectionDialogOpen(true)} className="github-primary">
+                            Add New Collection
+                        </Button>
+                    </div>
+                    <Table>
+                        <TableCaption>A list of your collections</TableCaption>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Image</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {collections.map((collection) => (
+                                <TableRow key={collection.collection_id}>
+                                    <TableCell className="font-medium">{collection.collection_name}</TableCell>
+                                    <TableCell>{collection.collection_description.substring(0, 50)}...</TableCell>
+                                    <TableCell>
+                                        {collection.collection_image_url ? (
+                                            <img src={collection.collection_image_url} alt={collection.collection_name} className="w-16 h-16 object-cover rounded" />
+                                        ) : (
+                                            <span className="text-gray-400">No image</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <button onClick={() => handleEditCollection(collection)} className="github-secondary text-blue-500 hover:text-blue-700 mr-2">
+                                            <FaEdit />
+                                        </button>
+                                        <button onClick={() => handleDeleteCollection(collection.collection_id)} className="github-secondary text-red-500 hover:text-red-700">
+                                            <FaTrash />
+                                        </button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </>
             )}
 
@@ -580,6 +693,117 @@ function ProductManagement() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={isEditCollectionDialogOpen} onOpenChange={setIsEditCollectionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Collection</DialogTitle>
+                        <DialogDescription>
+                            Make changes to your collection here. Click save when you're done.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedCollection && (
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="collectionName" className="text-right">Name</label>
+                                <Input
+                                    id="collectionName"
+                                    value={selectedCollection.collection_name}
+                                    onChange={(e) => setSelectedCollection({...selectedCollection, collection_name: e.target.value})}
+                                    className="col-span-3"
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="collectionDescription" className="text-right">Description</label>
+                                <Input
+                                    id="collectionDescription"
+                                    value={selectedCollection.collection_description}
+                                    onChange={(e) => setSelectedCollection({...selectedCollection, collection_description: e.target.value})}
+                                    className="col-span-3"
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label className="text-right">Image</label>
+                                <div className="col-span-3">
+                                    {selectedCollection.collection_image_url && (
+                                        <img src={selectedCollection.collection_image_url} alt="Collection" className="w-32 h-32 object-cover rounded mb-2" />
+                                    )}
+                                    <UploadButton
+                                        endpoint="imageUploader"
+                                        onClientUploadComplete={(res) => {
+                                            if (res && res[0]) {
+                                                setSelectedCollection({...selectedCollection, collection_image_url: res[0].url});
+                                                toast.success('Image uploaded successfully');
+                                            }
+                                        }}
+                                        onUploadError={(error) => {
+                                            toast.error(`ERROR! ${error.message}`);
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex justify-end mt-4">
+                        <button className="github-primary" onClick={handleUpdateCollection}>Save changes</button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isNewCollectionDialogOpen} onOpenChange={setIsNewCollectionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Create New Collection</DialogTitle>
+                        <DialogDescription>
+                            Add a new collection to your store.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="newCollectionName" className="text-right">Name</label>
+                            <Input
+                                id="newCollectionName"
+                                value={newCollectionName}
+                                onChange={(e) => setNewCollectionName(e.target.value)}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="newCollectionDescription" className="text-right">Description</label>
+                            <Input
+                                id="newCollectionDescription"
+                                value={newCollectionDescription}
+                                onChange={(e) => setNewCollectionDescription(e.target.value)}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label className="text-right">Image</label>
+                            <div className="col-span-3">
+                                {newCollectionImageUrl && (
+                                    <img src={newCollectionImageUrl} alt="New Collection" className="w-32 h-32 object-cover rounded mb-2" />
+                                )}
+                                <UploadButton
+                                    endpoint="imageUploader"
+                                    onClientUploadComplete={(res) => {
+                                        if (res && res[0]) {
+                                            setNewCollectionImageUrl(res[0].url);
+                                            toast.success('Image uploaded successfully');
+                                        }
+                                    }}
+                                    onUploadError={(error) => {
+                                        toast.error(`ERROR! ${error.message}`);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex justify-end mt-4">
+                        <button className="github-primary" onClick={handleCreateCollection}>Create Collection</button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }

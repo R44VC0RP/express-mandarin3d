@@ -60,6 +60,10 @@ function Home() {
   const [addons, setAddons] = useState([]);
   const [selectedAddons, setSelectedAddons] = useState([]);
 
+  const [orderComments, setOrderComments] = useState("");
+  const [shippingOption, setShippingOption] = useState(0);
+
+
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
@@ -274,7 +278,7 @@ function Home() {
 
   const handleShippingChange = async (shipping_option_id) => {
     const shippingOption = shippingOptions.find(option => option.id === shipping_option_id);
-    
+    setShippingOption(shippingOption.id);
 
     setActiveShippingOption(shippingOption.fixed_amount.amount / 100);
   };
@@ -321,6 +325,7 @@ function Home() {
         params: { action: 'list' }
       });
       setShippingOptions(response.data.result);
+      setShippingOption(response.data.result[0].id);
       setActiveShippingOption(response.data.result[0].fixed_amount.amount / 100);
     } catch (error) {
       console.error('Error fetching shipping options:', error);
@@ -400,6 +405,10 @@ function Home() {
       handleRemove(fileid);
       return;
     }
+    if (newQuantity > 20) {
+      toast.error("You cannot have more than 20 of the same item in your cart");
+      return;
+    }
     try {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/cart/update`, {
         cart_id: cart.cart_id,
@@ -464,8 +473,7 @@ function Home() {
   if (localLoading) {
     return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
   }
-
-  
+ 
   const settings = {
     dots: true,
     infinite: true,
@@ -496,6 +504,46 @@ function Home() {
     } else {
       setUploadFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
     }
+  };
+
+  const processCheckout = async () => {
+    console.log("Processing Checkout");
+
+    // Checks to make sure the cart is valid before processing checkout
+    if (cartItems.length === 0) {
+      toast.error("Your cart is empty. Please add some items to your cart before you can checkout.");
+      return;
+    }
+    if (cartItems.filter(item => item.file_status === 'unsliced').length > 0) {
+      toast.error("You have items that need to be sliced before you can checkout. Please remove them from your cart.");
+      return;
+    }
+    if (cartItems.filter(item => item.file_status === 'error').length > 0) {
+      toast.error("You have items that have errors that need to be fixed before you can checkout. Please remove them from your cart.");
+      return;
+    }
+
+    // If we made it here, the cart is valid and we can process the checkout
+    var order_comments = orderComments;
+    
+    var shipping_option_id = shippingOption;
+
+    var checkout_cart_id = cart.cart_id;
+
+    var checkout = {
+      order_comments: order_comments,
+      shipping_option_id: shipping_option_id,
+      cart_id: checkout_cart_id
+    }
+
+    // Show loading
+    setLocalLoading(true);
+    // Lock screen
+    document.body.style.overflow = 'hidden';
+    
+
+
+
   };
 
   return (
@@ -650,6 +698,7 @@ function Home() {
                 <button 
                   className={`primary-button w-full py-2 rounded-lg ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={cartItems.length === 0}
+                  onClick={() => {processCheckout()}}
                 >
                   Checkout
                 </button>
@@ -665,7 +714,7 @@ function Home() {
                   ))}
                 </select>
                 <p className="text-md text-white mt-2">Order Comments</p>
-                <textarea className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-[#5E5E5E] text-white" placeholder="Add any special instructions here..."></textarea>
+                <textarea className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-[#5E5E5E] text-white" placeholder="Add any special instructions here..." onChange={(e) => setOrderComments(e.target.value)}></textarea>
                 {addons.map((addon) => (
                   <div key={addon.addon_id} className="flex items-start mt-2">
                     <div className="flex items-start mt-2 cursor-pointer" onClick={() => handleAddonToggle(addon)}>

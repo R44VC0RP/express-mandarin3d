@@ -12,7 +12,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.js';
 import { CartProvider } from './context/Cart';
 import Hex from './pages/Hex';
 import Loading from 'react-fullscreen-loading';
-// 
+import Marketplace from './pages/Marketplace';
 
 
 
@@ -46,6 +46,7 @@ function App() {
               <Route path="/logout" element={<Logout />} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/hex" element={<Hex />} />
+              <Route path="/marketplace" element={<Marketplace />} />
             </Routes>
             <AlertManager /> 
             <Toaster richColors  />

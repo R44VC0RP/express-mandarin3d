@@ -8,6 +8,7 @@ import Settings from '../components/admin/Settings';
 import ShippingInfo from './admin/ShippingInfo.jsx';
 import ProductManagement from './admin/Products.jsx';
 import CartManagement from './admin/Cart.jsx';
+import Orders from './admin/Orders.jsx';
 import logo from '../assets/images/m3d_logo.png';
 
 
@@ -25,6 +26,7 @@ function Sidebar({ activeTab, setActiveTab }) {
             tabs: [
                 { name: 'Users', icon: FaUser },
                 { name: 'Settings', icon: FaCog },
+                { name: 'Orders', icon: FaFileAlt },
             ],
         },
         {
@@ -83,6 +85,7 @@ function Content({ activeTab }) {
             {activeTab === 'Shipping Info' && <ShippingInfo />}
             {activeTab === 'Products' && <ProductManagement />}
             {activeTab === 'Carts' && <CartManagement />}
+            {activeTab === 'Orders' && <Orders />}
         </div>
     );
 }

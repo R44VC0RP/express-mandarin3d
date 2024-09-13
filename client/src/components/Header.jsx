@@ -57,8 +57,8 @@
             <div className="flex items-center justify-end">
                 <header className="px-4 sm:px-6 flex items-center justify-end mt-4 mr-2 sm:mr-3">
                     <div className="flex items-center">
-                        <Badge variant="outline" className="mr-2 text-xs sm:text-sm">{user.username}</Badge>
-                        <Badge className="mr-2 text-xs sm:text-sm">{user.role}</Badge>
+                        <Badge variant="outline" className="mr-2 text-xs sm:text-sm cursor-pointer" onClick={() => window.location.href = '/admin'}>{user.username}</Badge>
+                        <Badge className="mr-2 text-xs sm:text-sm cursor-pointer" onClick={() => window.location.href = '/admin'}>{user.role}</Badge>
                         <Avatar>
                             <AvatarImage src={user.profilePicture || "https://via.placeholder.com/40"} alt="Profile" />
                             <AvatarFallback>
@@ -122,7 +122,7 @@
                                 <NavigationMenuTrigger>Model Library</NavigationMenuTrigger>
                                 <NavigationMenuContent>
                                     <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px]">
-                                        <ListItem href="/models/featured" title="Featured Models" >
+                                        <ListItem href="/marketplace" title="Featured Models" >
                                             Explore our curated collection of popular 3D models.
                                         </ListItem>
                                         <ListItem href="/models/categories" title="Categories">

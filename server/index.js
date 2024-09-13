@@ -1249,9 +1249,9 @@ const updateCollection = async (collection_id, collection_name, collection_descr
   if (!collection) {
     return null;
   }
-  collection.collection_name = collection_name;
-  collection.collection_description = collection_description;
-  collection.collection_image_url = collection_image_url;
+  if (collection_name) collection.collection_name = collection_name;
+  if (collection_description) collection.collection_description = collection_description;
+  if (collection_image_url) collection.collection_image_url = collection_image_url;
   await collection.save();
   return collection;
 }

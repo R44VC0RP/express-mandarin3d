@@ -17,6 +17,7 @@ import Loading from 'react-fullscreen-loading';
 import axios from 'axios';
 import { toast } from 'sonner';
 
+
 // Asset Imports
 import prining_bambu from '../assets/videos/printing_bambu.mp4'
 import fusion360 from '../assets/images/fusion360.gif'
@@ -29,7 +30,7 @@ import { useUploadThing } from "../utils/uploadthing";
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
-  const cart = useCart();
+  const { cart, deleteFile, addFile } = useCart();
   const [localLoading, setLocalLoading] = useState(true);
   const [showAlert, setShowAlert] = useState(false);
   const location = useLocation();
@@ -44,6 +45,25 @@ function Home() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  
+
+  const handleAddToCart = async (product_fileid) => {
+    console.log("Adding to cart: ", product_fileid);
+
+    try {
+      const result = await addFile(product_fileid);
+      if (result.status === 'success') {
+        toast.success('File added to cart successfully');
+        
+      } else {
+        toast.error(result.message || 'Failed to add file to cart');
+      }
+    } catch (error) {
+      console.error('Error adding file to cart:', error);
+      toast.error('An error occurred while adding the file to cart');
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -304,7 +324,7 @@ function Home() {
           <Slider {...settings}>
             {products.map((plan, index) => (
               <div key={index} className="px-2">
-                <PricingPlan {...plan} />
+                <PricingPlan {...plan} onAddToCart={handleAddToCart} />
               </div>
             ))}
           </Slider>
