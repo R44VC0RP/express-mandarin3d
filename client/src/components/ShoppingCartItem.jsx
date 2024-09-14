@@ -21,7 +21,7 @@ import {
 function hexToRgb(hex) {
   try {
     if (typeof hex !== 'string' || !hex) {
-      toast.error('Invalid hex value');
+      console.log("Invalid hex color");
       return { r: 0, g: 0, b: 0 };
     }
     

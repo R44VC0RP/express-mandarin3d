@@ -1,4 +1,3 @@
-
 import { useTheme } from "next-themes"
 import { Toaster as Sonner } from "sonner"
 
@@ -19,6 +18,11 @@ const Toaster = (props) => {
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
         },
+      }}
+      style={{
+        "--success-bg": "#064346",
+        "--success-border": "#0D939B",
+        "--success-text": "#11B3BD",
       }}
       {...props}
     />

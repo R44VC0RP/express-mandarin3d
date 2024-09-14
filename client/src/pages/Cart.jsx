@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { generateClientDropzoneAccept } from "uploadthing/client";
@@ -39,6 +39,7 @@ import { useUploadThing } from "../utils/uploadthing";
 import CheckoutLineItem from '../components/CheckoutLineItem';
 
 function Home() {
+  const [cartFilesLength, setCartFilesLength] = useState(0);
   const { isAuthenticated, user, loading } = useAuth();
   const { cart, deleteFile, addFile } = useCart();
   const [localLoading, setLocalLoading] = useState(true);
@@ -66,10 +67,9 @@ function Home() {
   const [cartStatus, setCartStatus] = useState('unchecked');
   const [previousCartStatus, setPreviousCartStatus] = useState('unchecked');
   const [statusCheckInterval, setStatusCheckInterval] = useState(null);
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  const hasShownInitialToast = useRef(false);
+  const hasShownStatusChangeToast = useRef(false);
+  const previousCartItems = useRef([]);
 
   const fetchCartItems = useCallback(async (reload = true) => {
     if (reload) {
@@ -86,19 +86,26 @@ function Home() {
       if (response.data.status === 'success' && Array.isArray(response.data.files)) {
         console.log("Cart Updated: ");
         const newCartItems = response.data.files;
-        
-        // Check if any file status has changed from 'unsliced' to 'success'
-        const statusChanged = cartItems.some((oldItem) => {
-          const newItem = newCartItems.find(item => item.fileid === oldItem.fileid);
-          return oldItem.file_status === 'unsliced' && newItem && newItem.file_status === 'success';
-        });
 
-        if (statusChanged) {
-          toast.success('Some files in your cart have been updated!');
+        // Only check for status changes if previousCartItems is not empty
+        if (previousCartItems.current.length > 0) {
+          // Check if any file status has changed from 'unsliced' to 'success'
+          const statusChanged = newCartItems.some((newItem) => {
+            const oldItem = previousCartItems.current.find(item => item.fileid === newItem.fileid);
+            return oldItem && oldItem.file_status === 'unsliced' && newItem.file_status === 'success';
+          });
+
+          if (statusChanged && !hasShownStatusChangeToast.current) {
+            toast.success('Some files in your cart have been updated!');
+            hasShownStatusChangeToast.current = true;
+          }
         }
 
         setCartItems(newCartItems);
         setSelectedAddons(response.data.cart.cart_addons || []);
+
+        // Update previousCartItems for next comparison
+        previousCartItems.current = newCartItems;
       } else {
         console.error('Unexpected response format:', response.data);
         setCartItems([]);
@@ -111,7 +118,7 @@ function Home() {
         setCartLoading(false);
       }
     }
-  }, [cart.cart_id, cartStatus, cartItems]);
+  }, [cart.cart_id]);
 
   const checkCartStatus = useCallback(async () => {
     if (!cart.cart_id) return;
@@ -120,7 +127,11 @@ function Home() {
       if (response.data.status === 'success' && response.data.cart_valid) {
         if (cartStatus !== 'valid') {
           setCartStatus('valid');
-          toast.success('All files in your cart are up to date!');
+          // if (!hasShownInitialToast.current) {
+
+          //   toast.success('All files in your cart are up to date!');
+          //   hasShownInitialToast.current = true;
+          // }
           setTimeout(() => fetchCartItems(false), 1000);
         }
         clearInterval(statusCheckInterval);
@@ -193,6 +204,7 @@ function Home() {
   );
 
   const onDrop = useCallback((acceptedFiles) => {
+    hasShownStatusChangeToast.current = false; // Reset the status change toast flag
     const newFiles = acceptedFiles.map(file => ({
       name: file.name,
       status: 'uploading'
@@ -232,45 +244,7 @@ function Home() {
     }
   }, [location]);
 
-  useEffect(() => {
-    // This is where you would fetch the showcase products from the server
-    // For now, we'll use local data
-    const localShowcaseProducts = [
-      {
-        imageOrVideo: 'video',
-        src_file: prining_bambu,
-        title: "High Quality Custom 3D Printing",
-        description: "We provide an easy way to print high quality custom 3D prints, you just simply have to upload your 3D file* and get an instant quote. By only using BambuLabs 3D printer it allows us to achieve fast print times without compromising on quality or accuracy* on anything you print!",
-        footnotes: ["*3D files limited to .stl, .3mf, .step and print bed size limited to 250mm", "*As we try to achieve the best accuracy and print quality prints may differ from 3D file to file"]
-      },
-      {
-        imageOrVideo: 'image',
-        src_file: fusion360,
-        title: "Custom 3D Modeling and Design",
-        description: "We can help you on whatever step of the design process you are on. Still in early development? Talk to one of our designers to get advice on what to improve. Working on modularity? We can make sure it all goes together! We are here to help you accomplish your project!"
-      },
-      {
-        imageOrVideo: 'image',
-        src_file: building,
-        title: "Architectural Models and Mockups",
-        description: "We can help you visualize your project in a way that is not possible with other methods. We can print in high quality filaments and printers that allow for a level of detail that is not possible with other methods."
-      },
-    ];
-    setShowcaseProducts(localShowcaseProducts);
-
-    // In the future, you would replace the above with something like:
-    // async function fetchShowcaseProducts() {
-    //   try {
-    //     const response = await fetch('/api/showcase-products');
-    //     const data = await response.json();
-    //     setShowcaseProducts(data);
-    //   } catch (error) {
-    //     console.error('Error fetching showcase products:', error);
-    //   }
-    // }
-    // fetchShowcaseProducts();
-  }, []);
-
+ 
   useEffect(() => {
     if (activeShippingOption && subtotal) {
       const addonTotal = selectedAddons.reduce((total, addon) => total + addon.addon_price / 100, 0);
@@ -308,6 +282,7 @@ function Home() {
     fetchCartItems();
     fetchFilamentColors();
     fetchShippingOptions();
+    fetchProducts();
     
   }, []);
 
@@ -513,15 +488,20 @@ function Home() {
   
 
   useEffect(() => {
+    setCartFilesLength(cartItems.length);
     if (cart.cart_id) {
-      checkCartStatus();
+      checkCartStatus(); // on load, check the cart status
     }
     return () => {
       if (statusCheckInterval) {
         clearInterval(statusCheckInterval);
       }
+      // Reset flags and previousCartItems when component unmounts
+      hasShownInitialToast.current = false;
+      hasShownStatusChangeToast.current = false;
+      previousCartItems.current = [];
     };
-  }, [cart.cart_id, checkCartStatus, statusCheckInterval]);
+  }, [cart.cart_id, checkCartStatus, statusCheckInterval, fetchCartItems]);
 
   if (localLoading) {
     return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
