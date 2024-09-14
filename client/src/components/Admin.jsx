@@ -10,6 +10,10 @@ import ProductManagement from './admin/Products.jsx';
 import CartManagement from './admin/Cart.jsx';
 import Orders from './admin/Orders.jsx';
 import logo from '../assets/images/m3d_logo.png';
+import { Button } from '../components/ui/button';
+import { Home, CreditCard, Receipt, Users, Package, BarChart, FileText, Clock, Database, PieChart } from 'lucide-react';
+import OrderFocused from './admin/Order-Focused.jsx';
+
 
 
 function Sidebar({ activeTab, setActiveTab }) {
@@ -18,7 +22,7 @@ function Sidebar({ activeTab, setActiveTab }) {
             groupName: 'Main',
             tabs: [
                 { name: 'Dashboard', icon: FaChartBar },
-                
+
             ],
         },
         {
@@ -27,6 +31,7 @@ function Sidebar({ activeTab, setActiveTab }) {
                 { name: 'Users', icon: FaUser },
                 { name: 'Settings', icon: FaCog },
                 { name: 'Orders', icon: FaFileAlt },
+                { name: 'Order-Focused', icon: FaFileAlt },
             ],
         },
         {
@@ -37,7 +42,7 @@ function Sidebar({ activeTab, setActiveTab }) {
                 { name: 'Shipping Info', icon: FaTruck },
                 { name: 'Products', icon: FaBox },
                 { name: 'Carts', icon: FaShoppingCart },
-                
+
             ]
         }
     ];
@@ -48,29 +53,32 @@ function Sidebar({ activeTab, setActiveTab }) {
     };
 
     return (
-        <div className="w-64 h-screen bg-[#070707] text-white p-4">
+        <aside className="w-56 bg-[#0c3235] border-r border-[#0c3235] shadow-md h-screen">
             <a href="/">
-                <img src={logo} alt="logo" className="w-16 h-16 mb-8 mx-auto border border-white rounded-md" />
-            </a>
-            <h1 className="text-2xl font-bold mb-8">Admin Panel</h1>
-            {tabGroups.map((group) => (
-                <div key={group.groupName} className="mb-4">
-                    <h2 className="text-xl font-semibold mb-2">{group.groupName}</h2>
-                    {group.tabs.map((tab) => (
-                        <div
-                            key={tab.name}
-                            onClick={() => handleTabClick(tab.name)}
-                            className={`flex items-center w-full p-2 mb-2 rounded cursor-pointer ${
-                                activeTab === tab.name ? 'bg-gray-700' : 'hover:bg-gray-700'
-                            }`}
-                        >
-                            <tab.icon className="mr-2" />
-                            {tab.name}
-                        </div>
-                    ))}
+                <div className="flex items-center space-x-2 px-3 py-2 border-b border-[#1e6a70]">
+                    <img src={logo} alt="M3D Logo" className="w-6 h-6 rounded-lg" />
+                    <span className="font-semibold text-md text-white">Mandarin 3D Prints</span>
                 </div>
-            ))}
-        </div>
+            </a>
+            <nav className="px-2 py-2 ">
+                {tabGroups.map((group) => (
+                    <div key={group.groupName}>
+                        <h3 className="text-xs font-semibold text-gray-400 mb-1">{group.groupName}</h3>
+                        {group.tabs.map((tab) => (
+                            <Button
+                                key={tab.name}
+                                variant="ghost"
+                                className={`w-full justify-start text-md py-1 px-2 mb-0.5 ${activeTab === tab.name ? 'bg-[#1e6a70] text-white' : 'text-white'}`}
+                                onClick={() => handleTabClick(tab.name)}
+                            >
+                                <tab.icon className={`mr-2 h-3 w-3 ${activeTab === tab.name ? 'text-white' : 'text-white'}`} />
+                                {tab.name}
+                            </Button>
+                        ))}
+                    </div>
+                ))}
+            </nav>
+        </aside>
     );
 }
 
@@ -86,6 +94,7 @@ function Content({ activeTab }) {
             {activeTab === 'Products' && <ProductManagement />}
             {activeTab === 'Carts' && <CartManagement />}
             {activeTab === 'Orders' && <Orders />}
+            {activeTab === 'Order-Focused' && <OrderFocused />}
         </div>
     );
 }
@@ -100,9 +109,9 @@ function Admin() {
     }, [activeTab]);
 
     return (
-        <div className="flex bg-[#0F0F0F] text-white">
+        <div className="flex h-screen">
             <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-            <div className="flex flex-col flex-grow">
+            <div className="flex flex-col flex-grow overflow-y-auto">
                 <Content activeTab={activeTab} />
             </div>
         </div>
