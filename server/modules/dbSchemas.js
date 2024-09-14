@@ -4,7 +4,7 @@ export const fileSchema = new mongoose.Schema({
     fileid: String,
     stripe_product_id: String,
     filename: String,
-    file_status: String,
+    file_status: String, // 'unsliced', 'success', 'error'
     file_error: String,
     mass_in_grams: {
         type: Number,

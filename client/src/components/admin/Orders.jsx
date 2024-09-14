@@ -20,7 +20,7 @@ const transactions = [
   { amount: 670.15, currency: "USD", status: "Succeeded", customer: "contact@vhsislife.com", date: "Sep 6, 11:11 AM" },
 ]
 
-export default function TransactionsPage() {
+export default function OrdersPage() {
   const [isTestMode, setIsTestMode] = useState(false)
 
   return (

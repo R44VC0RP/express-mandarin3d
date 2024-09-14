@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { StlViewer } from "react-stl-viewer";
 import { toast } from 'sonner'; 
-
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -144,36 +144,80 @@ const ShoppingCartItem = ({
   const hexColor = filamentColors.find(color => color.filament_name === filament_color)?.filament_color;
   if (file_status === 'unsliced') {
     return (
-      <div className="flex flex-col sm:flex-row items-center justify-between p-4">
+      <>
+      <div className="flex flex-col sm:flex-row items-center justify-between px-4">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <a href="#" className="hover:underline">
+            <p className="text-white font-bold text-xl sm:text-2xl mb-2">
+              {filename}
+            </p>
+          </a>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Download File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to download {filename}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction>
+              <a href={utfile_url} download>Download</a>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+      <div className="flex flex-col sm:flex-row items-center justify-between px-4">
         {isAuthenticated && (
           <div className="flex items-center mb-2 sm:mb-0">
             <code className="text-white">{fileid}</code>
           </div>
         )}
-
-        <div className="flex items-center mb-2 sm:mb-0">
-          <FaSpinner className="animate-spin mr-2" />
-          <p className="text-white">{filename}</p>
+        <div className="flex flex-col lg:flex-row items-start justify-between">
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 lg:mb-0 w-full lg:w-auto">
+            <Skeleton className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4" />
+            <div className="w-full sm:w-auto">
+              <p className="text-white font-bold">File Mass: <Skeleton className="inline-block h-4 w-16" /></p>
+              <p className="text-white font-bold">Part Dimensions:</p>
+              <p className="text-white">X: <Skeleton className="inline-block h-4 w-16" /></p>
+              <p className="text-white">Y: <Skeleton className="inline-block h-4 w-16" /></p>
+              <p className="text-white">Z: <Skeleton className="inline-block h-4 w-16" /></p>
+            </div>
+          </div>
         </div>
-        <p className="text-gray-400">Your file is being quoted...</p>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button className="github-remove mt-2 sm:mt-0">Remove</button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to remove this file?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently remove the file from your cart.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onRemove(fileid)}>Remove</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex flex-col items-end justify-end w-full lg:w-auto">
+        <div className="flex flex-col items-center justify-center">
+          <p className="text-white font-bold mb-2">Your file is getting quoted...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+        </div>
+        <div className="flex flex-col items-end justify-end w-full lg:w-auto">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="github-remove mt-2 sm:mt-0">Remove</button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to remove this file?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently remove the file from your cart.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onRemove(fileid)}>Remove</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          </div>
       </div>
+      
+      <hr className="w-full border-[#5E5E5E] mt-4" />
+      </>
     );
   }
 

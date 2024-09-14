@@ -34,7 +34,6 @@ import {
   AlertDialogTrigger,
 } from "../components/ui/alertdialog"
 
-
 // Import the useUploadThing hook
 import { useUploadThing } from "../utils/uploadthing";
 import CheckoutLineItem from '../components/CheckoutLineItem';
@@ -63,12 +62,83 @@ function Home() {
   const [orderComments, setOrderComments] = useState("");
   const [shippingOption, setShippingOption] = useState(0);
 
-
   const [products, setProducts] = useState([]);
+  const [cartStatus, setCartStatus] = useState('unchecked');
+  const [previousCartStatus, setPreviousCartStatus] = useState('unchecked');
+  const [statusCheckInterval, setStatusCheckInterval] = useState(null);
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const fetchCartItems = useCallback(async (reload = true) => {
+    if (reload) {
+      setCartLoading(true);
+    }
+    console.log("Fetching cart items: ", cart.cart_id);
+    if (!cart.cart_id) {
+      console.log("No cart found");
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/cart?cart_id=${cart.cart_id}`);
+      if (response.data.status === 'success' && Array.isArray(response.data.files)) {
+        console.log("Cart Updated: ");
+        const newCartItems = response.data.files;
+        
+        // Check if any file status has changed from 'unsliced' to 'success'
+        const statusChanged = cartItems.some((oldItem) => {
+          const newItem = newCartItems.find(item => item.fileid === oldItem.fileid);
+          return oldItem.file_status === 'unsliced' && newItem && newItem.file_status === 'success';
+        });
+
+        if (statusChanged) {
+          toast.success('Some files in your cart have been updated!');
+        }
+
+        setCartItems(newCartItems);
+        setSelectedAddons(response.data.cart.cart_addons || []);
+      } else {
+        console.error('Unexpected response format:', response.data);
+        setCartItems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching cart items:', error);
+      setCartItems([]);
+    } finally {
+      if (reload) {
+        setCartLoading(false);
+      }
+    }
+  }, [cart.cart_id, cartStatus, cartItems]);
+
+  const checkCartStatus = useCallback(async () => {
+    if (!cart.cart_id) return;
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/cart/status?cart_id=${cart.cart_id}`);
+      if (response.data.status === 'success' && response.data.cart_valid) {
+        if (cartStatus !== 'valid') {
+          setCartStatus('valid');
+          toast.success('All files in your cart are up to date!');
+          setTimeout(() => fetchCartItems(false), 1000);
+        }
+        clearInterval(statusCheckInterval);
+        setStatusCheckInterval(null);
+      } else if (response.data.files_not_sliced) {
+        if (cartStatus !== 'slicing') {
+          setCartStatus('slicing');
+          setPreviousCartStatus(cartStatus);
+        }
+        if (!statusCheckInterval) {
+          const interval = setInterval(() => checkCartStatus(), 5000); // Check every 5 seconds
+          setStatusCheckInterval(interval);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking cart status:', error);
+    }
+  }, [cart.cart_id, statusCheckInterval, cartStatus, fetchCartItems]);
 
   const fetchProducts = async () => {
     try {
@@ -99,9 +169,11 @@ function Home() {
 
         for (const file of res) {
           addFile(file.serverData.fileid);
-
         }
-        fetchCartItems();
+        setTimeout(() => {
+          fetchCartItems();
+        }, 1000);
+        checkCartStatus();
       },
       onUploadError: (error) => {
         toast.error(`ERROR! ${error.message}`);
@@ -113,6 +185,10 @@ function Home() {
       onUploadBegin: (res, file) => {
         console.log("Upload has begun: ", res, file);
       },
+      onUploadProgress: (progress) => {
+        console.log("Upload progress: ", progress);
+      },
+
     }
   );
 
@@ -283,42 +359,6 @@ function Home() {
     setActiveShippingOption(shippingOption.fixed_amount.amount / 100);
   };
 
-  const fetchCartItems = async (reload = true) => {
-    if (reload) {
-      setCartLoading(true);
-    }
-    console.log("Fetching cart items: ", cart.cart_id);
-    if (!cart.cart_id) {
-      console.log("No cart found");
-      return;
-    }
-
-    try {
-      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/cart?cart_id=${cart.cart_id}`);
-      if (response.data.status === 'success' && Array.isArray(response.data.files)) {
-        console.log("Cart Updated: ");
-        setCartItems(response.data.files);
-        setSelectedAddons(response.data.cart.cart_addons || []);
-        if (reload) {
-          setCartLoading(false);
-        }
-      } else {
-        console.error('Unexpected response format:', response.data);
-        setCartItems([]);
-        if (reload) {
-          setCartLoading(false);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching cart items:', error);
-      setCartItems([]);
-    } finally {
-      if (reload) {
-        setCartLoading(false);
-      }
-    }
-  };
-
   const fetchShippingOptions = async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/shipping`, {
@@ -469,6 +509,19 @@ function Home() {
       toast.error(`Error removing item: ${error.message}`);
     }
   };
+
+  
+
+  useEffect(() => {
+    if (cart.cart_id) {
+      checkCartStatus();
+    }
+    return () => {
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+      }
+    };
+  }, [cart.cart_id, checkCartStatus, statusCheckInterval]);
 
   if (localLoading) {
     return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
@@ -754,9 +807,13 @@ function Home() {
       </main>
       <Footer />
       <FileUploadProgress files={uploadFiles} onRemove={handleRemoveFile} />
+      {cartStatus === 'slicing' && (
+        <div className="fixed bottom-0 left-0 right-0 bg-yellow-500 text-black p-2 text-center">
+          Some files in your cart are being processed. Please wait...
+        </div>
+      )}
     </div>
   );
 }
-
 
 export default Home;

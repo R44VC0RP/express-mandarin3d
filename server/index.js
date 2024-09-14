@@ -810,6 +810,30 @@ app.post('/api/cart/remove', async (req, res) => {
   res.json({ status: 'success', message: 'File removed from cart successfully' });
 });
 
+app.get('/api/cart/status', async (req, res) => {
+  const { cart_id } = req.query;
+  if (!cart_id) {
+    return res.status(400).json({ status: 'error', message: 'No cart_id provided' });
+  }
+  const cart = await getCart(cart_id);
+  var files_not_sliced = [];
+  for (const file of cart.files) {
+    const fileDetails = await getFile(file.fileid);
+    if (!fileDetails) {
+      return res.status(404).json({ status: 'error', message: 'File not found', file_found: false });
+    }
+    if (fileDetails.file_status === 'unsliced') {
+      files_not_sliced.push(fileDetails);
+    }
+  }
+  if (files_not_sliced.length > 0) {
+    return res.status(201).json({ status: 'success', message: 'Files are not sliced', files_not_sliced: true, files: files_not_sliced });
+  } else {
+    res.json({ status: 'success', message: 'Cart is valid', cart_valid: true });
+  }
+});
+
+
 app.get('/api/cart', async (req, res) => {
   const { cart_id } = req.query;
   if (!cart_id || cart_id === undefined) {
