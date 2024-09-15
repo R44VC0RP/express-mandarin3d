@@ -60,18 +60,24 @@ function Sidebar({ activeTab, setActiveTab }) {
                     <span className="font-semibold text-md text-white">Mandarin 3D Prints</span>
                 </div>
             </a>
-            <nav className="px-2 py-2 ">
+            <nav className="px-2 py-2">
                 {tabGroups.map((group) => (
-                    <div key={group.groupName}>
-                        <h3 className="text-xs font-semibold text-gray-400 mb-1">{group.groupName}</h3>
+                    <div key={group.groupName} className="mb-4">
+                        <h3 className="text-xs font-semibold text-gray-400 mb-1 px-2">{group.groupName}</h3>
                         {group.tabs.map((tab) => (
                             <Button
                                 key={tab.name}
                                 variant="ghost"
-                                className={`w-full justify-start text-md py-1 px-2 mb-0.5 ${activeTab === tab.name ? 'bg-[#1e6a70] text-white' : 'text-white'}`}
+                                className={`w-full justify-start text-sm py-2 px-2 mb-0.5 ${
+                                    activeTab === tab.name 
+                                    ? 'bg-[#064346] text-white font-medium' 
+                                    : 'text-gray-300 hover:bg-[#064346] hover:bg-opacity-50'
+                                }`}
                                 onClick={() => handleTabClick(tab.name)}
                             >
-                                <tab.icon className={`mr-2 h-3 w-3 ${activeTab === tab.name ? 'text-white' : 'text-white'}`} />
+                                <tab.icon className={`mr-3 h-4 w-4 ${
+                                    activeTab === tab.name ? 'text-white' : 'text-gray-400'
+                                }`} />
                                 {tab.name}
                             </Button>
                         ))}
