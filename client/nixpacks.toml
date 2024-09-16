@@ -8,7 +8,7 @@ cmds = ['npm ci']
 cmds = ['npm run build']
 
 [start]
-cmd = 'npm run start'
+cmd = 'npx serve -s build'
 
 [variables]
 NIXPACKS_PATH = "/app"
