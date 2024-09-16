@@ -11,7 +11,14 @@ const FullPageDropzone = ({ children }) => {
   const onDrop = async (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
       const uploadPromises = acceptedFiles.map(async (file) => {
+        console.log(file);
         if (file.name.endsWith('.stl') || file.name.endsWith('.step') || file.name.endsWith('.3mf')) {
+          if (file.size >= 100 * 1024 * 1024){
+            
+            // window.location.href = `/cart`;
+            toast.error(`The file: ${file.name} is too large (<100MB), please email orders@mandarin3d.com to get your quote created.`);
+            return null;
+          }
           const toastId = file.name;
           toast(`Uploading ${file.name}: 0%`, { id: toastId });
 
@@ -36,8 +43,11 @@ const FullPageDropzone = ({ children }) => {
             return null;
           }
         } else {
-          toast.error(`Invalid file type: ${file.name}. Please upload a valid STL, STEP, or 3MF file.`);
-          return null;
+          
+            toast.error(`Invalid file type: ${file.name}. Please upload a valid STL, STEP, or 3MF file.`);
+            return null;
+          
+          
         }
       });
 
