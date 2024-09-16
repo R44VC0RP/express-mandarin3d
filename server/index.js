@@ -556,7 +556,7 @@ const f = createUploadthing();
 
 const ourFileRouter = {
   modelUploader: f({
-    "model/stl": {
+    "blob": {
       maxFileSize: "128MB",
       maxFileCount: 20
     }
@@ -767,6 +767,12 @@ async function addFileToCart(cart_id, fileid, quantity = 1, quality = '0.20mm') 
     return { status: 'error', message: 'No cart found', cart_found: false };
   }
   console.log("Updating cartid: ", cart.cart_id, " with fileid: ", fileid);
+  // Check if the file exists in the files db
+  const file = await getFile(fileid);
+  if (!file) {
+    console.error("No file found for fileid: ", fileid);
+    return { status: 'error', message: 'No file found', file_found: false };
+  }
   const existingFileIndex = cart.files.findIndex(file => file.fileid === fileid);
   if (existingFileIndex === -1) {
     cart.files.push({ fileid, quantity, quality });

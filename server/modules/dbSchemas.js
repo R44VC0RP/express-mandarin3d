@@ -35,7 +35,7 @@ export const fileSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-});
+}, { versionKey: false });
 
 export const userSchema = new mongoose.Schema({
     username: {
@@ -62,7 +62,7 @@ export const userSchema = new mongoose.Schema({
         type: String,
         required: false
     }
-});
+}, { versionKey: false });
 
 export const cartSchema = new mongoose.Schema({
     cart_id: String,
@@ -81,7 +81,7 @@ export const cartSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-});
+}, { versionKey: false });
 
 export const productSchema = new mongoose.Schema({
     product_id: String,
@@ -97,7 +97,7 @@ export const productSchema = new mongoose.Schema({
     product_url: { type: String, required: false },
     product_tags: [String],
     product_collection: { type: String, required: false }
-});
+}, { versionKey: false });
 
 // Config schema
 export const configSchema = new mongoose.Schema({
@@ -119,7 +119,7 @@ export const configSchema = new mongoose.Schema({
             notes: String
         }]
     }
-});
+}, { versionKey: false });
 
 export const filamentSchema = new mongoose.Schema({
     filament_id: String,
@@ -130,15 +130,14 @@ export const filamentSchema = new mongoose.Schema({
     filament_image_url: String,
     filament_mass_in_grams: Number,
     filament_link: String
-  });
-  
+}, { versionKey: false });
 
 export const addonSchema = new mongoose.Schema({
     addon_id: String,
     addon_name: String,
     addon_price: Number,
     addon_description: String,
-});
+}, { versionKey: false });
 
 // Add a new schema for collections
 export const collectionSchema = new mongoose.Schema({
@@ -147,4 +146,4 @@ export const collectionSchema = new mongoose.Schema({
     collection_description: String,
     collection_image_url: String,
     // ... any other existing fields ...
-});
+}, { versionKey: false });
