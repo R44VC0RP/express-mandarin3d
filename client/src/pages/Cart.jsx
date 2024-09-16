@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useDropzone } from 'react-dropzone';
-import { generateClientDropzoneAccept } from "uploadthing/client";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
@@ -34,8 +32,6 @@ import {
   AlertDialogTrigger,
 } from "../components/ui/alertdialog"
 
-// Import the useUploadThing hook
-import { useUploadThing } from "../utils/uploadthing";
 import CheckoutLineItem from '../components/CheckoutLineItem';
 
 function Home() {
@@ -50,7 +46,6 @@ function Home() {
   const [files, setFiles] = useState([]);
   const [shippingOptions, setShippingOptions] = useState([]);
   const [activeShippingOption, setActiveShippingOption] = useState(0);
-  const [uploadFiles, setUploadFiles] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [subtotal, setSubtotal] = useState(0);
   const [total, setTotal] = useState(0);
@@ -166,67 +161,6 @@ function Home() {
       toast.error('An error occurred while fetching products. Please try again later.');
     }
   };
-
-  const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
-    "modelUploader",
-    {
-      onClientUploadComplete: (res) => {
-        console.log("Files: ", res);
-
-        setUploadFiles(prevFiles => prevFiles.map(file => ({
-          ...file,
-          status: 'success'
-        })));
-
-        for (const file of res) {
-          addFile(file.serverData.fileid);
-        }
-        setTimeout(() => {
-          fetchCartItems();
-        }, 1000);
-        checkCartStatus();
-      },
-      onUploadError: (error) => {
-        toast.error(`ERROR! ${error.message}`);
-        setUploadFiles(prevFiles => prevFiles.map(file => ({
-          ...file,
-          status: 'error'
-        })));
-      },
-      onUploadBegin: (res, file) => {
-        console.log("Upload has begun: ", res, file);
-      },
-      onUploadProgress: (progress) => {
-        console.log("Upload progress: ", progress);
-      },
-
-    }
-  );
-
-  const onDrop = useCallback((acceptedFiles) => {
-    hasShownStatusChangeToast.current = false; // Reset the status change toast flag
-    const newFiles = acceptedFiles.map(file => ({
-      name: file.name,
-      status: 'uploading'
-    }));
-    setUploadFiles(newFiles);
-    startUpload(acceptedFiles);
-  }, [startUpload]);
-
-  const fileTypes = permittedFileInfo?.config
-    ? Object.keys(permittedFileInfo.config)
-    : [];
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'model/stl': ['.stl'],
-      'model/3mf': ['.3mf'],
-      'application/step': ['.step', '.stp']
-    },
-    noClick: true,
-    noKeyboard: true
-  });
 
   useEffect(() => {
     if (!loading) {
@@ -503,6 +437,19 @@ function Home() {
     };
   }, [cart.cart_id, checkCartStatus, statusCheckInterval, fetchCartItems]);
 
+  // Add this effect to listen for the custom event
+  useEffect(() => {
+    const handleFilesUploaded = () => {
+      fetchCartItems(false);
+    };
+
+    window.addEventListener('filesUploaded', handleFilesUploaded);
+
+    return () => {
+      window.removeEventListener('filesUploaded', handleFilesUploaded);
+    };
+  }, [fetchCartItems]);
+
   if (localLoading) {
     return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
   }
@@ -531,13 +478,7 @@ function Home() {
     ]
   };
 
-  const handleRemoveFile = (index) => {
-    if (index === null) {
-      setUploadFiles([]);
-    } else {
-      setUploadFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
-    }
-  };
+  
 
   const processCheckout = async () => {
     console.log("Processing Checkout");
@@ -579,16 +520,10 @@ function Home() {
 
   };
 
+  
+
   return (
-    <div {...getRootProps()} className="min-h-screen bg-[#0F0F0F] text-white">
-      <input {...getInputProps()} />
-      {isDragActive && (
-        <div className="fixed inset-0 bg-blue-500 bg-opacity-50 flex items-center justify-center z-50 border border-dotted border-[#2A2A2A]">
-          <div className="bg-white p-8 rounded-lg shadow-lg text-black">
-            <p className="text-2xl font-bold">Drop your file here</p>
-          </div>
-        </div>
-      )}
+    <div className="min-h-screen bg-[#0F0F0F] text-white">
       <Header />
       <div className="mt-3 w-full border-t border-b border-[#5E5E5E] bg-[#2A2A2A]">
         <div className="flex items-center justify-left mt-2">
@@ -786,7 +721,7 @@ function Home() {
         </section>
       </main>
       <Footer />
-      <FileUploadProgress files={uploadFiles} onRemove={handleRemoveFile} />
+      
       {cartStatus === 'slicing' && (
         <div className="fixed bottom-0 left-0 right-0 bg-yellow-500 text-black p-2 text-center">
           Some files in your cart are being processed. Please wait...

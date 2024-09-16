@@ -18,7 +18,7 @@
       navigationMenuTriggerStyle,
     } from "@/components/ui/navigation-menu";
 
-    const Header = () => {
+    const Header = ({}) => {
         const { isAuthenticated, user } = useAuth();
         const { cart } = useCart();
         const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -54,7 +54,7 @@
         return (
             <>
             {isAuthenticated && (
-            <div className="flex items-center justify-end">
+            <div className={cn("flex items-center justify-end z-50")}>
                 <header className="px-4 sm:px-6 flex items-center justify-end mt-4 mr-2 sm:mr-3">
                     <div className="flex items-center">
                         <Badge variant="outline" className="mr-2 text-xs sm:text-sm cursor-pointer" onClick={() => window.location.href = '/admin'}>{user.username}</Badge>

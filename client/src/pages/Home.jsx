@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useDropzone } from 'react-dropzone';
-import { generateClientDropzoneAccept } from "uploadthing/client";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
@@ -23,9 +21,6 @@ import prining_bambu from '../assets/videos/printing_bambu.mp4'
 import fusion360 from '../assets/images/fusion360.gif'
 import building from '../assets/images/outdoor.png'
 
-// Import the useUploadThing hook
-import { useUploadThing } from "../utils/uploadthing";
-
 
 
 function Home() {
@@ -36,7 +31,7 @@ function Home() {
   const location = useLocation();
   const [showcaseProducts, setShowcaseProducts] = useState([]);
   const [files, setFiles] = useState([]);
-  const [uploadFiles, setUploadFiles] = useState([]);
+  
   const [isLoading, setIsLoading] = useState(false);
 
 
@@ -79,58 +74,7 @@ function Home() {
       console.error('Error fetching products:', error);
       toast.error('An error occurred while fetching products. Please try again later.');
     }
-  };
-  console.log("Page Rendered");
-
-  const { startUpload, isUploading, permittedFileInfo } = useUploadThing(
-    "modelUploader",
-    {
-      onClientUploadComplete: (res) => {
-        console.log("Files: ", res);
-		
-        setUploadFiles(prevFiles => prevFiles.map(file => ({
-          ...file,
-          status: 'success'
-        })));
-
-		for (const file of res) {
-			cart.addFile(file.serverData.fileid);
-		}
-      },
-      onUploadError: (error) => {
-        alert(`ERROR! ${error.message}`);
-        setUploadFiles(prevFiles => prevFiles.map(file => ({
-          ...file,
-          status: 'error'
-        })));
-      },
-      onUploadBegin: () => {
-        console.log("Upload has begun");
-      },
-    }
-  );
-
-  const onDrop = useCallback((acceptedFiles) => {
-    const newFiles = acceptedFiles.map(file => ({
-      name: file.name,
-      status: 'uploading'
-    }));
-    setUploadFiles(newFiles);
-    startUpload(acceptedFiles);
-  }, [startUpload]);
-
-  const fileTypes = permittedFileInfo?.config
-    ? Object.keys(permittedFileInfo.config)
-    : [];
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'model/stl': ['.stl'],
-      'model/3mf': ['.3mf'],
-      'application/step': ['.step', '.stp']
-    },
-  });
+  };  
 
   useEffect(() => {
     if (!loading) {
@@ -251,13 +195,7 @@ function Home() {
     ]
   };
 
-  const handleRemoveFile = (index) => {
-    if (index === null) {
-      setUploadFiles([]);
-    } else {
-      setUploadFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
-    }
-  };
+  
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
@@ -282,29 +220,6 @@ function Home() {
           <div className="max-w-md p-6 rounded w-full md:w-1/2 mt-6 md:mt-0">
             <h2 className="text-xl font-bold mb-2">Get a custom quote now!</h2>
             <p className="text-sm mb-4 opacity-70">*No Account Needed</p>
-            <div
-              {...getRootProps()}
-              className="border-2 border-dashed border-gray-600 p-6 rounded text-center h-64 cursor-pointer hover:bg-gray-800 transition-colors duration-200"
-            >
-              <input {...getInputProps()} />
-              {files.length > 0 ? (
-                <div>
-                  <p>{files.length} file(s) selected</p>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startUpload(files);
-                    }}
-                    className="primary-button mt-4"
-                    disabled={isUploading}
-                  >
-                    {isUploading ? 'Uploading...' : 'Upload Files'}
-                  </button>
-                </div>
-              ) : (
-                <p className="text-gray-500">Click or drop .stl, .step, .3mf files here!</p>
-              )}
-            </div>
           </div>
         </section>
         {/* End Hero Section */}
@@ -331,7 +246,7 @@ function Home() {
         </section>
       </main>
       <Footer />
-      <FileUploadProgress files={uploadFiles} onRemove={handleRemoveFile} />
+      
     </div>
   );
 }

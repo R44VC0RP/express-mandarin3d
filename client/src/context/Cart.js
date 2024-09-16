@@ -10,6 +10,8 @@ export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState({ cart_id: Cookies.get('cart_id'), files: [] });
+
+  const [cartFiles, setCartFiles] = useState([]);
   
   useEffect(() => {
     const cartId = Cookies.get('cart_id');
@@ -47,6 +49,12 @@ export const CartProvider = ({ children }) => {
         await createNewCart();
       }
       return { status: 'error', message: 'Failed to add file to cart' };
+    }
+  };
+
+  const addBulkFiles = async (fileids, quantity=1, quality='0.20mm') => {
+    for (const fileid of fileids) {
+      await addFile(fileid, quantity, quality);
     }
   };
 
@@ -130,7 +138,7 @@ export const CartProvider = ({ children }) => {
   };
 
   return (
-    <CartContext.Provider value={{ cart, addFile, deleteFile, updateFile, getFilesFromCart, deleteCart }}>
+    <CartContext.Provider value={{ cart, addFile, addBulkFiles, deleteFile, updateFile, getFilesFromCart, deleteCart }}>
       {children}
     </CartContext.Provider>
   );

@@ -170,22 +170,23 @@ const ShoppingCartItem = ({
           </AlertDialogContent>
         </AlertDialog>
       </div>
-      <div className="flex flex-col sm:flex-row items-center justify-between px-4">
-        {isAuthenticated && (
-          <div className="flex items-center mb-2 sm:mb-0">
-            <code className="text-white">{fileid}</code>
+      {isAuthenticated && (
+          <div className="flex items-center mb-2 sm:mb-0 lg:mb-0 lg:ml-4">
+            <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md mb-2 lg:mb-0">{fileid}</code>
           </div>
         )}
+      <div className="flex flex-col sm:flex-row items-center  justify-between px-4">
+        
         <div className="flex flex-col lg:flex-row items-start justify-between">
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 lg:mb-0 w-full lg:w-auto">
             <Skeleton className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4" />
             <div className="w-full sm:w-auto">
-              <p className="text-white font-bold">File Mass: <Skeleton className="inline-block h-4 w-16" /></p>
-              <p className="text-white font-bold">Part Dimensions:</p>
-              <p className="text-white">X: <Skeleton className="inline-block h-4 w-16" /></p>
-              <p className="text-white">Y: <Skeleton className="inline-block h-4 w-16" /></p>
-              <p className="text-white">Z: <Skeleton className="inline-block h-4 w-16" /></p>
+              <span className="text-white font-bold">File Mass: <Skeleton className="inline-block h-4 w-16" /></span>
+              <span className="text-white font-bold">Part Dimensions:</span>
+              <span className="text-white">X: <Skeleton className="inline-block h-4 w-16" /></span>
+              <span className="text-white">Y: <Skeleton className="inline-block h-4 w-16" /></span>
+              <span className="text-white">Z: <Skeleton className="inline-block h-4 w-16" /></span>
             </div>
           </div>
         </div>

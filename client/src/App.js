@@ -12,9 +12,8 @@ import { AuthProvider, useAuth } from './context/AuthContext.js';
 import { CartProvider } from './context/Cart';
 import Hex from './pages/Hex';
 import Loading from 'react-fullscreen-loading';
-import Marketplace from './pages/Marketplace';
-
-
+import LuxuryMarketplace from './pages/Marketplace_7';
+import FullPageDropzone from './components/FullPageDropzone'; // {{ add: import FullPageDropzone }}
 
 
 const ProtectedRoute = ({ children }) => {
@@ -39,17 +38,19 @@ function App() {
       <CartProvider>
         <AuthProvider>
           <Router>
-            <Routes>
-              <Route path="/login" element={<LoginRoute />} />
-              <Route path="/" element={<Home />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/logout" element={<Logout />} />
-              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-              <Route path="/hex" element={<Hex />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-            </Routes>
-            <AlertManager /> 
-            <Toaster richColors  />
+            <FullPageDropzone>
+              <Routes>
+                <Route path="/login" element={<LoginRoute />} />
+                <Route path="/" element={<Home />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/logout" element={<Logout />} />
+                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                <Route path="/hex" element={<Hex />} />
+                <Route path="/marketplace" element={<LuxuryMarketplace />} />
+              </Routes>
+              <AlertManager /> 
+              <Toaster richColors  />
+            </FullPageDropzone>
           </Router>
         </AuthProvider>
       </CartProvider>

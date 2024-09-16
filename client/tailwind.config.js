@@ -53,6 +53,12 @@ module.exports = withUt({
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        'dark-grey': '#2A2A2A',
+        grey: '#4A4A4A',
+        'light-grey': '#6A6A6A',
+        'lighter-grey': '#8A8A8A',
+        black: '#000000',
+        white: '#FFFFFF',
       },
       borderRadius: {
         lg: `var(--radius)`,
@@ -71,10 +77,19 @@ module.exports = withUt({
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        'border-dance': {
+          '0%': {
+            'background-position': '0px 0px, 300px 116px, 0px 150px, 216px 0px'
+          },
+          '100%': {
+            'background-position': '300px 0px, 0px 116px, 0px 0px, 216px 150px'
+          }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        'border-dance': 'border-dance 4s linear infinite'
       },
     },
   },
