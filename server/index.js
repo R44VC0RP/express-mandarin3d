@@ -596,8 +596,7 @@ app.use(
   createRouteHandler({
     router: ourFileRouter,
     config: {
-      uploadthingId: process.env.UPLOADTHING_APP_ID,
-      uploadthingSecret: process.env.UPLOADTHING_SECRET,
+      token: process.env.UPLOADTHING_TOKEN,
       isDev: process.env.NODE_ENV === "dev",
     },
   })
