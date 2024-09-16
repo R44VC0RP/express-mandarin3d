@@ -14,14 +14,12 @@ import { useCart } from '../context/Cart';
 import Loading from 'react-fullscreen-loading';
 import axios from 'axios';
 import { toast } from 'sonner';
-
+import BackgroundEffects from '../components/BackgroundEffects'; // Import the new component
 
 // Asset Imports
 import prining_bambu from '../assets/videos/printing_bambu.mp4'
 import fusion360 from '../assets/images/fusion360.gif'
 import building from '../assets/images/outdoor.png'
-
-
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -198,9 +196,16 @@ function Home() {
   
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#0F0F0F] text-white relative">
+      <BackgroundEffects /> {/* Use the new component */}
+      
+      {/* Header */}
+      <div className="sticky top-0 z-50 backdrop-blur-md border-b border-white border-opacity-10">
+        <Header />
+      </div>
+
+      {/* Main content */}
+      <main className="container mx-auto px-4 py-8 relative z-10 mt-20">
         {showAlert && (
           <div className="bg-blue-500 text-white p-4 rounded mb-4 flex items-center">
             <FaInfoCircle className="mr-2" />
@@ -245,8 +250,11 @@ function Home() {
           </Slider>
         </section>
       </main>
-      <Footer />
-      
+
+      {/* Footer */}
+      <div className="relative z-50">
+        <Footer />
+      </div>
     </div>
   );
 }

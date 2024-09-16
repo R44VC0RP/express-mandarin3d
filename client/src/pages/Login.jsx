@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
 import Header from '../components/Header';
 import { FaExclamationTriangle } from 'react-icons/fa';
-
+import BackgroundEffects from '../components/BackgroundEffects'; // Import the new component
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -26,9 +26,10 @@ function Login() {
   };
 
   return (
-    <div className='bg-[#0F0F0F] min-h-screen'>
+    <div className='bg-[#0F0F0F] min-h-screen relative'>
+      <BackgroundEffects /> {/* Use the new component */}
       <Header />
-      <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+      <div className="flex items-center justify-center min-h-[calc(100vh-64px)] relative z-10">
         <form onSubmit={handleSubmit} className="p-6 bg-[#2A2A2A] rounded shadow-md border border-[#8791A3] w-full max-w-md">
           <h2 className='text-white text-2xl font-bold mb-4'>Login to Mandarin 3D</h2>
           <p className='text-white text-sm mb-4 opacity-70'>Please enter your username and password to access the admin panel.</p>
