@@ -14,6 +14,7 @@ import Hex from './pages/Hex';
 import Loading from 'react-fullscreen-loading';
 import LuxuryMarketplace from './pages/Marketplace_7';
 import FullPageDropzone from './components/FullPageDropzone'; // {{ add: import FullPageDropzone }}
+import CookieCutterForm from './pages/customJobs/cookieCutter';
 
 
 const ProtectedRoute = ({ children }) => {
@@ -47,7 +48,10 @@ function App() {
                 <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                 <Route path="/hex" element={<Hex />} />
                 <Route path="/marketplace" element={<LuxuryMarketplace />} />
+                <Route path="/products/cookie-cutters" element={<CookieCutterForm />} />
+
               </Routes>
+
               <AlertManager /> 
               <Toaster richColors  />
             </FullPageDropzone>

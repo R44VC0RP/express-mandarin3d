@@ -55,8 +55,8 @@ const Header = ({ }) => {
     return (
         <>
 
-            <header className="p-4 flex items-center justify-between">
-                <div className="flex items-center logo-menu-container">
+            <header className="p-4 flex items-center justify-start md:justify-between  backdrop-blur-md border-b border-white border-opacity-10">
+                <div className="items-center ">
                     <div className="relative" onContextMenu={handleLogoRightClick}>
                         <a href="/">
                             <div className="flex items-center">
@@ -83,7 +83,7 @@ const Header = ({ }) => {
                         )}
                     </div>
                 </div>
-                <div className="md:hidden flex items-center">
+                <div className="md:hidden justify-end">
 
                     {cart.cart_id && (
                         <a href="/cart" className="relative flex items-center justify-center">
@@ -107,21 +107,7 @@ const Header = ({ }) => {
                                 </a>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
-                                <NavigationMenuTrigger>Model Library</NavigationMenuTrigger>
-                                <NavigationMenuContent>
-                                    <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px]">
-                                        <ListItem href="/marketplace" title="Featured Models" >
-                                            Explore our curated collection of popular 3D models.
-                                        </ListItem>
-                                        <ListItem href="/models/categories" title="Categories">
-                                            Browse models by category for easy navigation.
-
-                                        </ListItem>
-                                        <ListItem href="/models/custom" title="Custom Requests">
-                                            Learn how to request custom 3D models tailored to your needs.
-                                        </ListItem>
-                                    </ul>
-                                </NavigationMenuContent>
+                                <a href="/marketplace" className={navigationMenuTriggerStyle()}>Model Marketplace</a>
                             </NavigationMenuItem>
                             <NavigationMenuItem>
                                 <NavigationMenuTrigger>Products</NavigationMenuTrigger>

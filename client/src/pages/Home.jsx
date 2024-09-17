@@ -200,7 +200,7 @@ function Home() {
       <BackgroundEffects /> {/* Use the new component */}
       
       {/* Header */}
-      <div className="sticky top-0 z-50 backdrop-blur-md border-b border-white border-opacity-10">
+      <div className="sticky top-0 z-50">
         <Header />
       </div>
 

@@ -91,6 +91,9 @@ module.exports = withUt({
         "accordion-up": "accordion-up 0.2s ease-out",
         'border-dance': 'border-dance 4s linear infinite'
       },
+      customClasses: {
+        'greycard-sp': 'bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-[15px] overflow-hidden',
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

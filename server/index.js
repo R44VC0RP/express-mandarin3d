@@ -595,6 +595,7 @@ app.use(
   "/api/uploadthing",
   createRouteHandler({
     router: ourFileRouter,
+    logLevel: "Trace",
     config: {
       token: process.env.UPLOADTHING_TOKEN,
       isDev: process.env.NODE_ENV === "dev",
