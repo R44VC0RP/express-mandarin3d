@@ -1186,6 +1186,14 @@ const checkIfFileIsInProduct = async (fileid) => {
 
 const getProduct = async (product_id) => {
   const product = await Product.findOne({ product_id });
+  const file = await File.findOne({ fileid: product.product_fileid });
+  const filament = await Filament.findOne({ });
+  if (file && file.file_status === "success") {
+    const price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
+    product.product_price = price;
+  } else {
+    product.product_price = 1;
+  }
   return product;
 }
 
@@ -1274,7 +1282,7 @@ const getCollectionList = async () => {
   return collections;
 }
 
-const updateCollection = async (collection_id, collection_name, collection_description, collection_image_url) => {
+const updateCollection = async (collection_id, collection_name, collection_description, collection_image_url, featured) => {
   const collection = await Collection.findOne({ collection_id });
   if (!collection) {
     return null;
@@ -1282,7 +1290,16 @@ const updateCollection = async (collection_id, collection_name, collection_descr
   if (collection_name) collection.collection_name = collection_name;
   if (collection_description) collection.collection_description = collection_description;
   if (collection_image_url) collection.collection_image_url = collection_image_url;
+  if (featured !== undefined) {
+    collection.featured = featured;
+  }
   await collection.save();
+  return collection;
+}
+
+// Add a new function to get the featured collection
+const getFeaturedCollection = async () => {
+  const collection = await Collection.findOne({ featured: true });
   return collection;
 }
 
@@ -1299,6 +1316,10 @@ app.get('/api/product', async (req, res) => {
     switch (action) {
       case 'list':
         result = await getProductList();
+        break;
+      case 'featured_product':
+        result = await Product.findOne({ product_tags: 'featured' });
+        result = await getProduct(result.product_id);
         break;
       default:
         console.error("Invalid Action")
@@ -1367,7 +1388,8 @@ app.post('/api/collection', requireLogin, requireAdmin, async (req, res) => {
     collection_id,
     collection_name,
     collection_description,
-    collection_image_url
+    collection_image_url,
+    featured
   } = req.body;
   try {
     let result;
@@ -1382,7 +1404,11 @@ app.post('/api/collection', requireLogin, requireAdmin, async (req, res) => {
         result = await getCollectionList();
         break;
       case 'update':
-        result = await updateCollection(collection_id, collection_name, collection_description, collection_image_url);
+        if (featured) {
+          // Unset featured on all other collections
+          await Collection.updateMany({}, { featured: false });
+        }
+        result = await updateCollection(collection_id, collection_name, collection_description, collection_image_url, featured);
         break;
       case 'delete':
         result = await deleteCollection(collection_id);
@@ -1394,6 +1420,27 @@ app.post('/api/collection', requireLogin, requireAdmin, async (req, res) => {
     res.json({ status: 'success', result });
   } catch (error) {
     console.error('Error handling collection action:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
+// Endpoint to get the featured collection
+app.get('/api/collection/featured', async (req, res) => {
+  try {
+    const collection = await getFeaturedCollection();
+    if (!collection) {
+      return res.status(404).json({ status: 'error', message: 'No featured collection found' });
+    }
+    res.json({
+      status: 'success',
+      collection: {
+        name: collection.collection_name,
+        description: collection.collection_description,
+        image_url: collection.collection_image_url
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching featured collection:', error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 });

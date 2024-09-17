@@ -145,5 +145,9 @@ export const collectionSchema = new mongoose.Schema({
     collection_name: String,
     collection_description: String,
     collection_image_url: String,
+    featured: {
+        type: Boolean,
+        default: false,
+    },
     // ... any other existing fields ...
 }, { versionKey: false });

@@ -147,8 +147,6 @@ const Header = ({ }) => {
                     )}
                     {isAuthenticated && (
                         <>
-                            <Badge variant="outline" className="mr-2 text-xs sm:text-sm cursor-pointer" onClick={() => window.location.href = '/admin'}>{user.username}</Badge>
-                            <Badge className="mr-2 text-xs sm:text-sm cursor-pointer" onClick={() => window.location.href = '/admin'}>{user.role}</Badge>
                             <Avatar>
                                 <AvatarImage src={user.profilePicture || "https://via.placeholder.com/40"} alt="Profile" />
                                 <AvatarFallback>

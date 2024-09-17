@@ -88,13 +88,15 @@ function ProductManagement() {
 
     const fetchCollections = async () => {
         try {
-            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/collection`, {
-                action: 'list'
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+            const response = await axios.post(
+                `${process.env.REACT_APP_BACKEND_URL}/api/collection`,
+                { action: 'list' }, // Request body with action
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}` // Correctly passed headers
+                    }
                 }
-            });
+            );
             if (response.data.status === 'success') {
                 setCollections(response.data.result);
             } else {
@@ -331,6 +333,29 @@ function ProductManagement() {
         }
     };
 
+    const handleSetFeatured = async (collection_id) => {
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/collection`, {
+                action: 'update',
+                collection_id,
+                featured: true
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.data.status === 'success') {
+                toast.success('Featured collection updated successfully');
+                fetchCollections();
+            } else {
+                toast.error('Failed to set featured collection');
+            }
+        } catch (error) {
+            console.error('Error setting featured collection:', error);
+            toast.error('Failed to set featured collection');
+        }
+    };
+
     const filteredItems = products.filter(
         item => Object.values(item).some(
             val => val && val.toString().toLowerCase().includes(filterText.toLowerCase())
@@ -499,6 +524,46 @@ function ProductManagement() {
                 </>
             )}
 
+            {/* Featured Collection Management */}
+            <h2 className="text-2xl font-bold my-6">Featured Collection</h2>
+            <Table>
+                <TableCaption>A list of your collections</TableCaption>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Image</TableHead>
+                        <TableHead>Featured</TableHead>
+                        <TableHead>Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {collections.map((collection) => (
+                        <TableRow key={collection.collection_id}>
+                            <TableCell className="font-medium">{collection.collection_name}</TableCell>
+                            <TableCell>{collection.collection_description.substring(0, 50)}...</TableCell>
+                            <TableCell>
+                                {collection.collection_image_url ? (
+                                    <img src={collection.collection_image_url} alt={collection.collection_name} className="w-16 h-16 object-cover rounded" />
+                                ) : (
+                                    <span className="text-gray-400">No image</span>
+                                )}
+                            </TableCell>
+                            <TableCell>
+                                {collection.featured ? 'Yes' : 'No'}
+                            </TableCell>
+                            <TableCell>
+                                {!collection.featured && (
+                                    <button onClick={() => handleSetFeatured(collection.collection_id)} className="primary-button text-green-500 hover:text-green-700">
+                                        Set as Featured
+                                    </button>
+                                )}
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -596,6 +661,7 @@ function ProductManagement() {
                                     product_author={selectedProduct.product_author}
                                     product_author_url={selectedProduct.product_author_url}
                                     product_license={selectedProduct.product_license}
+                                    product_features={selectedProduct.product_features}
                                 />
                             </div>
                         </div>
@@ -724,11 +790,11 @@ function ProductManagement() {
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label className="text-right">Image</label>
-                                <div className="col-span-3">
+                                <div className="col-span-3 flex flex-col items-center">
                                     {selectedCollection.collection_image_url && (
                                         <img src={selectedCollection.collection_image_url} alt="Collection" className="w-32 h-32 object-cover rounded mb-2" />
                                     )}
-                                    <UploadButton
+                                    <UploadButton 
                                         endpoint="imageUploader"
                                         onClientUploadComplete={(res) => {
                                             if (res && res[0]) {

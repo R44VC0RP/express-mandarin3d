@@ -70,7 +70,7 @@ const FullPageDropzone = ({ children }) => {
     <div {...getRootProps()} className="">
       <input {...getInputProps()} />
       {isDragActive && (
-        <div className="absolute bg-[#0D939B]/90 inset-4 border-2 rounded-lg border-[#11B3BD] flex items-center justify-center z-50">
+        <div className="p-4 fixed inset-4 bg-[#0D939B]/90 border-2 rounded-lg border-[#11B3BD] flex items-center justify-center z-50">
           <p className="text-xl font-semibold text-white">Drop STL, STEP, or 3MF files here</p>
         </div>
       )}
