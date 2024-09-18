@@ -102,7 +102,7 @@ function Carousel({ file_obj, imageUrl }) {
     handleTransition(currentIndex === 0 ? 1 : 0);
   };
 
-  console.log("file_obj", file_obj.utfile_url)
+  
 
   return (
     <div className="relative">

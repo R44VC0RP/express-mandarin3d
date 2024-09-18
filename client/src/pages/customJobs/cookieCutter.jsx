@@ -15,7 +15,7 @@ export default function CookieCutterForm() {
         <div className="min-h-screen">
             <BackgroundEffects />
             <Header />
-            <section className="bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-[15px] overflow-hidden p-4 w-3/4 mx-auto z-10 relative">
+            {/* <section className="bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-[15px] overflow-hidden p-4 w-3/4 mx-auto z-10 relative">
                 <h1 className="text-4xl font-semibold mb-8">Our Product Library</h1>
                 <div className="flex flex-row items-center justify-center space-x-8">
                     <a href="/projects/cookie-cutters" className="flex flex-col items-center justify-center">
@@ -35,7 +35,7 @@ export default function CookieCutterForm() {
                         <span className="text-white text-lg font-semibold">Stylized Nameplates</span>
                     </a>
                 </div>
-            </section>
+            </section> */}
             <main className="z-10 flex flex-col md:flex-row px-4 py-16 space-y-8 md:space-y-0 md:space-x-8 w-3/4 mx-auto">
 
                 <div className="bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-[15px] overflow-hidden p-4 w-full md:w-1/2 overflow-y-auto z-10">

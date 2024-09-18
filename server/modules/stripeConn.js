@@ -71,3 +71,32 @@ export const getShippingOptions = async () => {
     }
     return shippingOptionsArray;
 }
+
+export const createSession  = async (checkoutObject, shipping_option_id, cart_id, order_comments) => {
+    const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    allow_promotion_codes: true,
+    line_items: checkoutObject.line_items,
+    mode: 'payment',
+    automatic_tax: {
+      enabled: true
+    },
+    shipping_address_collection: {
+      allowed_countries: ['US']
+    },
+    shipping_options: [
+      {
+        shipping_rate: shipping_option_id
+      }
+    ],
+    success_url: `${process.env.BACKEND_URL}/api/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.FRONTEND_URL}/cart`,
+    metadata: {
+      cart_id: cart_id,
+      order_comments: order_comments,
+        }
+    });
+    return session;
+}
+
+  

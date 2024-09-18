@@ -80,7 +80,6 @@ function Scene({ SceneUrl }) {
 }
 
 export default function PopupSTLViewer({ popupUrl, className }) {
-  console.log("PopupSTLViewer", popupUrl)
   return (
     <Dialog>
       <DialogTrigger asChild>

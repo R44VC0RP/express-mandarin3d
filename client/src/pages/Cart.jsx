@@ -217,6 +217,7 @@ function Home() {
     fetchFilamentColors();
     fetchShippingOptions();
     fetchProducts();
+    console.log("User: ", isAuthenticated);
     
   }, []);
 
@@ -510,10 +511,30 @@ function Home() {
       cart_id: checkout_cart_id
     }
 
+    console.log("Checkout: ", checkout);
+
     // Show loading
     setLocalLoading(true);
     // Lock screen
     document.body.style.overflow = 'hidden';
+
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/checkout`, checkout);
+      if (response.data.status === 'success') {
+        toast.success('Checkout successful');
+        // Redirect to the order confirmation page
+        window.location.href = response.data.checkout_url;
+      } else {
+        toast.error('Checkout failed');
+      }
+    } catch (error) {
+      console.error('Error processing checkout:', error);
+      toast.error('Checkout failed');
+    }
+
+    // Unlock screen
+    document.body.style.overflow = 'auto';
+    setLocalLoading(false);
     
 
 
@@ -670,6 +691,19 @@ function Home() {
                 >
                   Checkout
                 </button>
+                <div className="mt-4">
+                  {isAuthenticated && (
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="testMode"
+                        className="mr-2"
+                        // Add state and handler for this checkbox
+                      />
+                      <label htmlFor="testMode" className="text-sm text-gray-300">Test Mode</label>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="card-special w-full p-4 mt-4">
                 <div className="flex flex-col items-center mb-4">

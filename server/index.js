@@ -19,7 +19,8 @@ import {
     deleteStripeProduct,
     createNewShippingOption,
     deleteShippingOption,
-    getShippingOptions
+    getShippingOptions,
+    createSession
 } from './modules/stripeConn.js';
 import {
     UTApi
@@ -27,6 +28,8 @@ import {
 import {
     calculatePrice
 } from './modules/calculatingPrice.js';
+
+
 
 const utapi = new UTApi();
 
@@ -1576,6 +1579,88 @@ app.post('/api/configs', requireLogin, requireAdmin, async (req, res) => {
 });
 
 // #endregion SETTINGS MANAGEMENT
+
+// #region CHECKOUT MANAGEMENT
+
+app.post('/api/checkout', async (req, res) => {
+  const { order_comments, shipping_option_id, cart_id } = req.body;
+  try {
+    const cart = await getCart(cart_id);
+    if (!cart) {
+      return res.status(404).json({ status: 'error', message: 'Cart not found' });
+    }
+
+    const checkoutObject = {
+      line_items: [],
+      total: 0
+    };
+
+    // Process files
+    for (const file of cart.files) {
+      const fileDetails = await File.findOne({ fileid: file.fileid });
+      if (!fileDetails) {
+        console.error(`File not found: ${file.fileid}`);
+        continue;
+      }
+
+      const defaultFilament = await getDefaultFilament();
+      const price = calculatePrice(fileDetails, defaultFilament, file);
+      checkoutObject.line_items.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: fileDetails.filename,
+            metadata: {
+              fileid: file.fileid,
+              quality: file.quality,
+              filament_color: file.filament_color
+            }
+          },
+          unit_amount: Math.round(price * 100) // Stripe uses cents
+        },
+        quantity: file.quantity
+      });
+      checkoutObject.total += price * file.quantity;
+    }
+
+    // Process addons
+    for (const addon of cart.cart_addons) {
+      checkoutObject.line_items.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: addon.addon_name,
+            metadata: {
+              addon_id: addon.addon_id
+            }
+          },
+          unit_amount: addon.addon_price
+        },
+        quantity: 1
+      });
+      checkoutObject.total += addon.addon_price / 100; // Convert cents to dollars for the total
+    }
+
+    console.log('Checkout object:', JSON.stringify(checkoutObject, null, 2));
+
+    // Here you would create a Stripe checkout session using the checkoutObject
+    const session = await createSession(checkoutObject, shipping_option_id, cart_id, order_comments);
+    console.log('Stripe checkout session:', session);
+
+    // For now, we'll just return a mock response
+    res.json({ 
+      status: 'success', 
+      message: 'Checkout object created successfully', 
+      checkout_url: session.url,
+      total: checkoutObject.total
+    });
+  } catch (error) {
+    console.error('Error processing checkout:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
+// #endregion CHECKOUT MANAGEMENT
 
 
 
