@@ -1191,8 +1191,10 @@ const getProduct = async (product_id) => {
   if (file && file.file_status === "success") {
     const price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
     product.product_price = price;
+    product.file_obj = file;
   } else {
     product.product_price = 1;
+    product.file_obj = null;
   }
   return product;
 }
@@ -1205,10 +1207,11 @@ const getProductList = async () => {
     if (file && file.file_status === "success") {
       const price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
       product.product_price = price;
+      product.file_obj = file;
     } else {
       product.product_price = 1;
+      product.file_obj = null;
     }
-    
   }
   return products;
 }

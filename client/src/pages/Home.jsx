@@ -193,6 +193,8 @@ function Home() {
     ]
   };
 
+  console.log(products);
+
   
 
   return (

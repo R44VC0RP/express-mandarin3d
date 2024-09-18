@@ -273,12 +273,12 @@ export default function LuxuryMarketplace() {
             </section>
 
             <Tabs defaultValue="explore" className="mb-8 md:mb-16">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-3 mb-4 md:mb-8 bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-3xl p-2 h-auto">
-                <TabsTrigger value="explore" className="py-2">Explore</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-2 mb-4 md:mb-8 bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-3xl p-2 h-auto">
+                {/* <TabsTrigger value="explore" className="py-2">Explore</TabsTrigger> */}
                 <TabsTrigger value="customize" className="py-2">Customize</TabsTrigger>
                 <TabsTrigger value="community" className="py-2">Community</TabsTrigger>
               </TabsList>
-              <TabsContent value="explore">
+              {/* <TabsContent value="explore">
                 <section>
                   <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Featured Categories</h2>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
@@ -301,7 +301,7 @@ export default function LuxuryMarketplace() {
                     ))}
                   </div>
                 </section>
-              </TabsContent>
+              </TabsContent> */}
               <TabsContent value="customize">
                 <section className="bg-white bg-opacity-10 rounded-3xl p-4 md:p-8 backdrop-blur-md border border-white border-opacity-20">
                   <div className="flex justify-between items-center mb-6">
@@ -353,7 +353,7 @@ export default function LuxuryMarketplace() {
             {/* Search and Products Listing */}
             <section className="mb-8 md:mb-16">
               <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-8 px-3">All Products</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
                 {currentProducts.map((item, index) => (
                   <div key={index} className="px-2">
                     <PricingPlan {...item} onAddToCart={handleAddToCart} />

@@ -94,6 +94,10 @@ export const productSchema = new mongoose.Schema({
     product_author_url: String,
     product_license: String,
     product_price: Number,
+    file_obj: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'File'
+    },
     product_url: { type: String, required: false },
     product_tags: [String],
     product_collection: { type: String, required: false }
