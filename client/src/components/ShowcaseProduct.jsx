@@ -9,7 +9,7 @@ import { Button } from './ui/button';
 const LazyModelViewer = ({ url, style }) => {
   const [isVisible, setIsVisible] = useState(false);
   const containerRef = useRef(null);
-  const modelRef = useRef(null);
+  const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -37,9 +37,7 @@ const LazyModelViewer = ({ url, style }) => {
     let animationFrameId;
 
     const animate = () => {
-      if (modelRef.current && modelRef.current.rotation) {
-        modelRef.current.rotation.z += 0.005; // Adjust the rotation speed as needed
-      }
+      setRotation(prevRotation => prevRotation + 0.005);
       animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -62,8 +60,11 @@ const LazyModelViewer = ({ url, style }) => {
             shadows
             url={url}
             showAxes={true}
-            modelProps={{ scale: 1.3, color: '#F9FAFB' }}
-            ref={modelRef}
+            modelProps={{ 
+              scale: 1.3, 
+              color: '#F9FAFB',
+              rotation: [0, rotation, 0]  // Apply rotation here
+            }}
           />
         </Suspense>
       ) : (
@@ -73,40 +74,63 @@ const LazyModelViewer = ({ url, style }) => {
   );
 };
 
-function Carousel({ stlUrl, imageUrl }) {
+function Carousel({ file_obj, imageUrl }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      handleNext();
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleTransition = (newIndex) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentIndex(newIndex);
+      setIsTransitioning(false);
+    }, 300);
+  };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? 1 : prev - 1));
+    handleTransition(currentIndex === 0 ? 1 : 0);
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev === 1 ? 0 : prev + 1));
+    handleTransition(currentIndex === 0 ? 1 : 0);
   };
+
+  console.log("file_obj", file_obj.utfile_url)
 
   return (
     <div className="relative">
       <div className="overflow-hidden rounded-[15px] mb-4 border-[#5E5E5E] border-2">
-        {currentIndex === 0 ? (
-          <LazyModelViewer url={stlUrl} />
-        ) : (
-          <img
-            src={imageUrl}
-            alt="Product"
-            className="w-full h-48 object-cover rounded-[15px]"
-          />
-        )}
+        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+          {currentIndex === 0 ? (
+            <LazyModelViewer url={file_obj.utfile_url} />
+          ) : (
+            <img
+              src={imageUrl}
+              alt="Product"
+              className="w-full h-48 object-cover rounded-[15px]"
+            />
+          )}
+        </div>
       </div>
       <div className="flex justify-center space-x-2 mb-2">
         <button
           onClick={handlePrev}
-          className='bg-[#5E5E5E] text-white p-2 rounded-full'
+          className='bg-[#5E5E5E] text-white p-2 rounded-full transition-colors duration-300 hover:bg-[#4A4A4A]'
+          disabled={isTransitioning}
         >
           <FaArrowLeft />
         </button>
         <button
           onClick={handleNext}
-          className='bg-[#5E5E5E] text-white p-2 rounded-full'
+          className='bg-[#5E5E5E] text-white p-2 rounded-full transition-colors duration-300 hover:bg-[#4A4A4A]'
+          disabled={isTransitioning}
         >
           <FaArrowRight />
         </button>
@@ -132,7 +156,7 @@ function ShowcaseProduct({
     <div className="bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-[15px] overflow-hidden flex flex-col h-full">
       <div className="p-4 flex-grow">
         <h3 className="text-xl font-semibold mb-2">{product_title}</h3>
-        <Carousel stlUrl={file_obj.utfile_url} imageUrl={product_image_url} />        
+        <Carousel file_obj={file_obj} imageUrl={product_image_url} />        
         <p className="text-xs mb-2 text-gray-400">
           Made by:{' '}
           <a href={product_author_url} className="text-[#0D939B]">
@@ -160,7 +184,7 @@ function ShowcaseProduct({
         >
           Add to Cart
         </Button>
-        <PopupSTLViewer stlUrl={file_obj.utfile_url} />
+        <PopupSTLViewer popupUrl={file_obj.utfile_url} />
       </div>
     </div>
   );

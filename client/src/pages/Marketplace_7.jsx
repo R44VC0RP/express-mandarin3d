@@ -14,6 +14,8 @@ import uploadgif from '@/assets/gifs/uploadicon.gif';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import PricingPlan from '../components/ShowcaseProduct';
 import Loading from 'react-fullscreen-loading';
+import PopupSTLViewer from '@/components/PopupSTLViewer';
+import { Input } from '@/components/ui/input';
 
 function hexToRgb(hex) {
   try {
@@ -154,7 +156,7 @@ export default function LuxuryMarketplace() {
       try {
         const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/product?action=featured_product`);
         if (response.data.status === 'success') {
-          console.log("Featured Product:", response.data.result);
+          
           setFeaturedProduct(response.data.result);
         } else {
           console.error('Failed to fetch featured product');
@@ -189,12 +191,15 @@ export default function LuxuryMarketplace() {
   }, []);
 
   const handleSearch = (e) => {
-    e.preventDefault();
-    const query = searchQuery.toLowerCase();
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+    
     const filtered = products.filter(
       (product) =>
-        product.name.toLowerCase().includes(query) ||
-        product.designer.toLowerCase().includes(query)
+        product.product_title.toLowerCase().includes(query) ||
+        product.product_author.toLowerCase().includes(query) ||
+        product.product_tags.some(tag => tag.toLowerCase().includes(query)) || 
+        product.product_description.toLowerCase().includes(query)
     );
     setFilteredProducts(filtered);
     setCurrentPage(1);
@@ -214,11 +219,11 @@ export default function LuxuryMarketplace() {
     <>
       <Loading loading={isLoading} background="#0F0F0F" loaderColor="#FFFFFF" />
       {!isLoading && (
-        <div className="min-h-screen text-white relative overflow-hidden bg-[#0D0D0D]">
-          <BackgroundEffects />
+        <div className="min-h-screen text-white relative overflow-hidden">
+          <BackgroundEffects className="z-0" />
           <Header />
           
-          <main className="container mx-auto px-4 py-8 md:py-16 relative z-10 w-[90vw]"> 
+          <main className="container mx-auto px-4 py-8 md:py-16 relative w-[90vw] z-10"> 
             <section className="flex flex-col md:flex-row gap-8 mb-8 md:mb-16">
               {/* Collection showcase */}
               {featuredCollection && (
@@ -263,45 +268,18 @@ export default function LuxuryMarketplace() {
                   </div>
                   <div>
                     <Button className="w-full mb-2" onClick={() => handleAddToCart(featuredProduct.product_fileid)}>Add to Cart</Button>
-                    <Button variant="outline" className="w-full">
-                      AR Preview
-                    </Button>
+                    <PopupSTLViewer popupUrl={featuredProduct.file_obj.utfile_url} className="w-full" />
                   </div>
                 </div>
               </div>
               )}
             </section>
 
-            <Tabs defaultValue="explore" className="mb-8 md:mb-16">
+            <Tabs defaultValue="community" className="mb-8 md:mb-16">
               <TabsList className="grid w-full grid-cols-2 md:grid-cols-2 mb-4 md:mb-8 bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-3xl p-2 h-auto">
-                {/* <TabsTrigger value="explore" className="py-2">Explore</TabsTrigger> */}
                 <TabsTrigger value="customize" className="py-2">Customize</TabsTrigger>
                 <TabsTrigger value="community" className="py-2">Community</TabsTrigger>
               </TabsList>
-              {/* <TabsContent value="explore">
-                <section>
-                  <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Featured Categories</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-                    {[
-                      { name: 'Home', icon: '🏠' },
-                      { name: 'Gadgets', icon: '🔧' },
-                      { name: 'Art', icon: '🎨' },
-                      { name: 'Fashion', icon: '👗' },
-                      { name: 'Toys', icon: '🧸' },
-                      { name: 'Tools', icon: '🛠️' },
-                      { name: 'Jewelry', icon: '💍' },
-                      { name: 'Automotive', icon: '🚗' }
-                    ].map(({ name, icon }) => (
-                      <div key={name} className="bg-white bg-opacity-10 rounded-xl p-4 text-center hover:bg-opacity-20 transition-all backdrop-blur-md shadow-lg border border-white border-opacity-20">
-                        <div className="w-12 h-12 bg-[#0D939B] rounded-full flex items-center justify-center mx-auto mb-2">
-                          <span className="text-2xl">{icon}</span>
-                        </div>
-                        <span className="text-sm font-semibold">{name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </TabsContent> */}
               <TabsContent value="customize">
                 <section className="bg-white bg-opacity-10 rounded-3xl p-4 md:p-8 backdrop-blur-md border border-white border-opacity-20">
                   <div className="flex justify-between items-center mb-6">
@@ -351,9 +329,24 @@ export default function LuxuryMarketplace() {
             </Tabs>
 
             {/* Search and Products Listing */}
-            <section className="mb-8 md:mb-16">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-8 px-3">All Products</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+            <section className="mb-8 md:mb-16 relative z-20">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-0 px-3">All Products</h2>
+                <div className="relative w-full md:w-64">
+                  <Input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={handleSearch}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-[#0D939B] focus:border-transparent bg-white bg-opacity-10 backdrop-blur-md shadow-lg border-white border-opacity-20"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="text-gray-400" />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-8">
                 {currentProducts.map((item, index) => (
                   <div key={index} className="px-2">
                     <PricingPlan {...item} onAddToCart={handleAddToCart} />
@@ -382,7 +375,7 @@ export default function LuxuryMarketplace() {
             </section>
           </main>
 
-          <Footer />
+          <Footer className="relative z-20" />
         </div>
       )}
     </>
