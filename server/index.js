@@ -1660,6 +1660,12 @@ app.post('/api/checkout', async (req, res) => {
   }
 });
 
+app.get('/api/checkout/success', async (req, res) => {
+  const { session_id } = req.query;
+  const session = await stripe.checkout.sessions.retrieve(session_id);
+  res.json({ status: 'success', message: 'Checkout successful', session });
+});
+
 // #endregion CHECKOUT MANAGEMENT
 
 

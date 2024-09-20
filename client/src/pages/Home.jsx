@@ -3,10 +3,18 @@ import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { FaInfoCircle } from 'react-icons/fa';
+import { FaInfoCircle, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import ProductItem from '../components/ProductItem';
 import PricingPlan from '../components/ShowcaseProduct';
-import Slider from 'react-slick';
+import Autoplay from "embla-carousel-autoplay"
+import Slider from "react-slick";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import FileUploadProgress from '../components/FileUploadProgress';
@@ -20,6 +28,8 @@ import BackgroundEffects from '../components/BackgroundEffects'; // Import the n
 import prining_bambu from '../assets/videos/printing_bambu.mp4'
 import fusion360 from '../assets/images/fusion360.gif'
 import building from '../assets/images/outdoor.png'
+import custom_cookie_cutters from '../assets/images/custom_cookie_cutters.jpg'
+import nameplates from '../assets/images/customnameplates.png'
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -29,7 +39,7 @@ function Home() {
   const location = useLocation();
   const [showcaseProducts, setShowcaseProducts] = useState([]);
   const [files, setFiles] = useState([]);
-  
+
   const [isLoading, setIsLoading] = useState(false);
 
 
@@ -39,7 +49,7 @@ function Home() {
     fetchProducts();
   }, []);
 
-  
+
 
   const handleAddToCart = async (product_fileid) => {
     console.log("Adding to cart: ", product_fileid);
@@ -48,7 +58,7 @@ function Home() {
       const result = await addFile(product_fileid);
       if (result.status === 'success') {
         toast.success('File added to cart successfully');
-        
+
       } else {
         toast.error(result.message || 'Failed to add file to cart');
       }
@@ -72,7 +82,7 @@ function Home() {
       console.error('Error fetching products:', error);
       toast.error('An error occurred while fetching products. Please try again later.');
     }
-  };  
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -193,21 +203,60 @@ function Home() {
     ]
   };
 
+  const carouselItems = [
+    {
+      video_or_image: 'video',
+      video_url: prining_bambu,
+      title: "Custom 3D Prints Done Right",
+      description: "Bringing your ideas to life, one layer at a time.",
+      buttons: [
+        { text: "See our Model Library", className: "primary-button", onClick: () => {
+          window.location.href = "/marketplace";
+        } },
+        { text: "Contact Sales", className: "secondary-button", onClick: () => {
+          window.location.href = "/contact";
+        } }
+      ]
+    },
+    {
+      video_or_image: 'image',
+      image: custom_cookie_cutters,
+      title: "Custom Cookie Cutters",
+      description: "We curate the best designs from the maker community and make them available to you.",
+      buttons: [
+        { text: "Get your own!", className: "primary-button", onClick: () => {
+          window.location.href = "/products/cookie-cutters";
+        } },
+      ]
+    },
+    {
+      video_or_image: 'image',
+      image: nameplates,
+      title: "Custom Nameplates and Plaques",
+      description: "Stand out with a custom nameplate or plaque. Perfect for gifts, awards, or personalization.",
+      buttons: [
+        { text: "Get your own!", className: "primary-button", onClick: () => {
+          window.location.href = "/products/nameplates";
+        } },
+      ]
+    }
+  ];
+
   console.log(products);
 
-  
+
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white relative">
       <BackgroundEffects /> {/* Use the new component */}
-      
+
       {/* Header */}
       <div className="sticky top-0 z-50">
         <Header />
       </div>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-8 relative z-10 mt-20">
+      <main className="container mx-auto px-4 py-8 relative z-10 ">
         {showAlert && (
           <div className="bg-blue-500 text-white p-4 rounded mb-4 flex items-center">
             <FaInfoCircle className="mr-2" />
@@ -216,48 +265,89 @@ function Home() {
         )}
         {/* Hero Section */}
         <section className="flex flex-col md:flex-row justify-center items-center">
-          <div className="max-w-md p-2 ">
-            <h1 className="text-4xl font-bold mb-3">Custom 3D Prints Done Right</h1>
-            <p className="text-lg mb-6 font-light">Bringing your ideas to life, one layer at a time.</p>
-            <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
-              <button className="primary-button font-semibold text-sm">See our Model Library</button>
-              <button className="secondary-button font-semibold text-sm">Contact Sales</button>
+
+          <Carousel
+            className="w-[80%] rounded-lg"
+            plugins={[
+              Autoplay({
+                delay: 4000,
+              }),
+            ]}>
+            <CarouselContent >
+
+              {carouselItems.map((item, index) => (
+                <CarouselItem key={index}>
+                  <div className="w-full  relative overflow-hidden shadow-2xl rounded-lg">
+                    <div className="relative">
+                      {item.video_or_image === 'video' ? (
+                        <video
+                          src={item.video_url}
+                          className="object-cover w-full h-[80vh] md:h-[50vh]"
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                        />
+                      ) : (
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="object-cover w-full h-[80vh] md:h-[50vh]"
+                        />
+                      )}
+                      <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-8">
+                        <div className="bg-black bg-opacity-40 backdrop-blur-sm p-4 rounded-lg border-2 border-[#5E5E5E] border-opacity-20">
+                        <h1 className="text-2xl md:text-4xl font-bold mb-2 text-white">{item.title}</h1>
+                        <p className="text-base md:text-xl mb-4 text-white">{item.description}</p>
+                        <div className="flex space-x-4">
+                          {item.buttons.map((button, buttonIndex) => (
+                            <button key={buttonIndex} className={`px-4 py-2 rounded ${button.className}`} onClick={button.onClick}>
+                              {button.text}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                </CarouselItem>
+              ))}
+
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+        </Carousel>
+
+      </section>
+      {/* End Hero Section */}
+      {/* Product Showcase Section */}
+      <section className="py-8 max-w-screen-lg mx-auto" >
+        <h2 className="text-3xl font-bold mb-6">Our Products</h2>
+        <div className="md:px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {showcaseProducts.map((product, index) => (
+            <ProductItem key={index} {...product} />
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing Plans Section */}
+      <section className="py-8 px-4 max-w-screen-lg mx-auto">
+        <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
+        <Slider {...settings}>
+          {products.map((plan, index) => (
+            <div key={index} className="px-2">
+              <PricingPlan {...plan} onAddToCart={handleAddToCart} />
             </div>
-          </div>
-          <div className="max-w-md p-6 rounded w-full md:w-1/2 mt-6 md:mt-0">
-            <h2 className="text-xl font-bold mb-2">Get a custom quote now!</h2>
-            <p className="text-sm mb-4 opacity-70">*No Account Needed</p>
-          </div>
-        </section>
-        {/* End Hero Section */}
-        {/* Product Showcase Section */}
-        <section className="py-8 max-w-screen-lg mx-auto" >
-          <h2 className="text-3xl font-bold mb-6">Our Products</h2>
-          <div className="md:px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {showcaseProducts.map((product, index) => (
-              <ProductItem key={index} {...product} />
-            ))}
-          </div>
-        </section>
+          ))}
+        </Slider>
+      </section>
+    </main>
 
-        {/* Pricing Plans Section */}
-        <section className="py-8 px-4 max-w-screen-lg mx-auto">
-          <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
-          <Slider {...settings}>
-            {products.map((plan, index) => (
-              <div key={index} className="px-2">
-                <PricingPlan {...plan} onAddToCart={handleAddToCart} />
-              </div>
-            ))}
-          </Slider>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <div className="relative z-50">
-        <Footer />
-      </div>
-    </div>
+      {/* Footer */ }
+  <div className="relative z-50">
+    <Footer />
+  </div>
+    </div >
   );
 }
 

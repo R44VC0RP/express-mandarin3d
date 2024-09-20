@@ -108,15 +108,17 @@ function Carousel({ file_obj, imageUrl }) {
     <div className="relative">
       <div className="overflow-hidden rounded-[15px] mb-4 border-[#5E5E5E] border-2">
         <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-          {currentIndex === 0 ? (
-            <LazyModelViewer url={file_obj.utfile_url} />
-          ) : (
-            <img
-              src={imageUrl}
-              alt="Product"
-              className="w-full h-48 object-cover rounded-[15px]"
-            />
-          )}
+          <div className="w-full h-48">
+            {currentIndex === 0 ? (
+              <LazyModelViewer url={file_obj.utfile_url} style={{ width: '100%', height: '100%' }} />
+            ) : (
+              <img
+                src={imageUrl}
+                alt="Product"
+                className="w-full h-full object-cover rounded-[15px]"
+              />
+            )}
+          </div>
         </div>
       </div>
       <div className="flex justify-center space-x-2 mb-2">
