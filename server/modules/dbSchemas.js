@@ -73,6 +73,10 @@ export const userSchema = new mongoose.Schema({
 
 export const cartSchema = new mongoose.Schema({
     cart_id: String,
+    cart_locked: {
+        type: Boolean,
+        default: false
+    },
     files: [{
         fileid: String,
         quantity: { type: Number, default: 1 },
@@ -161,4 +165,94 @@ export const collectionSchema = new mongoose.Schema({
         default: false,
     },
     // ... any other existing fields ...
+}, { versionKey: false });
+
+export const orderNumberSchema = new mongoose.Schema({
+    lastOrderNumber: {
+        type: Number,
+        default: 4000 // Starting point for order numbers
+    }
+}, { versionKey: false });
+
+
+
+export const orderSchema = new mongoose.Schema({
+    order_id: String,
+    order_number: String, // Add this line
+    stripe_session_id: String,
+    customer_details: {
+        address: {
+            city: String,
+            country: String,
+            line1: String,
+            line2: String,
+            postal_code: String,
+            state: String
+        },
+        email: String,
+        name: String
+    },
+    livemode: Boolean,
+    payment_status: String,
+    order_status: {
+        type: String,
+        enum: ["Reviewing", "In Queue", "Printing", "Completed", "Shipping", "Delivered"],
+        default: "Reviewing"
+    },
+    order_status_options: {
+        type: [String],
+        default: ["Reviewing", "In Queue", "Printing", "Completed", "Shipping", "Delivered"]
+    },
+    shipping_details: {
+        address: {
+            city: String,
+            country: String,
+            line1: String,
+            line2: String,
+            postal_code: String,
+            state: String
+        }
+    },
+    total_details: {
+        amount_discount: Number,
+        amount_shipping: Number,
+        amount_tax: Number,
+    },
+    shipping_rate_id: String,
+    cart: {
+        cart_id: String,
+        files: [{
+            fileid: String,
+            quantity: Number,
+            quality: String,
+            filament_color: String,
+            dimensions: Object,
+            stripe_product_id: String,
+            filename: String,
+            file_status: String,
+            utfile_id: String,
+            utfile_url: String,
+            price_override: Number,
+            dateCreated: Date,
+            file_deletion_date: Date,
+            mass_in_grams: Number,
+            file_sale_cost: Number
+        }],
+        cart_addons: [{
+            addon_name: String,
+            addon_id: String,
+            addon_price: Number
+        }],
+        dateCreated: Date
+    },
+    dateCreated: {
+        type: Date,
+        default: Date.now,
+
+    },
+    dateUpdated: {
+        type: Date,
+        default: Date.now,
+        required: false
+    }
 }, { versionKey: false });

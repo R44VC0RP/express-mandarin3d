@@ -95,17 +95,26 @@ export const CartProvider = ({ children }) => {
   const getFilesFromCart = async (cartId) => {
     console.log("(cart.js) Fetching cart items (func): ", cartId);
     try {
-      const response = await axios.get(`${backendUrl}/api/cart?cart_id=${cartId}`);
+      const response = await axios.get(`${backendUrl}/api/cart/status?cart_id=${cartId}`);
       if (response.data.status === 'success') {
-        setCart(prevCart => {
-          if (JSON.stringify(prevCart) !== JSON.stringify(response.data)) {
-            return {
-              cart_id: response.data.cart_id,
-              files: response.data.files || []
-            };
+        if (response.data.cart_locked) {
+          console.log("Cart is locked. Creating a new cart.");
+          await deleteCart();
+          await createNewCart();
+        } else {
+          const cartResponse = await axios.get(`${backendUrl}/api/cart?cart_id=${cartId}`);
+          if (cartResponse.data.status === 'success') {
+            setCart(prevCart => {
+              if (JSON.stringify(prevCart) !== JSON.stringify(cartResponse.data)) {
+                return {
+                  cart_id: cartResponse.data.cart_id,
+                  files: cartResponse.data.files || []
+                };
+              }
+              return prevCart;
+            });
           }
-          return prevCart;
-        });
+        }
       }
       return response.data;
     } catch (error) {

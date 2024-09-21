@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 
 function DeliveryStatus({ deliveries, statusOrder=["Designing", "In Queue", "Printing", "Shipped", "Delivered"] }) {
   return (
-    <div className="space-y-8 w-full max-w-2xl mx-auto">
+    <div className="space-y-8 w-full max-w-2xl mx-auto text-white">
       {deliveries.map((delivery, index) => {
         const currentStepIndex = statusOrder.indexOf(delivery.status)
         return (
@@ -17,16 +17,16 @@ function DeliveryStatus({ deliveries, statusOrder=["Designing", "In Queue", "Pri
                     stepIndex === 0 ? "items-start" : stepIndex === statusOrder.length - 1 ? "items-end" : "items-center"
                   )}>
                     {stepIndex === currentStepIndex ? (
-                      <div
+                      <Badge
                         className={cn(
                           "absolute top-1/2 transform -translate-y-1/2",
                           stepIndex === 0 ? "left-0" : stepIndex === statusOrder.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2",
                           "h-10 rounded-full border-2 flex items-center justify-center text-sm font-medium px-4 z-10 whitespace-nowrap",
-                          "border-primary bg-primary text-primary-foreground"
+                          "bg-primary text-white"
                         )}
                       >
                         {step}
-                      </div>
+                      </Badge>
                     ) : (
                       <div
                         className={cn(
@@ -50,13 +50,13 @@ function DeliveryStatus({ deliveries, statusOrder=["Designing", "In Queue", "Pri
               ))}
             </div>
             <div className="mt-4 flex justify-between items-center">
-              <span className="text-sm font-medium text-muted-foreground">{statusOrder[0]}</span>
-              <div className="text-sm font-medium text-primary">
+              <span className="text-sm font-medium text-white">{statusOrder[0]}</span>
+              <div className="text-sm font-medium text-white">
                 <Badge variant="secondary" className="bg-green-100 text-green-600">
                   Last update: {delivery.date && `${delivery.date}`} 
                 </Badge>
               </div>
-              <span className="text-sm font-medium text-muted-foreground">{statusOrder[statusOrder.length - 1]}</span>
+              <span className="text-sm font-medium text-white">{statusOrder[statusOrder.length - 1]}</span>
             </div>
           </div>
         )

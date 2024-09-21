@@ -15,6 +15,7 @@ import Loading from 'react-fullscreen-loading';
 import LuxuryMarketplace from './pages/Marketplace_7';
 import FullPageDropzone from './components/FullPageDropzone'; // {{ add: import FullPageDropzone }}
 import CookieCutterForm from './pages/customJobs/cookieCutter';
+import OrderConfirmation from './pages/Confirmation';
 
 
 const ProtectedRoute = ({ children }) => {
@@ -49,7 +50,7 @@ function App() {
                 <Route path="/hex" element={<Hex />} />
                 <Route path="/marketplace" element={<LuxuryMarketplace />} />
                 <Route path="/products/cookie-cutters" element={<CookieCutterForm />} />
-
+                <Route path="/confirmation/:orderId" element={<OrderConfirmation  />} />
               </Routes>
 
               <AlertManager /> 

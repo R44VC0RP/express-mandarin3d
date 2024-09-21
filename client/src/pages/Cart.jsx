@@ -36,6 +36,7 @@ import CheckoutLineItem from '../components/CheckoutLineItem';
 
 function Home() {
   const [cartFilesLength, setCartFilesLength] = useState(0);
+  const [testMode, setTestMode] = useState(false);
   const { isAuthenticated, user, loading } = useAuth();
   const { cart, deleteFile, addFile } = useCart();
   const [localLoading, setLocalLoading] = useState(true);
@@ -498,6 +499,12 @@ function Home() {
       return;
     }
 
+    if (testMode) {
+      toast.warning("You are in test mode. This will not actually process a charge.");
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     // If we made it here, the cart is valid and we can process the checkout
     var order_comments = orderComments;
     
@@ -508,7 +515,8 @@ function Home() {
     var checkout = {
       order_comments: order_comments,
       shipping_option_id: shipping_option_id,
-      cart_id: checkout_cart_id
+      cart_id: checkout_cart_id,
+      test_mode: testMode
     }
 
     console.log("Checkout: ", checkout);
@@ -531,14 +539,6 @@ function Home() {
       console.error('Error processing checkout:', error);
       toast.error('Checkout failed');
     }
-
-    // Unlock screen
-    document.body.style.overflow = 'auto';
-    setLocalLoading(false);
-    
-
-
-
   };
 
   
@@ -698,6 +698,8 @@ function Home() {
                         type="checkbox"
                         id="testMode"
                         className="mr-2"
+                        checked={testMode}
+                        onChange={() => setTestMode(!testMode)}
                         // Add state and handler for this checkbox
                       />
                       <label htmlFor="testMode" className="text-sm text-gray-300">Test Mode</label>
@@ -758,7 +760,7 @@ function Home() {
       
       {cartStatus === 'slicing' && (
         <div className="fixed bottom-0 left-0 right-0 bg-yellow-500 text-black p-2 text-center">
-          Some files in your cart are being processed. Please wait...
+          Some files in your cart are being processed. Please wait... (if you do not see any updates for a white, please refresh the page)
         </div>
       )}
     </div>

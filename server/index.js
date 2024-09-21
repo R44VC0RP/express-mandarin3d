@@ -20,7 +20,9 @@ import {
     createNewShippingOption,
     deleteShippingOption,
     getShippingOptions,
-    createSession
+    createSession,
+    getCheckoutSession,
+    getPayment
 } from './modules/stripeConn.js';
 import {
     UTApi
@@ -44,7 +46,9 @@ import {
   filamentSchema,
   addonSchema,
   productSchema,
-  collectionSchema
+  collectionSchema,
+  orderNumberSchema,
+  orderSchema
 } from './modules/dbSchemas.js';
 
 
@@ -85,8 +89,8 @@ const Config = mongoose.model('Config', configSchema);
 const Product = mongoose.model('Product', productSchema);
 const Addon = mongoose.model('Addon', addonSchema);
 const Collection = mongoose.model('Collection', collectionSchema);
-
-
+const OrderNumber = mongoose.model('OrderNumber', orderNumberSchema);
+const Order = mongoose.model('Order', orderSchema);
 
 // #region LOGIN AND AUTHENTICATION
 
@@ -749,6 +753,30 @@ async function getCart(cart_id) {
   const cart = await Cart.findOne({ cart_id }).populate('cart_addons');
   return cart;
 }
+async function getCartComplete(cart_id) {
+  const cart = await getCart(cart_id);
+  if (!cart) {
+    return null;
+  }
+  const cart_updated = cart.toObject();
+  
+  // do not modify the files array
+  // create a new array with the same data, but with the file details added
+  const filesWithDetails = await Promise.all(cart_updated.files.map(async (file) => {
+    const fileDetails = await getFile(file.fileid);
+    return {
+      ...fileDetails.toObject(),
+      quantity: file.quantity,
+      quality: file.quality,
+      filament_color: file.filament_color
+    };
+  }));
+
+  return {
+    ...cart_updated,
+    files: filesWithDetails
+  };
+}
 
 async function getAllCarts() {
   const carts = await Cart.find();
@@ -825,6 +853,10 @@ app.get('/api/cart/status', async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'No cart_id provided' });
   }
   const cart = await getCart(cart_id);
+  if (!cart) {
+    return res.status(404).json({ status: 'error', message: 'Cart not found' });
+  }
+  
   var files_not_sliced = [];
   for (const file of cart.files) {
     const fileDetails = await getFile(file.fileid);
@@ -835,11 +867,14 @@ app.get('/api/cart/status', async (req, res) => {
       files_not_sliced.push(fileDetails);
     }
   }
-  if (files_not_sliced.length > 0) {
-    return res.status(201).json({ status: 'success', message: 'Files are not sliced', files_not_sliced: true, files: files_not_sliced });
-  } else {
-    res.json({ status: 'success', message: 'Cart is valid', cart_valid: true });
-  }
+  
+  res.json({
+    status: 'success',
+    cart_locked: cart.cart_locked,
+    files_not_sliced: files_not_sliced.length > 0,
+    files: files_not_sliced.length > 0 ? files_not_sliced : [],
+    cart_valid: files_not_sliced.length === 0
+  });
 });
 
 
@@ -935,6 +970,16 @@ app.post('/api/cart/update', async (req, res) => {
   await cart.save();
   res.json({ status: 'success', message: 'Cart updated successfully' });
 });
+
+async function lockCart(cart_id) {
+  const cart = await getCart(cart_id);
+  if (!cart) {
+    return false;
+  }
+  cart.cart_locked = true;
+  await cart.save();
+  return true;
+}
 
 app.post('/api/mgmt/cart', requireLogin, requireAdmin, async (req, res) => {
   const {
@@ -1583,7 +1628,7 @@ app.post('/api/configs', requireLogin, requireAdmin, async (req, res) => {
 // #region CHECKOUT MANAGEMENT
 
 app.post('/api/checkout', async (req, res) => {
-  const { order_comments, shipping_option_id, cart_id } = req.body;
+  const { order_comments, shipping_option_id, cart_id, test_mode } = req.body;
   try {
     const cart = await getCart(cart_id);
     if (!cart) {
@@ -1592,10 +1637,12 @@ app.post('/api/checkout', async (req, res) => {
 
     const checkoutObject = {
       line_items: [],
-      total: 0
+      total: 0,
+      free_shipping: false
     };
 
     // Process files
+    const pricing_obj = {};
     for (const file of cart.files) {
       const fileDetails = await File.findOne({ fileid: file.fileid });
       if (!fileDetails) {
@@ -1603,8 +1650,10 @@ app.post('/api/checkout', async (req, res) => {
         continue;
       }
 
-      const defaultFilament = await getDefaultFilament();
-      const price = calculatePrice(fileDetails, defaultFilament, file);
+      const getFilament = await getFilamentByName(file.filament_color);
+      console.log("Get filament: ", getFilament);
+      const price = calculatePrice(fileDetails, getFilament, file);
+      pricing_obj[file.fileid] = price;
       checkoutObject.line_items.push({
         price_data: {
           currency: 'usd',
@@ -1621,6 +1670,14 @@ app.post('/api/checkout', async (req, res) => {
         quantity: file.quantity
       });
       checkoutObject.total += price * file.quantity;
+    }
+
+    const config = await Config.findOne();
+    const free_shipping = checkoutObject.total >= config.priceConfig.freeShippingThreshold;
+    if (free_shipping) {
+      checkoutObject.free_shipping = true;
+    } else {
+      checkoutObject.free_shipping = false;
     }
 
     // Process addons
@@ -1641,11 +1698,10 @@ app.post('/api/checkout', async (req, res) => {
       checkoutObject.total += addon.addon_price / 100; // Convert cents to dollars for the total
     }
 
-    console.log('Checkout object:', JSON.stringify(checkoutObject, null, 2));
-
+    // console.log('Checkout object:', JSON.stringify(checkoutObject, null, 2));
     // Here you would create a Stripe checkout session using the checkoutObject
-    const session = await createSession(checkoutObject, shipping_option_id, cart_id, order_comments);
-    console.log('Stripe checkout session:', session);
+    const session = await createSession(checkoutObject, shipping_option_id, cart_id, order_comments, test_mode, pricing_obj);
+    // console.log('Stripe checkout session:', session);
 
     // For now, we'll just return a mock response
     res.json({ 
@@ -1662,9 +1718,131 @@ app.post('/api/checkout', async (req, res) => {
 
 app.get('/api/checkout/success', async (req, res) => {
   const { session_id } = req.query;
-  const session = await stripe.checkout.sessions.retrieve(session_id);
-  res.json({ status: 'success', message: 'Checkout successful', session });
+  if (!session_id) {
+    return res.status(400).json({ status: 'error', message: 'Session ID is required' });
+  }
+  
+
+
+  try {
+    const checkout_session_info = await getCheckoutSession(session_id);
+    console.log("Checkout session info: ", checkout_session_info);
+    let cart_id = checkout_session_info.metadata.cart_id;
+    let pricing_obj = JSON.parse(checkout_session_info.metadata.pricing_obj);
+    console.log(`Tax: ${checkout_session_info.total_details.amount_tax}`);
+    const cart = await getCartComplete(cart_id);
+    let order_comments = checkout_session_info.metadata.order_comments;
+    
+    console.log(checkout_session_info.id);
+
+    // const payment = await getPayment(checkout_session_info.payment_intent);
+
+    // Lock the cart
+    await lockCart(cart_id);
+
+    const order = await createOrder(cart, checkout_session_info, pricing_obj);
+
+    
+    // console.log("Checkout session info: ", checkout_session_info);
+    res.redirect(`${process.env.FRONTEND_URL}/confirmation/${order.order_id}`);
+  } catch (error) {
+    console.error('Error retrieving checkout session:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to retrieve checkout session' });
+  }
 });
+
+app.get('/api/orders/:orderId', async (req, res) => {
+  const { orderId } = req.params;
+  try {
+    const order = await Order.findOne({ order_id: orderId });
+    if (!order) {
+      return res.status(404).json({ status: 'error', message: 'Order not found' });
+    }
+    res.json({ status: 'success', order });
+  } catch (error) {
+    console.error('Error fetching order:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch order' });
+  }
+});
+
+
+async function createOrder(cart, checkout_session_info, pricing_obj) {
+  // Get the last order number and increment it
+  const orderNumberDoc = await OrderNumber.findOneAndUpdate(
+    {},
+    { $inc: { lastOrderNumber: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const orderNumber = orderNumberDoc.lastOrderNumber;
+  console.log(`Order number: #${orderNumber}-${new Date().getFullYear()}`);
+  console.log(`Tax Total: ${checkout_session_info.amount_tax}`);
+  console.log(`Shipping Total: ${checkout_session_info.amount_shipping}`);
+
+  const order = new Order({
+    order_id: "order_" + uuidv4(),
+    order_number: `#${orderNumber}-${new Date().getFullYear()}`,
+    stripe_session_id: checkout_session_info.id,
+    customer_details: {
+      address: {
+        city: checkout_session_info.customer_details.address.city,
+        country: checkout_session_info.customer_details.address.country,
+        line1: checkout_session_info.customer_details.address.line1,
+        line2: checkout_session_info.customer_details.address.line2,
+        postal_code: checkout_session_info.customer_details.address.postal_code,
+        state: checkout_session_info.customer_details.address.state
+      },
+      email: checkout_session_info.customer_details.email,
+      name: checkout_session_info.customer_details.name
+    },
+    livemode: checkout_session_info.livemode,
+    payment_status: checkout_session_info.payment_status,
+    shipping_details: {
+      address: {
+        city: checkout_session_info.shipping_details.address.city,
+        country: checkout_session_info.shipping_details.address.country,
+        line1: checkout_session_info.shipping_details.address.line1,
+        line2: checkout_session_info.shipping_details.address.line2,
+        postal_code: checkout_session_info.shipping_details.address.postal_code,
+        state: checkout_session_info.shipping_details.address.state
+      }
+    },
+    total_details: {
+      amount_discount: checkout_session_info.total_details.amount_discount,
+      amount_shipping: checkout_session_info.total_details.amount_shipping,
+      amount_tax: checkout_session_info.total_details.amount_tax,
+    },
+    shipping_rate_id: checkout_session_info.shipping_rate_id,
+    cart: {
+      cart_id: cart.cart_id,
+      files: cart.files.map(file => ({
+        fileid: file.fileid,
+        quantity: file.quantity,
+        quality: file.quality,
+        filament_color: file.filament_color,
+        dimensions: file.dimensions,
+        stripe_product_id: file.stripe_product_id,
+        filename: file.filename,
+        file_status: file.file_status,
+        utfile_id: file.utfile_id,
+        utfile_url: file.utfile_url,
+        price_override: file.price_override,
+        dateCreated: file.dateCreated,
+        file_deletion_date: file.file_deletion_date,
+        mass_in_grams: file.mass_in_grams,
+        file_sale_cost: pricing_obj[file.fileid]
+      })),
+      cart_addons: cart.cart_addons.map(addon => ({
+        addon_name: addon.addon_name,
+        addon_id: addon.addon_id,
+        addon_price: addon.addon_price
+      })),
+      dateCreated: cart.dateCreated
+    }
+  });
+  await order.save();
+  return order;
+}
 
 // #endregion CHECKOUT MANAGEMENT
 

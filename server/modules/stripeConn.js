@@ -4,7 +4,13 @@ dotenv.config({
 });
 import stripePackage from 'stripe';
 
+const free_shipping_rate = "shr_1Q1VOHDBmtvCmuyXi6U0Sb78"
+
 const stripe = stripePackage(process.env.STRIPE_API_KEY);
+
+const dev_stripe = stripePackage(process.env.DEV_STRIPE_API_KEY);
+
+const dev_shipping = "shr_1Q1HviDBmtvCmuyXecoZ1v1Z"
 
 export const createNewStripeProduct = async (file_name, file_id, file_image = "https://cdn.discordapp.com/attachments/1165771547223543990/1279816538295107625/3d_model.jpg?ex=66d5d188&is=66d48008&hm=409c22a2b80eaee0ef74c55020ea84511efd9d050f5acd948180d1ae13ac89ce&") => {
     const product = await stripe.products.create({
@@ -72,8 +78,15 @@ export const getShippingOptions = async () => {
     return shippingOptionsArray;
 }
 
-export const createSession  = async (checkoutObject, shipping_option_id, cart_id, order_comments) => {
-    const session = await stripe.checkout.sessions.create({
+export const createSession  = async (checkoutObject, shipping_option_id, cart_id, order_comments, test_mode, pricing_obj) => {
+    const stripe_handler = test_mode ? dev_stripe : stripe;
+    if (checkoutObject.free_shipping) {
+        shipping_option_id = free_shipping_rate;
+    }
+    shipping_option_id = test_mode ? dev_shipping : shipping_option_id;
+    // converting pricing_obj to a string
+    const pricing_obj_str = JSON.stringify(pricing_obj);
+    const session = await stripe_handler.checkout.sessions.create({
     payment_method_types: ['card'],
     allow_promotion_codes: true,
     line_items: checkoutObject.line_items,
@@ -94,9 +107,44 @@ export const createSession  = async (checkoutObject, shipping_option_id, cart_id
     metadata: {
       cart_id: cart_id,
       order_comments: order_comments,
+      pricing_obj: pricing_obj_str
         }
     });
     return session;
 }
 
-  
+export const getCheckoutSession = async (session_id) => {
+  let session;
+  try {
+    // Try production Stripe first
+    session = await stripe.checkout.sessions.retrieve(session_id);
+  } catch (error) {
+    console.log("Failed to retrieve session from production Stripe, trying dev Stripe");
+    try {
+      // If production fails, try dev Stripe
+      session = await dev_stripe.checkout.sessions.retrieve(session_id);
+      console.log("Found session in dev Stripe!");
+    } catch (devError) {
+      console.error("Failed to retrieve session from both production and dev Stripe", devError);
+      throw devError;
+    }
+  }
+  return session;
+}
+
+export const getPayment = async (payment_id) => {
+  let payment;
+  try {
+    payment = await stripe.paymentIntents.retrieve(payment_id);
+  } catch (error) {
+    console.log("Failed to retrieve payment from Stripe, trying dev Stripe");
+    try {
+      payment = await dev_stripe.paymentIntents.retrieve(payment_id);
+      console.log("Found payment in dev Stripe!");
+    } catch (devError) {
+      console.error("Failed to retrieve payment from both production and dev Stripe", devError);
+      throw devError;
+    }
+  }
+  return payment;
+}
