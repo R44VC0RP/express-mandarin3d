@@ -179,6 +179,7 @@ export const orderNumberSchema = new mongoose.Schema({
 export const orderSchema = new mongoose.Schema({
     order_id: String,
     order_number: String, // Add this line
+    order_comments: String,
     stripe_session_id: String,
     customer_details: {
         address: {
@@ -192,7 +193,7 @@ export const orderSchema = new mongoose.Schema({
         email: String,
         name: String
     },
-    livemode: Boolean,
+    test_mode: String,
     payment_status: String,
     order_status: {
         type: String,
@@ -217,6 +218,8 @@ export const orderSchema = new mongoose.Schema({
         amount_discount: Number,
         amount_shipping: Number,
         amount_tax: Number,
+        amount_subtotal: Number,
+        amount_total: Number
     },
     shipping_rate_id: String,
     cart: {
@@ -253,6 +256,10 @@ export const orderSchema = new mongoose.Schema({
     dateUpdated: {
         type: Date,
         default: Date.now,
+        required: false
+    },
+    shipping_label_url: {
+        type: String,
         required: false
     }
 }, { versionKey: false });

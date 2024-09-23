@@ -5,14 +5,89 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertCircle, CheckCircle2, CreditCard, Truck, Download, Printer, Plus } from "lucide-react"
 import { ReactComponent as Printer3DIcon } from "@/assets/svgs/3dprinter.svg"
 import DeliveryStatus from "./comp_LinearDeliveryStatus"
+import { useState, useEffect } from "react"
+import axios from "axios"
+import { toast } from 'sonner';
 
-export default function PaymentTransaction() {
-  // Deliveries status's can be: 
-  const deliveries = [
-    { status: "Printing", date: "13 Sep" },
-  ] // this is just a placeholder for now
+export default function OrderFocused({ orderId }) {
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  
+  useEffect(() => {
+    fetchOrderDetails()
+  }, [orderId])
 
-  const statusOrder = ["Designing", "In Queue", "Printing", "Shipped", "Delivered"]
+  const fetchOrderDetails = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/orders/${orderId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      setOrder(response.data.order)
+      setLoading(false)
+    } catch (err) {
+      setError("Failed to fetch order details")
+      setLoading(false)
+    }
+  }
+
+  const handleOrderAction = async (action, newStatus) => {
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/admin/orders/actions`, 
+        { orderId, action, newStatus },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      )
+      if (response.data.status === 'success') {
+        fetchOrderDetails()
+        console.log("Action completed successfully: ", response.data)
+        toast.success(`Action ${action} completed successfully`)
+      }
+    } catch (error) {
+      console.error(`Error performing action ${action}:`, error)
+      toast.error(`Failed to perform action ${action}`)
+    }
+  }
+
+  const updateOrderStatus = async (newStatus) => {
+    await handleOrderAction('updateStatus', newStatus)
+  }
+
+  const createShippingLabel = async () => {
+    await handleOrderAction('createShippingLabel', null)
+  }
+
+  const downloadShippingLabel = async () => {
+    downloadFile(order.shipping_label_url)
+  }
+
+  const downloadFile = (url) => {
+    window.open(url, '_blank')
+  }
+
+  const printShippingLabel = async () => {
+    await handleOrderAction('printShippingLabel')
+  }
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div>{error}</div>
+  if (!order) return <div>No order found</div>
+
+  const statusOrder = order.order_status_options || ["Reviewing", "In Queue", "Printing", "Completed", "Shipping", "Delivered"]
+  const deliveries = [{ status: order.order_status, date: new Date(order.dateUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }]
+
+  // Calculate totals correctly
+  const subtotal = order.cart.files.reduce((acc, file) => acc + (file.file_sale_cost || 0) * file.quantity, 0);
+  const addonsTotal = order.cart.cart_addons.reduce((acc, addon) => acc + addon.addon_price / 100, 0);
+  const items_total = subtotal + addonsTotal;
+  const shipping = order.total_details.amount_shipping / 100;
+  const tax = order.total_details.amount_tax / 100;
+  const total = items_total + shipping + tax;
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -20,17 +95,17 @@ export default function PaymentTransaction() {
         <div>
           <h2 className="text-2xl font-bold mb-1">PAYMENT</h2>
           <div className="flex items-center space-x-2">
-            <span className="text-3xl font-bold">$29.84</span>
+            <span className="text-3xl font-bold">${total.toFixed(2)}</span>
             <span className="text-xl text-gray-500">USD</span>
             <Badge variant="secondary" className="bg-green-100 text-green-600">
-              Succeeded ✓
+              {order.payment_status} ✓
             </Badge>
           </div>
-          <h4>FOR ORDER <pre  className="inline color-blue-600 bg-[#064346] p-1 rounded-md ">#0423-3403</pre></h4>
+          <h4>FOR ORDER <pre className="inline color-blue-600 bg-[#064346] p-1 rounded-md">{order.order_number}</pre></h4>
         </div>
         
         <div className="text-sm text-gray-500">
-          pi_3PyMsBDBmtvCmuyX80TRX3vn
+          {order.order_id}
         </div>
       </div>
 
@@ -39,68 +114,26 @@ export default function PaymentTransaction() {
           <div className="grid grid-cols-4 gap-4 text-sm">
             <div>
               <div className="font-semibold mb-1">Last update</div>
-              <div>Sep 12, 7:56 PM</div>
+              <div>{new Date(order.dateUpdated).toLocaleString()}</div>
             </div>
             <div>
               <div className="font-semibold mb-1">Customer</div>
               <div className="flex items-center space-x-2">
-                <Badge variant="outline">Ruslan Vasyukov</Badge> {/* TODO: Add link to customer object in the other table */}
-                
+                <Badge variant="outline">{order.customer_details.name}</Badge>
               </div>
             </div>
             <div>
               <div className="font-semibold mb-1">Payment method</div>
               <div className="flex items-center space-x-2">
                 <CreditCard className="h-4 w-4" />
-                <span>•••• 7854</span>
+                <span>Stripe</span>
               </div>
             </div>
             <div>
               <div className="font-semibold mb-1">Order Status</div>
               <div className="flex items-center space-x-2">
                 <Printer className="h-4 w-4" />
-                <span>Printing</span>
-              </div>
-              {/* <div className="flex items-center space-x-2 mt-2">
-                <CheckCircle2 className="h-4 w-4 text-yellow-500" />
-                <span>Designing</span>
-              </div>
-              <div className="flex items-center space-x-2 mt-2">
-                <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                <span>Queue</span>
-              </div>
-              <div className="flex items-center space-x-2 mt-2">
-                <CheckCircle2 className="h-4 w-4 text-purple-500" />
-                <span>Printing</span>
-              </div>
-              <div className="flex items-center space-x-2 mt-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Completed</span>
-              </div>
-              <div className="flex items-center space-x-2 mt-2">
-                <CheckCircle2 className="h-4 w-4 text-orange-500" />
-                <span>Shipped</span>
-              </div>
-              <div className="flex items-center space-x-2 mt-2">
-                <CheckCircle2 className="h-4 w-4 text-blue-500" />
-                <span>Delivered</span>
-              </div> */}
-            </div>
-            <div>
-              <div className="font-semibold mb-1">Order Actions</div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">
-                  <Truck className="h-4 w-4 mr-2" />
-                  <span>Create shipping label</span>
-                </Button>
-                <Button size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  <span>Download Shipping Label</span>
-                </Button>
-                <Button size="sm">
-                  <Printer className="h-4 w-4 mr-2" />
-                  Print Shipping Label
-                </Button>
+                <span>{order.order_status}</span>
               </div>
             </div>
           </div>
@@ -111,9 +144,16 @@ export default function PaymentTransaction() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-xl font-bold">Timeline</CardTitle>
           <div>
-            <Button size="sm" className="bg-primary text-white">
-              Progress order to {statusOrder[statusOrder.indexOf(deliveries[0].status) + 1]}
-            </Button>
+            {statusOrder.indexOf(order.order_status) < statusOrder.length - 1 && (
+              <Button 
+                variant="outline"
+                size="sm" 
+                className="bg-primary text-white"
+                onClick={() => updateOrderStatus(statusOrder[statusOrder.indexOf(order.order_status) + 1])}
+              >
+                Progress order to {statusOrder[statusOrder.indexOf(order.order_status) + 1]}
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -121,34 +161,50 @@ export default function PaymentTransaction() {
             <DeliveryStatus deliveries={deliveries} statusOrder={statusOrder} />
           </div>
           <div className="space-y-4">
-            <div className="flex items-start space-x-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-              <div>
-                <p className="font-medium">Printing started</p>
-                <p className="text-sm text-gray-500">Sep 15, 2024, 10:30 AM</p>
+            {statusOrder.map((status, index) => (
+              <div key={index} className="flex items-start space-x-2">
+                <CheckCircle2 className={`h-5 w-5 ${index <= statusOrder.indexOf(order.order_status) ? 'text-green-500' : 'text-gray-300'} mt-0.5`} />
+                <div>
+                  <p className="font-medium">{status}</p>
+                  <p className="text-sm text-gray-500">{index === statusOrder.indexOf(order.order_status) ? new Date(order.dateUpdated).toLocaleString() : ''}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start space-x-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-              <div>
-                <p className="font-medium">Order queued</p>
-                <p className="text-sm text-gray-500">Sep 14, 2024, 2:15 PM</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-              <div>
-                <p className="font-medium">Design approved</p>
-                <p className="text-sm text-gray-500">Sep 13, 2024, 11:45 AM</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-              <div>
-                <p className="font-medium">Payment authorized</p>
-                <p className="text-sm text-gray-500">Sep 12, 2024, 7:56 PM</p>
-              </div>
-            </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl font-bold">Shipping</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={createShippingLabel}
+              disabled={order.shipping_label_url}
+            >
+              <Truck className="h-4 w-4 mr-2" />
+              <span>{order.shipping_label_url ? 'Shipping label created' : 'Create shipping label'}</span>
+            </Button>
+            <Button 
+              size="sm"
+              onClick={downloadShippingLabel}
+              disabled={!order.shipping_label_url}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span>Download Shipping Label</span>
+            </Button>
+            <Button 
+              size="sm"
+              onClick={printShippingLabel}
+              disabled={!order.shipping_label_url}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print Shipping Label
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -161,16 +217,17 @@ export default function PaymentTransaction() {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <h4 className="font-semibold mb-2">Customer</h4>
-              <p>ruslanvasyukov@gmail.com</p>
-              <p>Ruslan Vasyukov</p>
-              <p>64 Ren Way</p>
-              <p>Saint Johns, FL 32259 US</p>
+              <p>{order.customer_details.email}</p>
+              <p>{order.customer_details.name}</p>
+              <p>{order.customer_details.address.line1}</p>
+              <p>{order.customer_details.address.line2}</p>
+              <p>{order.customer_details.address.city}, {order.customer_details.address.state} {order.customer_details.address.postal_code} {order.customer_details.address.country}</p>
             </div>
             <div>
               <h4 className="font-semibold mb-2">Shipping details</h4>
-              <p>Ruslan Vasyukov</p>
-              <p>64 Ren Way</p>
-              <p>Saint Johns, FL 32259 US</p>
+              <p>{order.shipping_details.address.line1}</p>
+              <p>{order.shipping_details.address.line2}</p>
+              <p>{order.shipping_details.address.city}, {order.shipping_details.address.state} {order.shipping_details.address.postal_code} {order.shipping_details.address.country}</p>
             </div>
           </div>
           <Table>
@@ -185,40 +242,45 @@ export default function PaymentTransaction() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {order.cart.files.map((item, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">{item.filename}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge className="bg-[#064346] text-white">{item.filament_color}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">{item.quality}</TableCell>
+                  <TableCell className="text-right">{item.quantity}x</TableCell>
+                  <TableCell className="text-right">${item.file_sale_cost.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">${(item.file_sale_cost * item.quantity).toFixed(2)}</TableCell>
+                </TableRow>
+              ))}
+              {order.cart.cart_addons.map((addon, index) => (
+                <TableRow key={`addon-${index}`}>
+                  <TableCell className="font-medium">{addon.addon_name}</TableCell>
+                  <TableCell className="text-right"></TableCell>
+                  <TableCell className="text-right"></TableCell>
+                  <TableCell className="text-right">1</TableCell>
+                  <TableCell className="text-right">${(addon.addon_price / 100).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">${(addon.addon_price / 100).toFixed(2)}</TableCell>
+                </TableRow>
+              ))}
               <TableRow>
-                <TableCell className="font-medium">IK_MOCKUPstl</TableCell>
-                <TableCell className="text-right">
-                  <Badge className="bg-[#064346] text-white">Ocean Blue PLA</Badge>
-                </TableCell>
-                <TableCell className="text-right">0.16mm - Better</TableCell>
-                <TableCell className="text-right">2x</TableCell>
-                <TableCell className="text-right">$7.52</TableCell>
-                <TableCell className="text-right">$15.04</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Queue Priority</TableCell>
-                <TableCell className="text-right"></TableCell>
-                <TableCell className="text-right"></TableCell>
-                <TableCell className="text-right">1</TableCell>
-                <TableCell className="text-right">$5.00</TableCell>
-                <TableCell className="text-right">$5.00</TableCell>
-              </TableRow>
-              <TableRow>
-
                 <TableCell colSpan={5} className="text-right font-medium">Subtotal</TableCell>
-                <TableCell className="text-right font-medium">$20.04</TableCell>
+                <TableCell className="text-right font-medium">
+                  ${items_total.toFixed(2)}
+                </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell colSpan={5} className="text-right">Shipping (Printer Fees and Handling + Shipping)</TableCell>
-                <TableCell className="text-right">$8.50</TableCell>
+                <TableCell colSpan={5} className="text-right">Shipping</TableCell>
+                <TableCell className="text-right">${shipping.toFixed(2)}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell colSpan={5} className="text-right">Sales Tax - Florida (6.5%)</TableCell>
-                <TableCell className="text-right">$1.30</TableCell>
+                <TableCell colSpan={5} className="text-right">Tax</TableCell>
+                <TableCell className="text-right">${tax.toFixed(2)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell colSpan={5} className="text-right font-bold">Total</TableCell>
-                <TableCell className="text-right font-bold">$29.84</TableCell>
+                <TableCell className="text-right font-bold">${total.toFixed(2)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>

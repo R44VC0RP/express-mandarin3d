@@ -2,6 +2,10 @@ import dotenv from 'dotenv';
 dotenv.config({
   'path': '.env.local'
 });
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import {
   createUploadthing,
   createRouteHandler
@@ -1726,14 +1730,10 @@ app.get('/api/checkout/success', async (req, res) => {
 
   try {
     const checkout_session_info = await getCheckoutSession(session_id);
-    console.log("Checkout session info: ", checkout_session_info);
     let cart_id = checkout_session_info.metadata.cart_id;
     let pricing_obj = JSON.parse(checkout_session_info.metadata.pricing_obj);
-    console.log(`Tax: ${checkout_session_info.total_details.amount_tax}`);
     const cart = await getCartComplete(cart_id);
-    let order_comments = checkout_session_info.metadata.order_comments;
-    
-    console.log(checkout_session_info.id);
+    console.log("NEW ORDER CREATED AT " + new Date().toLocaleString());
 
     // const payment = await getPayment(checkout_session_info.payment_intent);
 
@@ -1745,6 +1745,7 @@ app.get('/api/checkout/success', async (req, res) => {
     
     // console.log("Checkout session info: ", checkout_session_info);
     res.redirect(`${process.env.FRONTEND_URL}/confirmation/${order.order_id}`);
+    //res.json({ status: 'success', message: 'Checkout successful', order_id: order.order_id });
   } catch (error) {
     console.error('Error retrieving checkout session:', error);
     res.status(500).json({ status: 'error', message: 'Failed to retrieve checkout session' });
@@ -1765,6 +1766,254 @@ app.get('/api/orders/:orderId', async (req, res) => {
   }
 });
 
+app.get('/api/admin/orders/getall', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status = 'all' } = req.query;
+    const skip = (page - 1) * limit;
+
+    let query = {};
+    if (status !== 'all') {
+      query.order_status = status;
+    }
+
+    const orders = await Order.find(query)
+      .sort({ dateCreated: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    const totalOrders = await Order.countDocuments(query);
+
+    const statusCounts = await Order.aggregate([
+      { $group: { _id: '$order_status', count: { $sum: 1 } } }
+    ]);
+
+    const statusCountsObject = statusCounts.reduce((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+
+    res.json({
+      status: 'success',
+      orders,
+      totalOrders,
+      statusCounts: statusCountsObject,
+      currentPage: Number(page),
+      totalPages: Math.ceil(totalOrders / limit)
+    });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch orders' });
+  }
+});
+
+async function updateOrderStatus(orderId, newStatus) {
+  const order = await Order.findOne({ order_id: orderId });
+  if (!order) {
+    return { status: 'error', message: 'Order not found' };
+  }
+  order.order_status = newStatus;
+  order.dateUpdated = new Date();
+  await order.save();
+  return { status: 'success', message: 'Order status updated' };
+}
+
+async function createShippingLabel(orderId) {
+  const order = await Order.findOne({ order_id: orderId });
+  if (!order) {
+    return { status: 'error', message: 'Order not found' };
+  }
+
+  const auth = Buffer.from(`${process.env.SENDLE_ACC}:${process.env.SENDLE_KEY}`).toString('base64');
+
+  // Calculate total weight from file masses
+  const totalWeight = order.cart.files.reduce((acc, file) => {
+    return acc + (file.mass_in_grams * file.quantity);
+  }, 0);
+
+  // Ensure the weight is at least 0.1 kg (100 grams)
+  const weightInKg = Math.max((totalWeight / 1000), 0.1).toFixed(2);
+
+  try {
+    const response = await axios.post('https://api.sendle.com/api/orders', {
+      sender: {
+        contact: {
+          name: "Mandarin 3D Prints",
+          email: "orders@mandarin3d.com",
+          phone: "+19041234567", // Remove hyphens
+          company: "Mandarin 3D Prints"
+        },
+        address: {
+          country: "US",
+          address_line1: "8 UNF Drive",
+          address_line2: "PMB 231",
+          suburb: "Jacksonville",
+          postcode: "32246",
+          state_name: "FL"
+        },
+        instructions: "Please handle with care"
+      },
+      receiver: {
+        contact: {
+          name: order.customer_details.name
+        },
+        address: {
+          country: "US",
+          address_line1: order.shipping_details.address.line1,
+          address_line2: order.shipping_details.address.line2 || "",
+          suburb: order.shipping_details.address.city,
+          postcode: order.shipping_details.address.postal_code,
+          state_name: order.shipping_details.address.state
+        },
+        instructions: order.shipping_details.instructions || ""
+      },
+      weight: {
+        units: "kg",
+        value: weightInKg
+      },
+      dimensions: {
+        units: "cm",
+        length: "15",
+        width: "15",
+        height: "15"
+      },
+      description: "3D Printed Items",
+      customer_reference: orderId,
+      product_code: "STANDARD-DROPOFF",
+      pickup_date: new Date().toISOString().split('T')[0],
+      packaging_type: "box",
+      hide_pickup_address: false
+    }, {
+      headers: {
+        'accept': 'application/json',
+        'authorization': `Basic ${auth}`,
+        'content-type': 'application/json'
+      }
+    });
+
+    console.log("Sendle response: ", response.data);
+    const { 
+      sendle_reference, 
+      tracking_url, 
+      labels, 
+      price: { gross: { amount: total_cost } },
+      customer_reference,
+      order_id: sendle_order_id
+    } = response.data;
+    const label_url = labels.find(label => label.size === 'cropped')?.url;
+    const pdfCroppedUrl = label_url;
+    // Fetch the download URL for the cropped PDF label
+    let downloadUrl;
+    try {
+      const headResponse = await axios.head(pdfCroppedUrl, {
+        headers: {
+          'Authorization': `Basic ${auth}`
+        }
+      });
+      downloadUrl = headResponse.request.res.responseUrl;
+      console.log("PDF Cropped Download URL:", downloadUrl);
+
+      // Upload the PDF directly from the URL to UploadThing
+      console.log("Uploading shipping label to UploadThing");
+      const uploadResponse = await utapi.uploadFilesFromUrl(
+        {
+          url: downloadUrl,
+          name: `shipping_label_${orderId}.pdf`,
+        },
+        {
+          metadata: { orderId },
+          contentDisposition: 'attachment',
+        }
+      );
+
+      console.log("UploadThing response:", uploadResponse);
+
+      console.log("Shipping label uploaded successfully");
+
+      // Update the order with the UploadThing file URL
+      const order = await Order.findOne({ order_id: orderId });
+      if (order) {
+        order.shipping_label_url = uploadResponse.data.url;
+        await order.save();
+      }
+
+    } catch (error) {
+      console.error("Error processing shipping label:", error);
+    }
+
+    console.log("Sendle Reference:", sendle_reference);
+    console.log("Tracking URL:", tracking_url);
+    console.log("Total Cost:", total_cost);
+
+    const shippingLabel = response.data;
+    return { status: 'success', message: 'Shipping label created', shippingLabel };
+  } catch (error) {
+    // console.error('Error creating shipping label:', error);
+    // console.error('Error details:', {
+    //   message: error.message,
+    //   response: error.response ? {
+    //     data: error.response.data.messages,
+    //     status: error.response.status,
+    //     headers: error.response.headers
+    //   } : 'No response'
+    // });
+    console.log(error.response.data.messages.receiver[0]);
+    return { status: 'error', message: 'Failed to create shipping label', error: error.response ? error.response.data : error.message };
+  }
+}
+
+async function printShippingLabel(orderId) {
+  const order = await Order.findOne({ order_id: orderId });
+  if (!order) {
+    return { status: 'error', message: 'Order not found' };
+  }
+
+  const labelUrl = order.shipping_label_url;
+  if (!labelUrl) {
+    return { status: 'error', message: 'Shipping label not found' };
+  }
+
+  try {
+    const response = await axios.post('https://host.home.exonenterprise.com/print', {
+      name: `Shipping_Label_${orderId}`,
+      pdf_url: labelUrl
+    });
+
+    if (response.status === 200) {
+      return { status: 'success', message: 'Shipping label sent to printer' };
+    } else {
+      return { status: 'error', message: 'Failed to send shipping label to printer' };
+    }
+  } catch (error) {
+    console.error('Error printing shipping label:', error);
+    return { status: 'error', message: 'Error occurred while printing shipping label' };
+  }
+}
+
+app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, res) => {
+  const { orderId, action, newStatus } = req.body;
+  let result;
+  try {
+    switch (action) {
+      case 'delete':
+        result = await deleteOrder(orderId);
+        break;
+      case 'updateStatus':
+        result = await updateOrderStatus(orderId, newStatus);
+        break;
+      case 'createShippingLabel':
+        result = await createShippingLabel(orderId);
+        break;
+      case 'printShippingLabel':
+        result = await printShippingLabel(orderId);
+        break;
+    }
+    res.json({ status: 'success', result });
+  } catch (error) {
+    console.error('Error handling order action:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
 
 async function createOrder(cart, checkout_session_info, pricing_obj) {
   // Get the last order number and increment it
@@ -1775,13 +2024,35 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
   );
 
   const orderNumber = orderNumberDoc.lastOrderNumber;
-  console.log(`Order number: #${orderNumber}-${new Date().getFullYear()}`);
-  console.log(`Tax Total: ${checkout_session_info.amount_tax}`);
-  console.log(`Shipping Total: ${checkout_session_info.amount_shipping}`);
+
+  // Calculate subtotal for files
+  const subtotal = cart.files.reduce((acc, file) => {
+    return acc + (parseFloat(pricing_obj[file.fileid]) * file.quantity);
+  }, 0);
+
+  // Calculate total for addons
+  const addonsTotal = cart.cart_addons.reduce((acc, addon) => {
+    return acc + (parseFloat(addon.addon_price) / 100);
+  }, 0);
+
+  // Calculate total before tax and shipping
+  let items_total = subtotal + addonsTotal;
+
+  // Add tax and shipping
+  const shipping = parseFloat(checkout_session_info.total_details.amount_shipping) / 100;
+  const tax = parseFloat(checkout_session_info.total_details.amount_tax) / 100;
+
+  // Calculate final total
+  const order_total = parseFloat((items_total + shipping + tax).toFixed(2));
+
+  const order_comments = checkout_session_info.metadata.order_comments;
+  console.log("Order comments: ", order_comments);
+  console.log(`Test mode: ${typeof checkout_session_info.metadata.test_mode}`);
 
   const order = new Order({
     order_id: "order_" + uuidv4(),
     order_number: `#${orderNumber}-${new Date().getFullYear()}`,
+    order_comments: order_comments,
     stripe_session_id: checkout_session_info.id,
     customer_details: {
       address: {
@@ -1795,7 +2066,7 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
       email: checkout_session_info.customer_details.email,
       name: checkout_session_info.customer_details.name
     },
-    livemode: checkout_session_info.livemode,
+    test_mode: checkout_session_info.metadata.test_mode,
     payment_status: checkout_session_info.payment_status,
     shipping_details: {
       address: {
@@ -1811,6 +2082,8 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
       amount_discount: checkout_session_info.total_details.amount_discount,
       amount_shipping: checkout_session_info.total_details.amount_shipping,
       amount_tax: checkout_session_info.total_details.amount_tax,
+      amount_subtotal: Math.round(items_total * 100), // Store in cents
+      amount_total: Math.round(order_total * 100) // Store in cents
     },
     shipping_rate_id: checkout_session_info.shipping_rate_id,
     cart: {
@@ -1830,23 +2103,39 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
         dateCreated: file.dateCreated,
         file_deletion_date: file.file_deletion_date,
         mass_in_grams: file.mass_in_grams,
-        file_sale_cost: pricing_obj[file.fileid]
+        file_sale_cost: parseFloat(pricing_obj[file.fileid])
       })),
       cart_addons: cart.cart_addons.map(addon => ({
         addon_name: addon.addon_name,
         addon_id: addon.addon_id,
         addon_price: addon.addon_price
       })),
-      dateCreated: cart.dateCreated
+      dateCreated: cart.dateCreated,
+      livemode: checkout_session_info.metadata.test_mode === 'false'
     }
   });
   await order.save();
   return order;
 }
 
+
 // #endregion CHECKOUT MANAGEMENT
 
+// #region CONTACT AND CUSTOM ORDER MANAGEMENT
 
+app.post('/api/contact/fileissue', async (req, res) => {
+  const { fileid, email } = req.body;
+  try {
+    const file = await File.findOne({ fileid });
+    if (!file) {
+      return res.status(404).json({ status: 'error', message: 'File not found' });
+    }
+    return res.status(200).json({ status: 'success', message: 'File forwarded for review successfully.' });
+  } catch (error) {
+    console.error('Error forwarding file for review:', error);
+    return res.status(500).json({ status: 'error', message: 'An error occurred while forwarding the file. Please try again.' });
+  }
+});
 
 app.listen(8080, () => {
   console.log('Server is running on port 8080')

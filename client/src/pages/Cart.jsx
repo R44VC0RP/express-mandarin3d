@@ -13,10 +13,6 @@ import { useCart } from '../context/Cart';
 import ShoppingCartItem from '../components/ShoppingCartItem';
 import axios from 'axios';
 import Loading from 'react-fullscreen-loading';
-// Asset Imports
-import prining_bambu from '../assets/videos/printing_bambu.mp4';
-import fusion360 from '../assets/images/fusion360.gif';
-import building from '../assets/images/outdoor.png';
 import { toast } from 'sonner';
 import { AnimatedProgressBar } from '../components/progressbar';
 

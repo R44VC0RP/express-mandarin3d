@@ -16,6 +16,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../components/ui/alertdialog"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import axios from 'axios';
 
 
 function hexToRgb(hex) {
@@ -62,6 +66,7 @@ function getContrastColor(hex) {
 
   return contrastWithWhite > contrastWithBlack ? '#F9FAFB' : '#111827';
 }
+
 
 
 const LazyModelViewer = ({ url, style, hexColor }) => {
@@ -141,6 +146,37 @@ const ShoppingCartItem = ({
   onColorChange = () => { },
   onRemove = () => { }
 }) => {
+  const [email, setEmail] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  async function forwardFileForReview(fileid, email) {
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+  
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/contact/fileissue`, {
+        fileid,
+        email
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+  
+      if (response.status === 200) {
+        toast.success('File forwarded for review successfully.');
+        setDialogOpen(false);
+      } else {
+        toast.error('Failed to forward file for review. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error forwarding file for review:', error);
+      toast.error('An error occurred while forwarding the file. Please try again.');
+    }
+  }
   const hexColor = filamentColors.find(color => color.filament_name === filament_color)?.filament_color;
   if (file_status === 'unsliced') {
     return (
@@ -192,16 +228,17 @@ const ShoppingCartItem = ({
           
           <div className="flex flex-col sm:flex-row lg:flex-col items-start mb-4 lg:mb-0 w-full lg:w-auto">
             <div className="w-full sm:w-1/2 lg:w-full mb-4 sm:mb-0 sm:mr-2 lg:mr-0">
-              <p className="text-white font-bold mb-1">Part Quantity</p>
-              <div className="flex items-center">
-                <button className="text-white p-1 card-special" disabled><FaMinus /></button>
-                <p className="mx-2 text-white">1</p>
-                <button className="text-white p-1 card-special" disabled><FaPlus /></button>
-              </div>
+              <p className="text-white font-bold mb-1">File Color</p>
+              <select
+                className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
+                disabled
+              >
+                <option>Select Color</option>
+              </select>
             </div>
             <div className="w-full sm:w-1/2 lg:w-full">
-              <p className="text-white font-bold mb-1">Layer Height (Quality)</p>
-              <select
+              <p className="text-white font-bold mb-1 mt-2">Layer Height (Quality)</p>
+              <select 
                 className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
                 disabled
               >
@@ -211,13 +248,12 @@ const ShoppingCartItem = ({
           </div>
           
           <div className="flex flex-col items-start lg:items-end w-full lg:w-auto">
-            <p className="text-white font-bold mb-1">File Color</p>
-            <select
-              className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full lg:w-auto mb-2"
-              disabled
-            >
-              <option>Select Color</option>
-            </select>
+            <p className="text-white font-bold mb-1">Part Quantity</p>
+            <div className="flex items-center mb-2">
+              <button className="text-white p-1 card-special" disabled><FaMinus /></button>
+              <p className="mx-2 text-white">1</p>
+              <button className="text-white p-1 card-special" disabled><FaPlus /></button>
+            </div>
             <div className="flex flex-col items-center justify-center mb-2">
               <p className="text-white font-bold mb-2">Your file is getting quoted...</p>
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -262,6 +298,33 @@ const ShoppingCartItem = ({
           <div className="mb-2 sm:mb-0">
             <p className="text-red-500">There was an error processing your file.</p>
             <p className="text-red-500"><span className="font-bold">Error:</span> {file_error}</p>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <p className="text-white cursor-pointer hover:underline">
+                  <span className="font-bold">Fear not!</span> Click here to forward the file to our team for review.
+                </p>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Forward File for Review</DialogTitle>
+                  <DialogDescription>
+                    Enter your email address and we'll forward this file to our team for review.
+                  </DialogDescription>
+                </DialogHeader>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="w-full p-2 border border-gray-300 rounded mt-2"
+                />
+                <DialogFooter>
+                  <Button type="submit" className="mt-2" onClick={() => {
+                    forwardFileForReview(fileid, email);
+                  }}>Send for Review</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -337,15 +400,21 @@ const ShoppingCartItem = ({
         </div>
         <div className="flex flex-col sm:flex-row lg:flex-col items-start mb-4 lg:mb-0 w-full lg:w-auto">
           <div className="w-full sm:w-1/2 lg:w-full mb-4 sm:mb-0 sm:mr-2 lg:mr-0">
-            <p className="text-white font-bold mb-1">Part Quantity</p>
-            <div className="flex items-center">
-              <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity - 1)}><FaMinus /></button>
-              <p className="mx-2 text-white">{quantity}</p>
-              <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity + 1)}><FaPlus /></button>
-            </div>
+            <p className="text-white font-bold mb-1">File Color</p>
+            <select
+              className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
+              value={filament_color}
+              onChange={(e) => onColorChange(fileid, e.target.value)}
+            >
+              {filamentColors.map((color) => (
+                <option key={color.filament_id} value={color.filament_name}>
+                  {color.filament_name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="w-full sm:w-1/2 lg:w-full">
-            <p className="text-white font-bold mb-1">Layer Height (Quality)</p>
+            <p className="text-white font-bold mb-1 mt-2">Layer Height (Quality)</p>
             <select
               className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
               value={quality}
@@ -359,18 +428,12 @@ const ShoppingCartItem = ({
           </div>
         </div>
         <div className="flex flex-col items-start lg:items-end w-full lg:w-auto">
-          <p className="text-white font-bold mb-1">File Color</p>
-          <select
-            className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full lg:w-auto mb-2"
-            value={filament_color}
-            onChange={(e) => onColorChange(fileid, e.target.value)}
-          >
-            {filamentColors.map((color) => (
-              <option key={color.filament_id} value={color.filament_name}>
-                {color.filament_name}
-              </option>
-            ))}
-          </select>
+          <p className="text-white font-bold mb-1">Part Quantity</p>
+          <div className="flex items-center mb-2">
+            <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity - 1)}><FaMinus /></button>
+            <p className="mx-2 text-white">{quantity}</p>
+            <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity + 1)}><FaPlus /></button>
+          </div>
           <p className="text-white font-bold text-lg mb-2">${price}</p>
           <AlertDialog>
             <AlertDialogTrigger asChild>

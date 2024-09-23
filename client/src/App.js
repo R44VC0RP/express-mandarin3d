@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import { Toaster } from "@/components/ui/sonner"
-import Admin from './components/Admin.jsx';
+import Admin from '@/components/Admin.jsx';
 import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Logout from './pages/Logout';

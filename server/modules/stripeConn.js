@@ -107,9 +107,10 @@ export const createSession  = async (checkoutObject, shipping_option_id, cart_id
     metadata: {
       cart_id: cart_id,
       order_comments: order_comments,
-      pricing_obj: pricing_obj_str
-        }
-    });
+      pricing_obj: pricing_obj_str,
+      test_mode: test_mode ? true : false
+    }
+  });
     return session;
 }
 

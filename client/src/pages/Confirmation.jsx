@@ -140,12 +140,12 @@ function OrderConfirmation() {
         </div>
       </div>
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-4 w-[90vw] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-4 w-[90vw] max-w-7xl">
           <div className="col-span-2 mt-4 lg:mt-4">
             <div className="bg-[#1A1A1A] p-6 rounded-lg shadow-lg mb-6">
               <h1 className="text-3xl font-bold mb-4">Thanks {customer_details.name}!</h1>
               <h2 className="text-xl font-bold mb-6">Your order has been placed!</h2>
-              <div className="flex items-center justify-center p-4 py-5 bg-[#2A2A2A] rounded-lg">
+              <div className="hidden md:flex items-center justify-center p-4 py-5 bg-[#2A2A2A] rounded-lg">
                 <DeliveryStatus deliveries={deliveries} statusOrder={statusOrder}  />
               </div>
             </div>
