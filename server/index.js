@@ -3,7 +3,8 @@ dotenv.config({
   'path': '.env.local'
 });
 import axios from 'axios';
-
+import JSZip from 'jszip';
+import saveAs from 'file-saver';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -1650,17 +1651,26 @@ app.post('/api/checkout', async (req, res) => {
 
     // Process files
     const pricing_obj = {};
+    let price = 0;
     for (const file of cart.files) {
       const fileDetails = await File.findOne({ fileid: file.fileid });
+      const getFilament = await getFilamentByName(file.filament_color);
       if (!fileDetails) {
         console.error(`File not found: ${file.fileid}`);
         continue;
       }
-
-      const getFilament = await getFilamentByName(file.filament_color);
-      console.log("Get filament: ", getFilament);
-      const price = calculatePrice(fileDetails, getFilament, file);
+      console.log("File: ", file);
+      if (fileDetails.price_override) {
+        price = fileDetails.price_override;
+        console.log("File Override: ", file.fileid, "Price: ", price);
+      } else {
+        price = calculatePrice(fileDetails, getFilament, file);
+      }
+      
       pricing_obj[file.fileid] = price;
+      
+
+      
       checkoutObject.line_items.push({
         price_data: {
           currency: 'usd',
@@ -1765,6 +1775,10 @@ app.get('/api/checkout/success', async (req, res) => {
   }
 });
 
+// #endregion CHECKOUT MANAGEMENT
+
+// #region ORDER MANAGEMENT
+
 app.get('/api/orders/:orderId', async (req, res) => {
   const { orderId } = req.params;
   try {
@@ -1778,6 +1792,39 @@ app.get('/api/orders/:orderId', async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Failed to fetch order' });
   }
 });
+
+
+
+
+app.post('/api/admin/orders/downloadAllFiles', requireLogin, requireAdmin, async (req, res) => {
+  const { orderId } = req.body;
+  try {
+    const order = await Order.findOne({ order_id: orderId });
+    if (!order) {
+      return res.status(404).json({ status: 'error', message: 'Order not found' });
+    }
+
+    const zip = new JSZip();
+    const filePromises = order.cart.files.map(async (file) => {
+      console.log("Downloading file: ", file.fileid);
+      const response = await axios.get(file.utfile_url, { responseType: 'arraybuffer' });
+      zip.file(file.fileid, response.data);
+    });
+
+    await Promise.all(filePromises);
+    const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename=${orderId}_files.zip`
+    });
+    res.send(zipContent);
+  } catch (error) {
+    console.error('Error downloading files:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to download files' });
+  }
+});
+
 
 app.get('/api/admin/orders/getall', requireLogin, requireAdmin, async (req, res) => {
   try {
@@ -2132,7 +2179,7 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
 }
 
 
-// #endregion CHECKOUT MANAGEMENT
+// #endregion ORDER MANAGEMENT
 
 // #region QUOTE MANAGEMENT
 

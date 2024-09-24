@@ -41,6 +41,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import ShowcaseProduct from '../ShowcaseProduct';
+import { useCart } from '@/context/Cart';
 
 // Add this function at the top of your component or in a separate utility file
 const LazyModelViewer = ({ url, style }) => {
@@ -90,6 +91,7 @@ const LazyModelViewer = ({ url, style }) => {
 };
 
 function FileManagement() {
+    const { addFile } = useCart();
     const [newFile, setNewFile] = useState({ filename: '', priceOverride: '' });
     const [files, setFiles] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -265,6 +267,16 @@ function FileManagement() {
         }
     };
 
+    const handleAddToCart = async (fileid) => {
+        try {
+            addFile(fileid);
+            toast.success('File added to cart');
+        } catch (error) {
+            console.error('Error adding file to cart:', error);
+            toast.error('Failed to add file to cart');
+        }
+    };
+
     const handleSlice = async (fileid) => {
         try {
             const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/file`, {
@@ -408,13 +420,85 @@ function FileManagement() {
         </div>
     );
 
-    
+    const renderPaginationItems = () => {
+        const totalPages = Math.ceil(files.length / itemsPerPage);
+        const maxPageLinks = 5; // Number of page links to show before and after the current page
+        const pageLinks = [];
+
+        if (totalPages <= maxPageLinks * 2) {
+            for (let i = 1; i <= totalPages; i++) {
+                pageLinks.push(
+                    <PaginationItem key={i}>
+                        <PaginationLink
+                            onClick={() => setCurrentPage(i)}
+                            isActive={currentPage === i}
+                        >
+                            {i}
+                        </PaginationLink>
+                    </PaginationItem>
+                );
+            }
+        } else {
+            let startPage = Math.max(currentPage - maxPageLinks, 1);
+            let endPage = Math.min(currentPage + maxPageLinks, totalPages);
+
+            if (startPage > 1) {
+                pageLinks.push(
+                    <PaginationItem key={1}>
+                        <PaginationLink
+                            onClick={() => setCurrentPage(1)}
+                            isActive={currentPage === 1}
+                        >
+                            1
+                        </PaginationLink>
+                    </PaginationItem>
+                );
+                if (startPage > 2) {
+                    pageLinks.push(<PaginationItem key="start-ellipsis">...</PaginationItem>);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pageLinks.push(
+                    <PaginationItem key={i}>
+                        <PaginationLink
+                            onClick={() => setCurrentPage(i)}
+                            isActive={currentPage === i}
+                        >
+                            {i}
+                        </PaginationLink>
+                    </PaginationItem>
+                );
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pageLinks.push(<PaginationItem key="end-ellipsis">...</PaginationItem>);
+                }
+                pageLinks.push(
+                    <PaginationItem key={totalPages}>
+                        <PaginationLink
+                            onClick={() => setCurrentPage(totalPages)}
+                            isActive={currentPage === totalPages}
+                        >
+                            {totalPages}
+                        </PaginationLink>
+                    </PaginationItem>
+                );
+            }
+        }
+
+        return pageLinks;
+    };
 
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">File Management</h2>
-                <Sheet>
+                <div className="flex items-center">
+                    <span className="mr-2">Drag and Drop files to add them</span>
+                </div>
+                {/* <Sheet>
                     <SheetTrigger asChild>
                         <button className="github-primary">
                             <FaPlus className="mr-2 inline" />
@@ -448,7 +532,7 @@ function FileManagement() {
                     </SheetContent>
 
 
-                </Sheet>
+                </Sheet> */}
                 <Sheet open={fileDetailsOpen} onOpenChange={setFileDetailsOpen}>
                     <SheetContent>
                         <SheetHeader>
@@ -476,6 +560,7 @@ function FileManagement() {
                                 <p><strong>Error Message:</strong> {fileDetails.file_error}</p>
                             )}
                             <a href={fileDetails.utfile_url} download className='github-primary'>Download File</a>
+                            <a className='github-primary' onClick={() => handleAddToCart(fileDetails.fileid)}>Add file to Cart</a>
                             <hr></hr>
                             <div className='flex justify-center'>
                                 {fileDetailsOpen && fileDetails.utfile_url && (
@@ -590,12 +675,15 @@ function FileManagement() {
                             <hr></hr>
                             <div className="space-y-2">
                                 <label htmlFor="priceOverride" className="text-sm font-medium leading-none">Price Override</label>
-                                <Input
-                                    id="priceOverride"
-                                    value={fileDetails.price_override ? (fileDetails.price_override / 100).toFixed(2) : ''}
-                                    onChange={(e) => setFileDetails({ ...fileDetails, price_override: e.target.value ? parseFloat(e.target.value) * 100 : null })}
-                                    placeholder="Optional"
-                                />
+                                <div className="flex items-center">
+                                    <span className="mr-2">$</span>
+                                    <Input
+                                        id="priceOverride"
+                                        value={fileDetails.price_override}
+                                        onChange={(e) => setFileDetails({ ...fileDetails, price_override: e.target.value })}
+                                        placeholder="Optional"
+                                    />
+                                </div>
                                 
                             </div>
                             <hr />
@@ -645,7 +733,7 @@ function FileManagement() {
                                         {file.file_status}
                                     </TableCell>
                                     <TableCell onClick={() => handleRowClick(file)}>{file.fileid}</TableCell>
-                                    <TableCell onClick={() => handleRowClick(file)}>{file.price_override ? `$${(file.price_override / 100).toFixed(2)}` : 'N/A'}</TableCell>
+                                    <TableCell onClick={() => handleRowClick(file)}>{file.price_override ? `$${(file.price_override).toFixed(2)}` : 'N/A'}</TableCell>
                                     <TableCell onClick={() => handleRowClick(file)}>{new Date(file.dateCreated).toLocaleString()}</TableCell>
                                     <TableCell onClick={() => handleRowClick(file)}>
                                         {file.productName ? (
@@ -675,16 +763,7 @@ function FileManagement() {
                                     className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
                                 />
                             </PaginationItem>
-                            {Array.from({ length: Math.ceil(files.length / itemsPerPage) }, (_, i) => (
-                                <PaginationItem key={i}>
-                                    <PaginationLink
-                                        onClick={() => setCurrentPage(i + 1)}
-                                        isActive={currentPage === i + 1}
-                                    >
-                                        {i + 1}
-                                    </PaginationLink>
-                                </PaginationItem>
-                            ))}
+                            {renderPaginationItems()}
                             <PaginationItem>
                                 <PaginationNext
                                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(files.length / itemsPerPage)))}

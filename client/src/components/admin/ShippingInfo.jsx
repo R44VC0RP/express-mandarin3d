@@ -438,15 +438,18 @@ function ShippingManagement() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="addon-price" className="text-sm font-medium leading-none">Price</label>
-                                <Input
-                                    id="addon-price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={newAddon.addon_price}
-                                    onChange={e => setNewAddon({ ...newAddon, addon_price: e.target.value })}
-                                />
+                                <label htmlFor="addon-price" className="text-sm font-medium leading-none">Price (in dollars)</label>
+                                <div className="flex items-center">
+                                    <span className="mr-1">$</span>
+                                    <Input
+                                        id="addon-price"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={newAddon.addon_price}
+                                        onChange={e => setNewAddon({ ...newAddon, addon_price: e.target.value })}
+                                    />
+                                </div>
                             </div>
                         </div>
                         <DialogFooter>

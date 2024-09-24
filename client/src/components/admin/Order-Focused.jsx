@@ -33,6 +33,33 @@ export default function OrderFocused({ orderId }) {
     }
   }
 
+  const downloadAllFiles = async () => {
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/admin/orders/downloadAllFiles`, 
+        { orderId },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          responseType: 'blob' // Important to handle binary data
+        }
+      )
+      if (response.status === 200) {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${orderId}_files.zip`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast.success("All files downloaded successfully")
+      }
+    } catch (error) {
+      console.error("Error downloading all files:", error)
+      toast.error("Failed to download all files")
+    }
+  }
+
   const handleOrderAction = async (action, newStatus) => {
     try {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/admin/orders/actions`, 
@@ -229,6 +256,17 @@ export default function OrderFocused({ orderId }) {
               <p>{order.shipping_details.address.line2}</p>
               <p>{order.shipping_details.address.city}, {order.shipping_details.address.state} {order.shipping_details.address.postal_code} {order.shipping_details.address.country}</p>
             </div>
+            <div>
+              <h4 className="font-semibold mb-2">Download all files as a zip</h4>
+              <Button
+                size="sm"
+                onClick={() => downloadAllFiles(orderId)}
+                className="github-secondary"
+              >
+                <Download className="h-4 w-4 mr-2 inline" />
+                <span>Download All</span>
+              </Button>
+            </div>
           </div>
           <Table>
             <TableHeader>
@@ -244,7 +282,14 @@ export default function OrderFocused({ orderId }) {
             <TableBody>
               {order.cart.files.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{item.filename}</TableCell>
+                  <TableCell className="font-medium">
+                    <span 
+                      className="cursor-pointer hover:underline" 
+                      onClick={() => downloadFile(item.utfile_url)}
+                    >
+                      {item.filename}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Badge className="bg-[#064346] text-white">{item.filament_color}</Badge>
                   </TableCell>
