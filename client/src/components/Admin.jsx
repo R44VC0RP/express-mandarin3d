@@ -7,14 +7,12 @@ import UserManagement from '../components/admin/UserManagement';
 import Settings from '../components/admin/Settings';
 import ShippingInfo from './admin/ShippingInfo.jsx';
 import ProductManagement from './admin/Products.jsx';
+import QuoteManagement from './admin/QuoteManagement.jsx';
 import CartManagement from './admin/Cart.jsx';
 import Orders from './admin/Orders.jsx';
 import logo from '../assets/images/m3d_logo.png';
 import { Button } from '../components/ui/button';
 import { Home, CreditCard, Receipt, Users, Package, BarChart, FileText, Clock, Database, PieChart } from 'lucide-react';
-import OrderFocused from './admin/Order-Focused.jsx';
-
-
 
 function Sidebar({ activeTab, setActiveTab }) {
     const tabGroups = [
@@ -31,7 +29,7 @@ function Sidebar({ activeTab, setActiveTab }) {
                 { name: 'Users', icon: FaUser },
                 { name: 'Settings', icon: FaCog },
                 { name: 'Orders', icon: FaFileAlt },
-                { name: 'Order-Focused', icon: FaFileAlt },
+                { name: 'Quotes', icon: FaFileAlt },
             ],
         },
         {
@@ -100,7 +98,7 @@ function Content({ activeTab }) {
             {activeTab === 'Products' && <ProductManagement />}
             {activeTab === 'Carts' && <CartManagement />}
             {activeTab === 'Orders' && <Orders />}
-            {activeTab === 'Order-Focused' && <OrderFocused />}
+            {activeTab === 'Quotes' && <QuoteManagement />}
         </div>
     );
 }

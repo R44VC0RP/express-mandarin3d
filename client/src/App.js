@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useParams } from 'react-router-dom';
 import Home from './pages/Home';
 import { Toaster } from "@/components/ui/sonner"
 import Admin from '@/components/Admin.jsx';
@@ -16,7 +16,10 @@ import LuxuryMarketplace from './pages/Marketplace_7';
 import FullPageDropzone from './components/FullPageDropzone'; // {{ add: import FullPageDropzone }}
 import CookieCutterForm from './pages/customJobs/cookieCutter';
 import OrderConfirmation from './pages/Confirmation';
-
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { useCart } from './context/Cart';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -32,6 +35,71 @@ const ProtectedRoute = ({ children }) => {
 const LoginRoute = () => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Navigate to="/?code=C01" /> : <Login />;
+};
+
+const Quote = () => {
+  const { quoteId } = useParams();
+  const { addFile } = useCart();
+  const [quote, setQuote] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchQuoteAndAddToCart = async () => {
+      try {
+        // Fetch quote details
+        const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/quote/get/${quoteId}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+
+        if (response.data.status === 'success') {
+          setQuote(response.data.quote);
+          
+          // Extract file IDs from the quote
+          const fileIds = response.data.quote.quote_files.map(file => file.fileid);
+          console.log(fileIds);
+          for (const file of fileIds) {
+            await addFile(file);
+          }
+          // Add files to cart
+          //await addFile(fileIds);
+          toast.success('Quote files added to cart');
+          window.location.href = '/cart';
+        } else {
+          toast.error('Failed to fetch quote details');
+        }
+      } catch (error) {
+        console.error('Error fetching quote or adding to cart:', error);
+        toast.error('An error occurred while processing the quote');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuoteAndAddToCart();
+  }, [quoteId]);
+
+  if (loading) {
+    return <div>Loading quote details...</div>;
+  }
+
+  if (!quote) {
+    return <div>Quote not found</div>;
+  }
+
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Quote Details</h2>
+      <p>Quote ID: {quoteId}</p>
+      <p>Comments: {quote.quote_comments}</p>
+      <h3 className="text-xl font-semibold mt-4 mb-2">Files:</h3>
+      <ul>
+        {quote.quote_files.map((file, index) => (
+          <li key={index}>{file.filename}</li>
+        ))}
+      </ul>
+      <p className="mt-4">Files have been added to your cart.</p>
+    </div>
+  );
 };
 
 function App() {
@@ -51,6 +119,7 @@ function App() {
                 <Route path="/marketplace" element={<LuxuryMarketplace />} />
                 <Route path="/products/cookie-cutters" element={<CookieCutterForm />} />
                 <Route path="/confirmation/:orderId" element={<OrderConfirmation  />} />
+                <Route path="/quote/:quoteId" element={<Quote />} />
               </Routes>
 
               <AlertManager /> 

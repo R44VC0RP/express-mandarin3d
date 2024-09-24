@@ -448,6 +448,43 @@ function Home() {
     };
   }, [fetchCartItems]);
 
+  const createQuote = async () => {
+    if (!isAuthenticated) {
+      toast.error("You must be logged in to create a quote.");
+      return;
+    }
+
+    try {
+      const quoteData = {
+        quote_comments: orderComments,
+        quote_files: cartItems.map(item => ({
+          fileid: item.fileid,
+          quantity: item.quantity,
+          quality: item.quality,
+          filament_color: item.color
+        })),
+        action: 'create'
+      };
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/quote/mgmt`, quoteData, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.status === 'success') {
+        toast.success('Quote created successfully');
+        // Optionally, you can clear the cart or redirect to a quote page here
+      } else {
+        toast.error('Failed to create quote');
+      }
+    } catch (error) {
+      console.error('Error creating quote:', error);
+      toast.error('An error occurred while creating the quote');
+    }
+  };
+
   if (localLoading) {
     return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
   }
@@ -687,6 +724,15 @@ function Home() {
                 >
                   Checkout
                 </button>
+                {/* Add Freeze Cart button for authenticated users */}
+                {isAuthenticated && (
+                  <button 
+                    className="secondary-button w-full py-2 mt-4 rounded-lg"
+                    onClick={createQuote}
+                  >
+                    Freeze Cart (Create Quote)
+                  </button>
+                )}
                 <div className="mt-4">
                   {isAuthenticated && (
                     <div className="flex items-center">

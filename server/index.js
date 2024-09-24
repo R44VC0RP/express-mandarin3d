@@ -3,6 +3,7 @@ dotenv.config({
   'path': '.env.local'
 });
 import axios from 'axios';
+
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -34,7 +35,7 @@ import {
 import {
     calculatePrice
 } from './modules/calculatingPrice.js';
-
+import sendOrderReceivedEmail from './modules/email_sending.js';
 
 
 const utapi = new UTApi();
@@ -52,7 +53,8 @@ import {
   productSchema,
   collectionSchema,
   orderNumberSchema,
-  orderSchema
+  orderSchema,
+  quoteSchema
 } from './modules/dbSchemas.js';
 
 
@@ -95,6 +97,7 @@ const Addon = mongoose.model('Addon', addonSchema);
 const Collection = mongoose.model('Collection', collectionSchema);
 const OrderNumber = mongoose.model('OrderNumber', orderNumberSchema);
 const Order = mongoose.model('Order', orderSchema);
+const Quote = mongoose.model('Quote', quoteSchema);
 
 // #region LOGIN AND AUTHENTICATION
 
@@ -1720,6 +1723,14 @@ app.post('/api/checkout', async (req, res) => {
   }
 });
 
+app.get('/api/email/test', async (req, res) => {
+  const order = await Order.findOne({ order_number: '#1255-2024' });
+  const test_email = await sendOrderReceivedEmail(order);
+  res.json({ status: 'success', message: 'Email sent successfully', test_email });
+});
+
+
+
 app.get('/api/checkout/success', async (req, res) => {
   const { session_id } = req.query;
   if (!session_id) {
@@ -1742,7 +1753,9 @@ app.get('/api/checkout/success', async (req, res) => {
 
     const order = await createOrder(cart, checkout_session_info, pricing_obj);
 
-    
+    const email_result = await sendOrderReceivedEmail(order);
+    console.log("Email result: ", email_result);
+
     // console.log("Checkout session info: ", checkout_session_info);
     res.redirect(`${process.env.FRONTEND_URL}/confirmation/${order.order_id}`);
     //res.json({ status: 'success', message: 'Checkout successful', order_id: order.order_id });
@@ -2120,6 +2133,57 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
 
 
 // #endregion CHECKOUT MANAGEMENT
+
+// #region QUOTE MANAGEMENT
+
+app.post('/api/quote/mgmt', requireLogin, async (req, res) => {
+  const { quote_comments, quote_files, action, quote_id } = req.body;
+  switch (action) {
+    case 'create':
+      var quote = new Quote({
+        quote_id: "quote_" + uuidv4(),
+        quote_comments,
+        quote_files
+      });
+      await quote.save();
+      res.json({ status: 'success', message: 'Quote created successfully', quote });
+      break;
+    case 'update':
+      var quote = await Quote.findOne({ quote_id: quote_id });
+      if (!quote) {
+        return res.status(404).json({ status: 'error', message: 'Quote not found' });
+      }
+      quote.quote_comments = quote_comments;
+      quote.quote_files = quote_files;
+      await quote.save();
+      res.json({ status: 'success', message: 'Quote updated successfully', quote });
+      break;
+    case 'list':
+      var quotes = await Quote.find();
+      res.json({ status: 'success', message: 'Quotes fetched successfully', quotes });
+      break;
+    case 'delete':
+      var quote = await Quote.findOne({ quote_id: quote_id });
+      if (!quote) {
+        return res.status(404).json({ status: 'error', message: 'Quote not found' });
+      }
+      await quote.delete();
+      res.json({ status: 'success', message: 'Quote deleted successfully' });
+      break;
+  }
+});
+
+app.get('/api/quote/get/:quote_id', async (req, res) => {
+  const { quote_id } = req.params;
+  var quote = await Quote.findOne({ quote_id: quote_id });
+  if (!quote) {
+    return res.status(404).json({ status: 'error', message: 'Quote not found' });
+  }
+  res.json({ status: 'success', message: 'Quote fetched successfully', quote });
+});
+
+
+// #endregion QUOTE MANAGEMENT
 
 // #region CONTACT AND CUSTOM ORDER MANAGEMENT
 

@@ -263,3 +263,14 @@ export const orderSchema = new mongoose.Schema({
         required: false
     }
 }, { versionKey: false });
+
+export const quoteSchema = new mongoose.Schema({
+    quote_id: String,
+    quote_comments: String,
+    quote_files: [{
+        fileid: String,
+        quantity: Number,
+        quality: String,
+        filament_color: String,
+    }]
+});
