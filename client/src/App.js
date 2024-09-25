@@ -20,6 +20,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useCart } from './context/Cart';
+import VHSISLIFE from './pages/client/vhsislife';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -120,6 +121,10 @@ function App() {
                 <Route path="/products/cookie-cutters" element={<CookieCutterForm />} />
                 <Route path="/confirmation/:orderId" element={<OrderConfirmation  />} />
                 <Route path="/quote/:quoteId" element={<Quote />} />
+                {/* Client Sections */}
+                <Route path="/client/vhsislife" element={<VHSISLIFE />} />
+                
+                {/* End of Client Sections */}
               </Routes>
 
               <AlertManager /> 

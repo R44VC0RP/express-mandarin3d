@@ -24,6 +24,8 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Textarea } from "@/components/ui/textarea"
+
 import {
     Sheet,
     SheetContent,
@@ -113,20 +115,6 @@ function FileManagement() {
         productName: 'N/A'
     });
     const [fileDetailsOpen, setFileDetailsOpen] = useState(false);
-    const [productDetailsOpen, setProductDetailsOpen] = useState(false);
-    const [productDetails, setProductDetails] = useState({
-        product_id: 'N/A',
-        product_title: 'N/A',
-        product_description: 'N/A',
-        product_features: 'N/A',
-        product_image_url: 'N/A',
-        product_fileid: 'N/A',
-        product_author: 'N/A',
-        product_author_url: 'N/A',
-        product_license: 'N/A',
-        product_filament_id: 'N/A',
-        product_url: 'N/A'
-    });
     const [newProduct, setNewProduct] = useState({
         product_title: '',
         product_description: '',
@@ -368,34 +356,6 @@ function FileManagement() {
         }
     };
 
-    const handleAddFile = async () => {
-        try {
-            const priceInCents = newFile.priceOverride ? Math.round(parseFloat(newFile.priceOverride) * 100) : null;
-            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/file`, {
-                action: 'create',
-                filename: newFile.filename,
-                utfile_id: newFile.utfile_id,
-                utfile_url: newFile.utfile_url,
-                price_override: priceInCents
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-
-            if (response.data.status === 'success') {
-                toast.success('File added successfully');
-                setNewFile({ filename: '', priceOverride: '' });
-                fetchFiles();
-            } else {
-                toast.error('Failed to add file');
-            }
-        } catch (error) {
-            console.error('Error adding file:', error);
-            toast.error('Failed to add file');
-        }
-    };
-
     const filteredItems = files.filter(
         item => Object.values(item).some(
             val => val && val.toString().toLowerCase().includes(filterText.toLowerCase())
@@ -498,41 +458,6 @@ function FileManagement() {
                 <div className="flex items-center">
                     <span className="mr-2">Drag and Drop files to add them</span>
                 </div>
-                {/* <Sheet>
-                    <SheetTrigger asChild>
-                        <button className="github-primary">
-                            <FaPlus className="mr-2 inline" />
-                            Add File
-                        </button>
-                    </SheetTrigger>
-                    <SheetContent>
-                        <SheetHeader>
-                            <SheetTitle>Add New File</SheetTitle>
-                            <SheetDescription>Upload a new file and set its details.</SheetDescription>
-                        </SheetHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="space-y-2">
-                                <label htmlFor="file" className="text-sm font-medium leading-none">Upload File</label>
-                                <UploadButton
-                                    endpoint="modelUploader"
-                                    onClientUploadComplete={(res) => {
-                                        console.log("Files: ", res);
-                                        setNewFile({ ...newFile, utfile_id: res[0].key, utfile_url: res[0].url });
-                                        toast.success("Upload Completed");
-                                    }}
-                                    onUploadError={(error) => {
-                                        toast.error(`Upload Error: ${error.message}`);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex justify-end mt-4">
-                            <button className="github-primary" onClick={handleAddFile}>Add File</button>
-                        </div>
-                    </SheetContent>
-
-
-                </Sheet> */}
                 <Sheet open={fileDetailsOpen} onOpenChange={setFileDetailsOpen}>
                     <SheetContent>
                         <SheetHeader>
@@ -567,7 +492,7 @@ function FileManagement() {
                                     <div className="w-full h-64 rounded-md overflow-hidden border border-gray-300">
                                         <p className='text-center'>Model Preview</p>
                                         <LazyModelViewer
-                                            url={fileDetails.utfile_url}
+                                            url={fileDetails.utfile_url || "https://cdn.mandarin3d.com/files/default.glb"}
                                             style={{ width: '100%', height: '100%' }}
                                         />
                                     </div>
@@ -594,7 +519,7 @@ function FileManagement() {
                                                         value={newProduct.product_title}
                                                         onChange={(e) => setNewProduct({...newProduct, product_title: e.target.value})}
                                                     />
-                                                    <Input
+                                                    <Textarea
                                                         placeholder="Product Description"
                                                         value={newProduct.product_description}
                                                         onChange={(e) => setNewProduct({...newProduct, product_description: e.target.value})}
@@ -617,7 +542,7 @@ function FileManagement() {
                                                         </div>
                                                     ) : (
                                                         <UploadButton
-                                                            className='w-full p-2 mb-2 bg-gray-700 rounded'
+                                                            className='w-full p-2 mb-2 rounded border border-gray-300'
                                                             endpoint="imageUploader"
                                                             onClientUploadComplete={(res) => {
                                                                 console.log("Files: ", res);
@@ -666,6 +591,7 @@ function FileManagement() {
                                                     product_author={newProduct.product_author || "Mandarin 3D"}
                                                     product_author_url={newProduct.product_author_url || "https://mandarin3d.com"}
                                                     product_license={newProduct.product_license || "Public Domain"}
+                                                    file_obj={fileDetails}
                                                 />
                                             </div>
                                         </div>

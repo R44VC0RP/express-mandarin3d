@@ -328,8 +328,8 @@ export default function LuxuryMarketplace() {
               </TabsContent>
             </Tabs>
 
-            {/* Search and Products Listing */}
-            <section className="mb-8 md:mb-16 relative z-20">
+            {/* Categories and Products Listing */}
+            <section className="mb-8 md:mb-16 relative z-20 w-full mx-auto">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8">
                 <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-0 px-3">All Products</h2>
                 <div className="relative w-full md:w-64">
@@ -346,12 +346,48 @@ export default function LuxuryMarketplace() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-8">
-                {currentProducts.map((item, index) => (
-                  <div key={index} className="px-2">
-                    <PricingPlan {...item} onAddToCart={handleAddToCart} />
+              <div className="flex flex-col md:flex-row">
+                {/* Categories */}
+                <div className="w-full md:w-[20%] mb-4 md:mb-0 md:mr-4 bg-white bg-opacity-10 rounded-3xl p-4 md:p-8 backdrop-blur-md border border-white border-opacity-20">
+                  <h3 className="text-xl font-semibold mb-2">Categories</h3>
+                  <ul className="space-y-2">
+                    <li>
+                      <Button variant="ghost" className="w-full justify-start">
+                        All Categories
+                      </Button>
+                    </li>
+                    <li>
+                      <Button variant="ghost" className="w-full justify-start">
+                        Home Decor
+                      </Button>
+                    </li>
+                    <li>
+                      <Button variant="ghost" className="w-full justify-start">
+                        Gadgets
+                      </Button>
+                    </li>
+                    <li>
+                      <Button variant="ghost" className="w-full justify-start">
+                        Toys
+                      </Button>
+                    </li>
+                    <li>
+                      <Button variant="ghost" className="w-full justify-start">
+                        Art
+                      </Button>
+                    </li>
+                  </ul>
+                </div>
+                {/* Products Grid */}
+                <div className="w-full md:w-3/4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+                    {currentProducts.map((item, index) => (
+                      <div key={index} className="px-2">
+                        <PricingPlan {...item} onAddToCart={handleAddToCart} />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
               {totalPages > 1 && (
                 <Pagination className="mt-8">
