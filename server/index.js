@@ -751,7 +751,7 @@ app.get('/api/addon', async (req, res) => {
 app.get('/api/addon/list', async (req, res) => {
   const addons = await getAddonList();
   for (const addon of addons) {
-    addon.addon_price = (addon.addon_price / 100).toFixed(2);
+    addon.addon_price = parseFloat(addon.addon_price).toFixed(2);
   }
   res.json({ status: 'success', addons });
 });
@@ -1763,6 +1763,32 @@ app.get('/api/checkout/success', async (req, res) => {
 
     const order = await createOrder(cart, checkout_session_info, pricing_obj);
 
+    // Print the receipt
+
+    console.log("Order: ", order.cart.files);
+    var order_object = {
+      "order_number": order.order_number,
+      "customer_name": order.customer_details.name,
+      "order_date": order.dateCreated,
+      "line_items": order.cart.files.map(file => ({
+        qty: file.quantity,
+        product: file.filename,
+        price: file.file_sale_cost
+      })),
+      "addons": cart.cart_addons.map(addon => ({
+        name: addon.addon_name,
+        price: parseFloat(addon.addon_price / 100)
+      }))
+    }
+
+    
+    const response = await axios.post('https://host.home.exonenterprise.com/print', {
+      name: `receipt ${order.order_id}`,
+      pdf_url: "none",
+      action: 'print_receipt',
+      order_object: order_object
+    });
+
     const email_result = await sendOrderReceivedEmail(order);
     console.log("Email result: ", email_result);
 
@@ -2035,7 +2061,8 @@ async function printShippingLabel(orderId) {
   try {
     const response = await axios.post('https://host.home.exonenterprise.com/print', {
       name: `Shipping_Label_${orderId}`,
-      pdf_url: labelUrl
+      pdf_url: labelUrl,
+      action: 'print_label'
     });
 
     if (response.status === 200) {
@@ -2047,6 +2074,39 @@ async function printShippingLabel(orderId) {
     console.error('Error printing shipping label:', error);
     return { status: 'error', message: 'Error occurred while printing shipping label' };
   }
+}
+
+async function printReceipt(orderId) {
+  const order = await Order.findOne({ order_id: orderId });
+  if (!order) {
+    return { status: 'error', message: 'Order not found' };
+  }
+
+  var order_object = {
+    "order_number": order.order_number,
+    "customer_name": order.customer_details.name,
+    "order_date": order.dateCreated,
+    "line_items": order.cart.files.map(file => ({
+      qty: file.quantity,
+      product: file.filename,
+      price: file.file_sale_cost
+    })),
+    "addons": order.cart.cart_addons.map(addon => ({
+      name: addon.addon_name,
+      price: parseFloat(addon.addon_price / 100)
+    }))
+  }
+
+  
+  const response = await axios.post('https://host.home.exonenterprise.com/print', {
+    name: `receipt ${order.order_id}`,
+    pdf_url: "none",
+    action: 'print_receipt',
+    order_object: order_object
+  });
+
+  return { status: 'success', message: 'Receipt sent to printer' };
+  
 }
 
 app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, res) => {
@@ -2065,6 +2125,9 @@ app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, re
         break;
       case 'printShippingLabel':
         result = await printShippingLabel(orderId);
+        break;
+      case 'printReceipt':
+        result = await printReceipt(orderId);
         break;
     }
     res.json({ status: 'success', result });
@@ -2168,7 +2231,7 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
       cart_addons: cart.cart_addons.map(addon => ({
         addon_name: addon.addon_name,
         addon_id: addon.addon_id,
-        addon_price: addon.addon_price
+        addon_price: parseFloat(addon.addon_price).toFixed(2)
       })),
       dateCreated: cart.dateCreated,
       livemode: checkout_session_info.metadata.test_mode === 'false'

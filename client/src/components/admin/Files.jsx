@@ -454,7 +454,7 @@ function FileManagement() {
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">File Management</h2>
+                <h2 className="text-2xl font-bold">File Management <span className="text-sm text-gray-500 font-normal">({files.length} files | {files.filter(file => file.file_status === 'success').length} sliced)</span></h2>
                 <div className="flex items-center">
                     <span className="mr-2">Drag and Drop files to add them</span>
                 </div>

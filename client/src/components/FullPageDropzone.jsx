@@ -13,7 +13,7 @@ const FullPageDropzone = ({ children }) => {
     if (acceptedFiles.length > 0) {
       const uploadPromises = acceptedFiles.map(async (file) => {
         console.log(file);
-        if (file.name.endsWith('.stl') || file.name.endsWith('.step') || file.name.endsWith('.3mf')) {
+        if (file.name.toUpperCase().endsWith('.STL') || file.name.toUpperCase().endsWith('.STEP') || file.name.toUpperCase().endsWith('.3MF')) {
           if (file.size >= 100 * 1024 * 1024){
             toast.error(`The file: ${file.name} is too large (<100MB), please email orders@mandarin3d.com to get your quote created.`);
             return null;

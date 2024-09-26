@@ -178,7 +178,7 @@ function Home() {
  
   useEffect(() => {
     if (activeShippingOption && subtotal) {
-      const addonTotal = selectedAddons.reduce((total, addon) => total + addon.addon_price / 100, 0);
+      const addonTotal = selectedAddons.reduce((total, addon) => total + addon.addon_price, 0);
       let total;
       if (freeShippingProgress === 100) {
         total = subtotal + addonTotal;
@@ -475,7 +475,11 @@ function Home() {
 
       if (response.data.status === 'success') {
         toast.success('Quote created successfully');
-        // Optionally, you can clear the cart or redirect to a quote page here
+        console.log("Quote created successfully: ", response.data.quote);
+        // copy quote id to clipboard
+        const rootDomain = window.location.origin;
+        navigator.clipboard.writeText(`${rootDomain}/quote/${response.data.quote.quote_id}`);
+        toast.success('Quote ID copied to clipboard');
       } else {
         toast.error('Failed to create quote');
       }
@@ -708,7 +712,7 @@ function Home() {
                   <div key={addon.addon_id} className="flex justify-between mb-2">
                     <p className="font-light">{addon.addon_name}</p>
                     {addon.addon_price > 0 && (
-                      <p className="font-bold">${(addon.addon_price / 100).toFixed(2)}</p>
+                      <p className="font-bold">${(addon.addon_price).toFixed(2)}</p>
                     )}
                   </div>
                 ))}

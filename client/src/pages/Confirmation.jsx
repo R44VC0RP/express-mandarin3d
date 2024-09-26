@@ -188,7 +188,7 @@ function OrderConfirmation() {
               {cart_addons.map(addon => (
                 <div key={addon.addon_id} className="flex justify-between mb-2">
                   <p className="font-light">{addon.addon_name}</p>
-                  <p className="font-bold">${(addon.addon_price / 100).toFixed(2)}</p>
+                  <p className="font-bold">${(addon.addon_price).toFixed(2)}</p>
                 </div>
               ))}
               <hr className="border-t border-[#5E5E5E] my-4" />

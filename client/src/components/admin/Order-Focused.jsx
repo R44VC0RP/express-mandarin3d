@@ -89,6 +89,10 @@ export default function OrderFocused({ orderId }) {
     await handleOrderAction('createShippingLabel', null)
   }
 
+  const printReceipt = async () => {
+    await handleOrderAction('printReceipt', null)
+  }
+
   const downloadShippingLabel = async () => {
     downloadFile(order.shipping_label_url)
   }
@@ -210,28 +214,38 @@ export default function OrderFocused({ orderId }) {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={createShippingLabel}
-              disabled={order.shipping_label_url}
-            >
-              <Truck className="h-4 w-4 mr-2" />
-              <span>{order.shipping_label_url ? 'Shipping label created' : 'Create shipping label'}</span>
-            </Button>
-            <Button 
-              size="sm"
-              onClick={downloadShippingLabel}
-              disabled={!order.shipping_label_url}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              <span>Download Shipping Label</span>
-            </Button>
-            <Button 
-              size="sm"
-              onClick={printShippingLabel}
-              disabled={!order.shipping_label_url}
+              onClick={printReceipt}
             >
               <Printer className="h-4 w-4 mr-2" />
-              Print Shipping Label
+              <span>Print receipt</span>
             </Button>
+            {!order.shipping_label_url ? (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={createShippingLabel}
+              >
+                <Truck className="h-4 w-4 mr-2" />
+                <span>Create shipping label</span>
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  size="sm"
+                  onClick={downloadShippingLabel}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  <span>Download Shipping Label</span>
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={printShippingLabel}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print Shipping Label
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -305,8 +319,8 @@ export default function OrderFocused({ orderId }) {
                   <TableCell className="text-right"></TableCell>
                   <TableCell className="text-right"></TableCell>
                   <TableCell className="text-right">1</TableCell>
-                  <TableCell className="text-right">${(addon.addon_price / 100).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">${(addon.addon_price / 100).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">${(addon.addon_price).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">${(addon.addon_price).toFixed(2)}</TableCell>
                 </TableRow>
               ))}
               <TableRow>

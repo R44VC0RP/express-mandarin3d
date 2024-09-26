@@ -52,7 +52,7 @@ function ShippingManagement() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [addons, setAddons] = useState([]);
-    const [newAddon, setNewAddon] = useState({ addon_name: '', addon_description: '', addon_price: '0' });
+    const [newAddon, setNewAddon] = useState({ addon_name: '', addon_description: '', addon_price: 0 });
     const [selectedAddon, setSelectedAddon] = useState(null);
 
     useEffect(() => {
@@ -210,7 +210,7 @@ function ShippingManagement() {
                 action: 'create',
                 addon_name: newAddon.addon_name,
                 addon_description: newAddon.addon_description,
-                addon_price: parseFloat(newAddon.addon_price) * 100 // Convert to cents
+                addon_price: parseFloat(newAddon.addon_price).toFixed(2)
             }, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -218,7 +218,7 @@ function ShippingManagement() {
             });
             if (response.data.status === 'success') {
                 toast.success('Addon added successfully');
-                setNewAddon({ addon_name: '', addon_description: '', addon_price: '0' });
+                setNewAddon({ addon_name: '', addon_description: '', addon_price: 0 });
                 fetchAddons();
             } else {
                 toast.error('Failed to add addon');
@@ -236,7 +236,7 @@ function ShippingManagement() {
                 addon_id: selectedAddon.addon_id,
                 addon_name: selectedAddon.addon_name,
                 addon_description: selectedAddon.addon_description,
-                addon_price: parseFloat(selectedAddon.addon_price) * 100 // Convert to cents
+                addon_price: parseFloat(selectedAddon.addon_price)
             }, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -357,7 +357,7 @@ function ShippingManagement() {
                             {currentItems.map((row) => (
                                 <TableRow key={row.id}>
                                     <TableCell className="font-medium">{row.display_name}</TableCell>
-                                    <TableCell>${(row.fixed_amount.amount / 100).toFixed(2)}</TableCell>
+                                    <TableCell>${(row.fixed_amount.amount).toFixed(2)}</TableCell>
                                     <TableCell>
                                         {`${row.delivery_estimate.minimum.value}-${row.delivery_estimate.maximum.value} ${row.delivery_estimate.minimum.unit}${row.delivery_estimate.maximum.value > 1 ? 's' : ''}`}
                                     </TableCell>
@@ -520,7 +520,7 @@ function ShippingManagement() {
                                 </Dialog>
                             </TableCell>
                             <TableCell>{addon.addon_description}</TableCell>
-                            <TableCell>${(addon.addon_price / 100).toFixed(2)}</TableCell>
+                            <TableCell>${(addon.addon_price).toFixed(2)}</TableCell>
                             <TableCell>
                                 <button
                                     onClick={() => handleDeleteAddon(addon.addon_id)}
