@@ -1965,7 +1965,7 @@ async function createShippingLabel(orderId) {
       description: "3D Printed Items",
       customer_reference: orderId,
       product_code: "STANDARD-DROPOFF",
-      pickup_date: new Date().toISOString().split('T')[0],
+      pickup_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       packaging_type: "box",
       hide_pickup_address: false
     }, {
@@ -2033,17 +2033,41 @@ async function createShippingLabel(orderId) {
     const shippingLabel = response.data;
     return { status: 'success', message: 'Shipping label created', shippingLabel };
   } catch (error) {
-    // console.error('Error creating shipping label:', error);
-    // console.error('Error details:', {
-    //   message: error.message,
-    //   response: error.response ? {
-    //     data: error.response.data.messages,
-    //     status: error.response.status,
-    //     headers: error.response.headers
-    //   } : 'No response'
-    // });
-    console.log(error.response.data.messages.receiver[0]);
-    return { status: 'error', message: 'Failed to create shipping label', error: error.response ? error.response.data : error.message };
+    console.error('Error creating shipping label:', error);
+    let errorMessage = 'Failed to create shipping label';
+    let errorDetails = {};
+
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      errorDetails = {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      };
+
+      if (error.response.data && error.response.data.messages) {
+        if (error.response.data.messages.receiver && error.response.data.messages.receiver.length > 0) {
+          errorMessage = error.response.data.messages.receiver[0];
+        } else if (typeof error.response.data.messages === 'string') {
+          errorMessage = error.response.data.messages;
+        } else {
+          errorMessage = JSON.stringify(error.response.data.messages);
+        }
+      }
+    } else if (error.request) {
+      console.error('Error request:', error.request);
+      errorMessage = 'No response received from Sendle API';
+      errorDetails = { request: error.request };
+    } else {
+      console.error('Error:', error.message);
+      errorMessage = error.message;
+    }
+
+    return { 
+      status: 'error', 
+      message: errorMessage, 
+      error: errorDetails 
+    };
   }
 }
 
