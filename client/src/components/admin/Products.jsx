@@ -500,7 +500,7 @@ function ProductManagement() {
                         <TableBody>
                             {collections.map((collection) => (
                                 <TableRow key={collection.collection_id}>
-                                    <TableCell className="font-medium">{collection.collection_name}</TableCell>
+                                    <TableCell className="font-medium"><a href={`/collections/${collection.collection_id}`} target="_blank" rel="noopener noreferrer">{collection.collection_name}</a></TableCell>
                                     <TableCell>{collection.collection_description.substring(0, 50)}...</TableCell>
                                     <TableCell>
                                         {collection.collection_image_url ? (

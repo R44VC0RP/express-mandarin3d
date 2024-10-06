@@ -16,6 +16,7 @@ import LuxuryMarketplace from './pages/Marketplace_7';
 import FullPageDropzone from './components/FullPageDropzone'; // {{ add: import FullPageDropzone }}
 import CookieCutterForm from './pages/customJobs/cookieCutter';
 import OrderConfirmation from './pages/Confirmation';
+import CollectionPage from './pages/Collections';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -123,7 +124,7 @@ function App() {
                 <Route path="/quote/:quoteId" element={<Quote />} />
                 {/* Client Sections */}
                 <Route path="/client/vhsislife" element={<VHSISLIFE />} />
-                
+                <Route path="/collections/:collectionId" element={<CollectionPage />} />
                 {/* End of Client Sections */}
               </Routes>
 

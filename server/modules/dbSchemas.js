@@ -212,7 +212,9 @@ export const orderSchema = new mongoose.Schema({
             line2: String,
             postal_code: String,
             state: String
-        }
+        },
+        sendle_reference: String,
+        tracking_url: String
     },
     total_details: {
         amount_discount: Number,

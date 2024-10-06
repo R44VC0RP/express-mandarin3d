@@ -15,6 +15,7 @@ export default function Orders() {
   const [totalOrders, setTotalOrders] = useState(0)
   const [statusCounts, setStatusCounts] = useState({})
   const [currentStatus, setCurrentStatus] = useState("all")
+  const [showDelivered, setShowDelivered] = useState(false)
   const ordersPerPage = 20
   const [selectedOrder, setSelectedOrder] = useState(null)
 
@@ -37,11 +38,31 @@ export default function Orders() {
   const handleStatusChange = (status) => {
     setCurrentStatus(status)
     setCurrentPage(1)
+    setShowDelivered(false)
   }
 
   const handleOrderClick = (order) => {
     setSelectedOrder(order)
   }
+
+  const toggleShowDelivered = () => {
+    setShowDelivered(!showDelivered)
+  }
+
+  const sortedOrders = [...orders].sort((a, b) => {
+    if (a.order_status === "Delivered" && b.order_status !== "Delivered") return 1;
+    if (a.order_status !== "Delivered" && b.order_status === "Delivered") return -1;
+    
+    const aHasPriority = a.cart.cart_addons.some(addon => addon.addon_name.includes('Queue Priority'));
+    const bHasPriority = b.cart.cart_addons.some(addon => addon.addon_name.includes('Queue Priority'));
+    
+    if (aHasPriority && !bHasPriority) return -1;
+    if (!aHasPriority && bHasPriority) return 1;
+    
+    return new Date(b.dateCreated) - new Date(a.dateCreated);
+  });
+
+  const displayedOrders = showDelivered ? sortedOrders : sortedOrders.filter(order => order.order_status !== "Delivered");
 
   return (
     <div className="flex h-screen bg-[#0D0D0D] text-white">
@@ -69,6 +90,10 @@ export default function Orders() {
             </TabsList>
           </Tabs>
 
+          <Button onClick={toggleShowDelivered} className="mb-3 bg-[#0D939B] text-white hover:bg-[#11B3BD]">
+            {showDelivered ? "Hide Delivered Orders" : "Show Delivered Orders"}
+          </Button>
+
           <Card className="bg-[#1A1A1A] border-[#2A2A2A] rounded-lg overflow-hidden">
             <CardContent className="p-0">
               <Table>
@@ -86,19 +111,7 @@ export default function Orders() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders
-                    .sort((a, b) => {
-                      // Check for Queue Priority addon
-                      const aHasPriority = a.cart.cart_addons.some(addon => addon.addon_name.includes('Queue Priority'));
-                      const bHasPriority = b.cart.cart_addons.some(addon => addon.addon_name.includes('Queue Priority'));
-                      
-                      if (aHasPriority && !bHasPriority) return -1;
-                      if (!aHasPriority && bHasPriority) return 1;
-                      
-                      // If both have priority or neither has priority, sort by date
-                      return new Date(b.dateCreated) - new Date(a.dateCreated);
-                    })
-                    .map((order, index) => (
+                  {displayedOrders.map((order, index) => (
                     <TableRow 
                       key={index} 
                       className={`${index % 2 === 0 ? 'bg-[#1A1A1A]' : 'bg-[#222222]'} cursor-pointer hover:bg-[#2A2A2A]`}

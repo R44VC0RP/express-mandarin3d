@@ -1,6 +1,7 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import dotenv from 'dotenv';
 import order_recieved from '../email_templates/order_templates.js';
+import order_shipped from '../email_templates/order_templates.js';
 import path from 'path';
 
 dotenv.config({ path: '../.env.local' });
@@ -52,4 +53,41 @@ const sendOrderReceivedEmail = async (orderObject) => {
   }
 };
 
-export default sendOrderReceivedEmail;
+
+const sendOrderShippedEmail = async (orderObject) => {
+  const params = {
+    Source: 'Mandarin 3D Prints <order@mandarin3d.com>',
+    Destination: {
+      ToAddresses: [orderObject.customer_details.email],
+    },
+    Message: {
+      Body: {
+        Html: {
+          Charset: 'UTF-8',
+          Data: order_shipped(orderObject),
+        },
+      },
+      Subject: {
+        Charset: 'UTF-8',
+        Data: `Your Order #${orderObject.order_number} Has Been Shipped`,
+      },
+    },
+  };
+
+  try {
+    const command = new SendEmailCommand(params);
+    const response = await sesClient.send(command);
+    console.log("Order shipped email sent successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Error sending order shipped email:", error.message);
+    if (error.$metadata) {
+      console.error("Error metadata:", error.$metadata);
+    }
+    throw error;
+  }
+};
+
+export { sendOrderReceivedEmail, sendOrderShippedEmail };
+
+

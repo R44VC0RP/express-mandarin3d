@@ -158,8 +158,8 @@ export default (orderObject, trackingUrl) => {
 </html>`;
 };
 
-export const order_shipped = (orderObject, trackingUrl) => {
-  const { customer_details, order_number, lineItems, totalAmount, estimatedDate, shippingInfo } = orderObject;
+export const order_shipped = (orderObject) => {
+  const { customer_details, order_number, lineItems, totalAmount, shippingInfo } = orderObject;
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -247,8 +247,7 @@ export const order_shipped = (orderObject, trackingUrl) => {
         
         <div class="order-summary">
             <p><strong>Order Number:</strong> ${order_number}</p>
-            <p><strong>Shipping Method:</strong> ${shippingInfo.method}</p>
-            <p><strong>Tracking Number:</strong> ${shippingInfo.trackingNumber}</p>
+            <p><strong>Shipping Method:</strong> USPS Priority Mail</p>
             <table class="receipt">
                 <thead>
                     <tr>
@@ -273,12 +272,11 @@ export const order_shipped = (orderObject, trackingUrl) => {
                     </tr>
                 </tbody>
             </table>
-            <p><strong>Estimated Delivery Date:</strong> ${estimatedDate.toDateString()}</p>
         </div>
         
-        <p>You can track your package using the tracking number provided above or by clicking the button below:</p>
+        <p>You can track your package using the tracking number provided above or by clicking the button below (this probably won't work yet if you just got this email):</p>
         
-        <a href="${trackingUrl}" class="button">Track Your Package</a>
+        <a href="${shipping_details.tracking_url}" class="button">Track Your Package</a>
         
         <p>If you have any questions about your shipment, please don't hesitate to contact us at support@mandarin3d.com.</p>
         

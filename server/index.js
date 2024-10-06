@@ -36,8 +36,7 @@ import {
 import {
     calculatePrice
 } from './modules/calculatingPrice.js';
-import sendOrderReceivedEmail from './modules/email_sending.js';
-
+import { sendOrderReceivedEmail, sendOrderShippedEmail } from './modules/email_sending.js';
 
 const utapi = new UTApi();
 
@@ -1504,6 +1503,87 @@ app.get('/api/collection/featured', async (req, res) => {
   }
 });
 
+// Add this new function in the PRODUCT MANAGEMENT section
+async function getCollectionWithProducts(collectionId) {
+  const collection = await Collection.findOne({ collection_id: collectionId });
+  if (!collection) {
+    return null;
+  }
+
+  const products = await Product.find({ product_collection: collectionId });
+  
+  // Fetch file details and calculate prices for each product
+  const productsWithDetails = await Promise.all(products.map(async (product) => {
+    const file = await File.findOne({ fileid: product.product_fileid });
+    const filament = await Filament.findOne({});
+    let price = 0;
+
+    if (file && file.file_status === "success") {
+      if (file.price_override) {
+        price = file.price_override;
+      } else {
+        price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
+      }
+    }
+
+    return {
+      ...product.toObject(),
+      price: price,
+      file_status: file ? file.file_status : 'unknown'
+    };
+  }));
+
+  return {
+    collection,
+    products: productsWithDetails
+  };
+}
+
+async function getCollectionProducts(collectionId) {
+  const collection = await Collection.findOne({ collection_id: collectionId });
+  if (!collection) {
+    return null;
+  }
+
+  const products = await Product.find({ product_collection: collectionId });
+
+  for (const product of products) {
+    const file = await File.findOne({ fileid: product.product_fileid });
+    product.file_obj = file;
+  }
+  return products;
+}
+
+// Add this new route in the PRODUCT MANAGEMENT section
+app.get('/api/collection/:collectionId', async (req, res) => {
+  const { collectionId } = req.params;
+  try {
+    const collection = await getCollection(collectionId);
+    const result = await getCollectionProducts(collectionId);
+    if (!result) {
+      return res.status(404).json({ status: 'error', message: 'Collection not found' });
+    }
+    res.json({ status: 'success', products: result, collection: collection });
+  } catch (error) {
+    console.error('Error fetching collection with products:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
+app.get('/api/collections/products', async (req, res) => {
+  const { collectionId } = req.params;
+  try {
+    const result = await getCollectionWithProducts(collectionId);
+    if (!result) {
+      return res.status(404).json({ status: 'error', message: 'Collection not found' });
+    }
+    res.json({ status: 'success', collection: result.collection, products: result.products });
+  } catch (error) {
+    console.error('Error fetching collection with products:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
 // #endregion PRODUCT MANAGEMENT
 
 // #region SHIPPING MANAGEMENT
@@ -1897,6 +1977,12 @@ async function updateOrderStatus(orderId, newStatus) {
   if (!order) {
     return { status: 'error', message: 'Order not found' };
   }
+  console.log("Order: ", newStatus);
+  if (newStatus === 'Shipping') {
+    const email_result = await sendOrderShippedEmail(order);
+    console.log("Email result: ", email_result);
+  }
+
   order.order_status = newStatus;
   order.dateUpdated = new Date();
   await order.save();
@@ -1950,7 +2036,7 @@ async function createShippingLabel(orderId) {
           postcode: order.shipping_details.address.postal_code,
           state_name: order.shipping_details.address.state
         },
-        instructions: order.shipping_details.instructions || ""
+        instructions: order.shipping_details.instructions || "Please handle with care"
       },
       weight: {
         units: "kg",
@@ -1982,8 +2068,7 @@ async function createShippingLabel(orderId) {
       tracking_url, 
       labels, 
       price: { gross: { amount: total_cost } },
-      customer_reference,
-      order_id: sendle_order_id
+      order_id: sendle_order_id,
     } = response.data;
     const label_url = labels.find(label => label.size === 'cropped')?.url;
     const pdfCroppedUrl = label_url;
@@ -2019,6 +2104,8 @@ async function createShippingLabel(orderId) {
       const order = await Order.findOne({ order_id: orderId });
       if (order) {
         order.shipping_label_url = uploadResponse.data.url;
+        order.shipping_details.sendle_reference = sendle_reference;
+        order.shipping_details.tracking_url = tracking_url;
         await order.save();
       }
 
@@ -2038,7 +2125,7 @@ async function createShippingLabel(orderId) {
     let errorDetails = {};
 
     if (error.response) {
-      console.error('Error response:', error.response.data);
+      console.error('Error response:', error.response.data.messages.receiver);
       errorDetails = {
         status: error.response.status,
         statusText: error.response.statusText,
@@ -2055,7 +2142,7 @@ async function createShippingLabel(orderId) {
         }
       }
     } else if (error.request) {
-      console.error('Error request:', error.request);
+      console.error('Error request:', error.request.messages);
       errorMessage = 'No response received from Sendle API';
       errorDetails = { request: error.request };
     } else {
