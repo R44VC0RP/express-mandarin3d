@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect, useRef } from 'react';
-import { FaMinus, FaPlus, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
+import { FaMinus, FaPlus, FaSpinner, FaExclamationTriangle, FaEdit } from 'react-icons/fa';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { StlViewer } from "react-stl-viewer";
@@ -148,6 +148,26 @@ const ShoppingCartItem = ({
 }) => {
   const [email, setEmail] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedQuantity, setEditedQuantity] = useState(quantity);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
+
+  const handleQuantityChange = (newQuantity) => {
+    const parsedQuantity = parseInt(newQuantity, 10);
+    if (!isNaN(parsedQuantity) && parsedQuantity > 0) {
+      onQuantityChange(fileid, parsedQuantity);
+    } else {
+      setEditedQuantity(quantity);
+    }
+    setIsEditing(false);
+  };
+
   async function forwardFileForReview(fileid, email) {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -431,7 +451,26 @@ const ShoppingCartItem = ({
           <p className="text-white font-bold mb-1">Part Quantity</p>
           <div className="flex items-center mb-2">
             <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity - 1)}><FaMinus /></button>
-            <p className="mx-2 text-white">{quantity}</p>
+            {isEditing ? (
+              <input
+                ref={inputRef}
+                type="number"
+                className="mx-2 text-white bg-[#2A2A2A] border border-[#5E5E5E] rounded w-16 text-center"
+                value={editedQuantity}
+                onChange={(e) => setEditedQuantity(e.target.value)}
+                onBlur={() => handleQuantityChange(editedQuantity)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleQuantityChange(editedQuantity);
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex items-center mx-2 text-white cursor-pointer" onClick={() => setIsEditing(true)}>
+                <span>{quantity}</span>
+                <FaEdit className="ml-1 text-xs" />
+              </div>
+            )}
             <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity + 1)}><FaPlus /></button>
           </div>
           <p className="text-white font-bold text-lg mb-2">${price}</p>

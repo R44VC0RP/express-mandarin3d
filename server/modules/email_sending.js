@@ -1,7 +1,6 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import dotenv from 'dotenv';
-import order_recieved from '../email_templates/order_templates.js';
-import order_shipped from '../email_templates/order_templates.js';
+import { order_received, order_shipped, business_order_received } from '../email_templates/order_templates.js';
 import path from 'path';
 
 dotenv.config({ path: '../.env.local' });
@@ -28,12 +27,12 @@ const sendOrderReceivedEmail = async (orderObject) => {
       Body: {
         Html: {
           Charset: 'UTF-8',
-          Data: order_recieved(orderObject, trackingUrl),
+          Data: order_received(orderObject, trackingUrl),
         },
       },
       Subject: {
         Charset: 'UTF-8',
-        Data: `Order Received for Order #${orderObject.order_number}`,
+        Data: `Order Received for Order ${orderObject.order_number}`,
       },
     },
   };
@@ -69,7 +68,7 @@ const sendOrderShippedEmail = async (orderObject) => {
       },
       Subject: {
         Charset: 'UTF-8',
-        Data: `Your Order #${orderObject.order_number} Has Been Shipped`,
+        Data: `Your Order ${orderObject.order_number} Has Been Shipped`,
       },
     },
   };
@@ -88,6 +87,43 @@ const sendOrderShippedEmail = async (orderObject) => {
   }
 };
 
-export { sendOrderReceivedEmail, sendOrderShippedEmail };
+const businessOrderReceived = async (orderObject) => {
+  const params = {
+    Source: 'Mandarin 3D Prints <order@mandarin3d.com>',
+    Destination: {
+      ToAddresses: ['ryan@mandarin3d.com'],
+    },
+    Message: {
+      Body: {
+        Html: {
+          Charset: 'UTF-8',
+          Data: business_order_received(orderObject),
+        },
+      },
+      Subject: {
+        Charset: 'UTF-8',
+        Data: `New Order Received - Order ${orderObject.order_number}`,
+      },
+    },
+  };
+  
+  try {
+    const command = new SendEmailCommand(params);
+    const response = await sesClient.send(command);
+    console.log("Business order received email sent successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Error sending business order received email:", error.message);
+    if (error.$metadata) {
+      console.error("Error metadata:", error.$metadata);
+    }
+    throw error;
+  }
+};
+  
+
+
+
+export { sendOrderReceivedEmail, sendOrderShippedEmail, businessOrderReceived };
 
 

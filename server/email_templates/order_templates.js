@@ -1,4 +1,4 @@
-export default (orderObject, trackingUrl) => {
+export const order_received = (orderObject, trackingUrl) => {
   const {
     customer_details,
     order_number,
@@ -152,14 +152,196 @@ export default (orderObject, trackingUrl) => {
     
     <div class="footer">
         <p>© ${new Date().getFullYear()} Mandarin 3D Prints. All rights reserved.</p>
-        <p>123 Printer Lane, Tech City, TC 12345</p>
+        
     </div>
 </body>
 </html>`;
 };
 
+export const business_order_received = (orderObject) => {
+  const {
+    customer_details,
+    order_number,
+    cart,
+    total_details,
+    shipping_details,
+  } = orderObject;
+
+  const lineItems = cart.files.map(file => ({
+    name: file.filename,
+    quantity: file.quantity,
+    price: file.file_sale_cost.toFixed(2)
+  }));
+
+  // Add cart addons to line items
+  cart.cart_addons.forEach(addon => {
+    lineItems.push({
+      name: addon.addon_name,
+      quantity: 1,
+      price: addon.addon_price.toFixed(2)
+    });
+  });
+
+  const totalAmount = (total_details.amount_total / 100).toFixed(2);
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Order Received - Mandarin 3D Prints</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #0D939B;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .header p {
+            color: #6A6A6A;
+            margin-top: 0;
+        }
+        .main h2 {
+            color: #2A2A2A;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        .order-summary {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .receipt {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .receipt th, .receipt td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .receipt th {
+            background-color: #0D939B;
+            color: white;
+        }
+        .receipt .total {
+            font-weight: bold;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #0D939B;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #6A6A6A;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Mandarin 3D Prints</h1>
+        <p>Custom 3D Printing Solutions</p>
+    </div>
+    
+    <div class="main">
+        <h2>New Order Received</h2>
+        <p>A new order has been placed. Here are the details:</p>
+        
+        <div class="order-summary">
+            <p><strong>Order Number:</strong> ${order_number}</p>
+            <p><strong>Customer Name:</strong> ${customer_details.name}</p>
+            <p><strong>Customer Email:</strong> ${customer_details.email}</p>
+            <table class="receipt">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${lineItems.map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.quantity}</td>
+                            <td>$${item.price}</td>
+                            <td>$${(item.quantity * parseFloat(item.price)).toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                    <tr class="total">
+                        <td colspan="3">Total</td>
+                        <td>$${totalAmount}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <h3>Shipping Information:</h3>
+        <p>
+            ${shipping_details.address.line1}<br>
+            ${shipping_details.address.line2 ? shipping_details.address.line2 + '<br>' : ''}
+            ${shipping_details.address.city}, ${shipping_details.address.state} ${shipping_details.address.postal_code}<br>
+            ${shipping_details.address.country}
+        </p>
+        
+        <p>Please process this order as soon as possible.</p>
+    </div>
+    
+    <div class="footer">
+        <p>© ${new Date().getFullYear()} Mandarin 3D Prints. All rights reserved.</p>
+        
+    </div>
+</body>
+</html>`;
+};
+
+
 export const order_shipped = (orderObject) => {
-  const { customer_details, order_number, lineItems, totalAmount, shippingInfo } = orderObject;
+    const {
+        customer_details,
+        order_number,
+        cart,
+        total_details,
+        shipping_details,
+      } = orderObject;
+    
+      const lineItems = cart.files.map(file => ({
+        name: file.filename,
+        quantity: file.quantity,
+        price: file.file_sale_cost.toFixed(2)
+      }));
+    
+      // Add cart addons to line items
+      cart.cart_addons.forEach(addon => {
+        lineItems.push({
+          name: addon.addon_name,
+          quantity: 1,
+          price: addon.addon_price.toFixed(2)
+        });
+      });
+    
+      const totalAmount = (total_details.amount_total / 100).toFixed(2);
+    
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -285,7 +467,7 @@ export const order_shipped = (orderObject) => {
     
     <div class="footer">
         <p>© ${new Date().getFullYear()} Mandarin 3D Prints. All rights reserved.</p>
-        <p>123 Printer Lane, Tech City, TC 12345</p>
+        
     </div>
 </body>
 </html>`;
