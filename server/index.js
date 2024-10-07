@@ -36,7 +36,11 @@ import {
 import {
     calculatePrice
 } from './modules/calculatingPrice.js';
-import { sendOrderReceivedEmail, sendOrderShippedEmail } from './modules/email_sending.js';
+import { 
+  sendOrderReceivedEmail, 
+  sendOrderShippedEmail,
+  businessOrderReceived
+} from './modules/email_sending.js';
 
 const utapi = new UTApi();
 
@@ -1819,6 +1823,7 @@ app.post('/api/checkout', async (req, res) => {
 app.get('/api/email/test', async (req, res) => {
   const order = await Order.findOne({ order_number: '#1255-2024' });
   const test_email = await sendOrderReceivedEmail(order);
+  const business_email = await businessOrderReceived(order);
   res.json({ status: 'success', message: 'Email sent successfully', test_email });
 });
 
@@ -1833,50 +1838,56 @@ app.get('/api/checkout/success', async (req, res) => {
 
 
   try {
+    const order_id = await checkOrdersForSession(session_id);
+    if (!order_id) {
+      return res.redirect(`${process.env.FRONTEND_URL}/confirmation/${order_id}`);
+    } else {
     const checkout_session_info = await getCheckoutSession(session_id);
     let cart_id = checkout_session_info.metadata.cart_id;
     let pricing_obj = JSON.parse(checkout_session_info.metadata.pricing_obj);
     const cart = await getCartComplete(cart_id);
     console.log("NEW ORDER CREATED AT " + new Date().toLocaleString());
 
-    // const payment = await getPayment(checkout_session_info.payment_intent);
+      // const payment = await getPayment(checkout_session_info.payment_intent);
 
-    // Lock the cart
-    await lockCart(cart_id);
+      // Lock the cart
+      await lockCart(cart_id);
 
-    const order = await createOrder(cart, checkout_session_info, pricing_obj);
+      const order = await createOrder(cart, checkout_session_info, pricing_obj);
 
-    // Print the receipt
+      // Print the receipt
 
-    console.log("Order: ", order.cart.files);
-    var order_object = {
-      "order_number": order.order_number,
-      "customer_name": order.customer_details.name,
-      "order_date": order.dateCreated,
-      "line_items": order.cart.files.map(file => ({
-        qty: file.quantity,
-        product: file.filename,
-        price: file.file_sale_cost
-      })),
-      "addons": cart.cart_addons.map(addon => ({
-        name: addon.addon_name,
-        price: parseFloat(addon.addon_price / 100)
-      }))
+      console.log("Order: ", order.cart.files);
+      var order_object = {
+        "order_number": order.order_number,
+        "customer_name": order.customer_details.name,
+        "order_date": order.dateCreated,
+        "line_items": order.cart.files.map(file => ({
+          qty: file.quantity,
+          product: file.filename,
+          price: file.file_sale_cost
+        })),
+        "addons": cart.cart_addons.map(addon => ({
+          name: addon.addon_name,
+          price: parseFloat(addon.addon_price / 100)
+        }))
+      }
+
+      
+      const response = await axios.post('https://host.home.exonenterprise.com/print', {
+        name: `receipt ${order.order_id}`,
+        pdf_url: "none",
+        action: 'print_receipt',
+        order_object: order_object
+      });
+
+      const email_result = await sendOrderReceivedEmail(order);
+      const business_email_result = await businessOrderReceived(order);
+      console.log("Email result: ", email_result);
+
+      // console.log("Checkout session info: ", checkout_session_info);
+      res.redirect(`${process.env.FRONTEND_URL}/confirmation/${order.order_id}`);
     }
-
-    
-    const response = await axios.post('https://host.home.exonenterprise.com/print', {
-      name: `receipt ${order.order_id}`,
-      pdf_url: "none",
-      action: 'print_receipt',
-      order_object: order_object
-    });
-
-    const email_result = await sendOrderReceivedEmail(order);
-    console.log("Email result: ", email_result);
-
-    // console.log("Checkout session info: ", checkout_session_info);
-    res.redirect(`${process.env.FRONTEND_URL}/confirmation/${order.order_id}`);
     //res.json({ status: 'success', message: 'Checkout successful', order_id: order.order_id });
   } catch (error) {
     console.error('Error retrieving checkout session:', error);
@@ -1983,7 +1994,9 @@ async function updateOrderStatus(orderId, newStatus) {
   console.log("Order: ", newStatus);
   if (newStatus === 'Shipping') {
     const email_result = await sendOrderShippedEmail(order);
+    
     console.log("Email result: ", email_result);
+    
   }
 
   order.order_status = newStatus;
@@ -2251,6 +2264,13 @@ app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, re
   }
 });
 
+async function checkOrdersForSession(session_id) {
+  const orders = await Order.find({ stripe_session_id: session_id });
+  if (orders.length > 0) {
+    return orders[0].order_id;
+  }
+  return false;
+}
 
 async function createOrder(cart, checkout_session_info, pricing_obj) {
   // Get the last order number and increment it
