@@ -18,6 +18,7 @@ export default function Orders() {
   const [showDelivered, setShowDelivered] = useState(false)
   const ordersPerPage = 20
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [orderFocusChanged, setOrderFocusChanged] = useState(false)
 
   const fetchOrders = async (page, status = "all") => {
     const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/orders/getall`, {
@@ -33,7 +34,7 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders(currentPage, currentStatus)
-  }, [currentPage, currentStatus])
+  }, [currentPage, currentStatus, orderFocusChanged])
 
   const handleStatusChange = (status) => {
     setCurrentStatus(status)
@@ -43,6 +44,11 @@ export default function Orders() {
 
   const handleOrderClick = (order) => {
     setSelectedOrder(order)
+  }
+
+  const handleOrderUnfocus = () => {
+    setSelectedOrder(null)
+    setOrderFocusChanged(prev => !prev) // Toggle this to trigger a refresh
   }
 
   const toggleShowDelivered = () => {
@@ -198,7 +204,7 @@ export default function Orders() {
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              setSelectedOrder(null);
+              handleOrderUnfocus();
             }
           }}
         >
@@ -208,7 +214,7 @@ export default function Orders() {
           >
             <button 
               className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 flex items-center text-sm mr-8 bg-[#2A2A2A] border border-[#4A4A4A] rounded-md p-1 px-2"
-              onClick={() => setSelectedOrder(null)}
+              onClick={handleOrderUnfocus}
             >
               <span className="mr-2">Close</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,7 +223,7 @@ export default function Orders() {
             </button>
             <div className="p-6 h-full overflow-hidden">
               <div className="h-full overflow-auto scrollbar-hide">
-                <OrderFocused orderId={selectedOrder.order_id} />
+                <OrderFocused orderId={selectedOrder.order_id} onClose={handleOrderUnfocus} />
               </div>
             </div>
           </div>

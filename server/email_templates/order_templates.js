@@ -317,7 +317,31 @@ export const business_order_received = (orderObject) => {
 
 
 export const order_shipped = (orderObject) => {
-  const { customer_details, order_number, lineItems, totalAmount, shippingInfo } = orderObject;
+    const {
+        customer_details,
+        order_number,
+        cart,
+        total_details,
+        shipping_details,
+      } = orderObject;
+    
+      const lineItems = cart.files.map(file => ({
+        name: file.filename,
+        quantity: file.quantity,
+        price: file.file_sale_cost.toFixed(2)
+      }));
+    
+      // Add cart addons to line items
+      cart.cart_addons.forEach(addon => {
+        lineItems.push({
+          name: addon.addon_name,
+          quantity: 1,
+          price: addon.addon_price.toFixed(2)
+        });
+      });
+    
+      const totalAmount = (total_details.amount_total / 100).toFixed(2);
+    
   return `
 <!DOCTYPE html>
 <html lang="en">
