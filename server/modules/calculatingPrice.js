@@ -5,6 +5,11 @@
 export const calculatePrice = (fileDetails, filament, file, profitMargin = 0.5) => {
     
     const quantity = file.quality;
+
+    if (fileDetails.price_override != null) {
+        return fileDetails.price_override;
+    }
+
     const quantityMultiplier = {
         '0.12mm': 2.4,
         '0.16mm': 2.2,
