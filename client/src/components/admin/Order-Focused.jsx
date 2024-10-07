@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, CheckCircle2, CreditCard, Truck, Download, Printer, Plus } from "lucide-react"
+import { AlertCircle, CheckCircle2, CreditCard, Truck, Download, Printer, Plus, Mail } from "lucide-react"
 import { ReactComponent as Printer3DIcon } from "@/assets/svgs/3dprinter.svg"
 import DeliveryStatus from "./comp_LinearDeliveryStatus"
 import { useState, useEffect } from "react"
@@ -87,6 +87,10 @@ export default function OrderFocused({ orderId }) {
 
   const createShippingLabel = async () => {
     await handleOrderAction('createShippingLabel', null)
+  }
+
+  const sendReceipt = async () => {
+    await handleOrderAction('sendReceipt', null)
   }
 
   const printReceipt = async () => {
@@ -211,6 +215,14 @@ export default function OrderFocused({ orderId }) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={sendReceipt}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              <span>Send receipt</span>
+            </Button>
             <Button 
               variant="outline" 
               size="sm"

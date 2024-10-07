@@ -2256,6 +2256,9 @@ app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, re
       case 'printReceipt':
         result = await printReceipt(orderId);
         break;
+      case 'sendReceipt':
+        result = await sendReceiptEmail(orderId);
+        break;
     }
     res.json({ status: 'success', result });
   } catch (error) {
@@ -2263,6 +2266,15 @@ app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, re
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 });
+
+async function sendReceiptEmail(orderId) {
+  const order = await Order.findOne({ order_id: orderId });
+  if (!order) {
+    return { status: 'error', message: 'Order not found' };
+  }
+  const email_result = await sendOrderReceivedEmail(order);
+  return { status: 'success', message: 'Receipt sent to customer', email_result };
+}
 
 async function checkOrdersForSession(session_id) {
   const orders = await Order.find({ stripe_session_id: session_id });
