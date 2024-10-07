@@ -96,6 +96,7 @@ export default function CollectionPage() {
                       product_fileid={product.product_fileid}
                       file_obj={product.file_obj}
                       onAddToCart={handleAddToCart}
+                      product_price={product.product_price}
                     />
                   </div>
                 ))}

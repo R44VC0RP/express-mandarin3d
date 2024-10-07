@@ -1546,10 +1546,13 @@ async function getCollectionProducts(collectionId) {
   }
 
   const products = await Product.find({ product_collection: collectionId });
+  const filament = await Filament.findOne({});
 
   for (const product of products) {
     const file = await File.findOne({ fileid: product.product_fileid });
     product.file_obj = file;
+
+    product.product_price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
   }
   return products;
 }
