@@ -1839,7 +1839,7 @@ app.get('/api/checkout/success', async (req, res) => {
 
   try {
     const order_id = await checkOrdersForSession(session_id);
-    if (!order_id) {
+    if (order_id != "NONE") {
       return res.redirect(`${process.env.FRONTEND_URL}/confirmation/${order_id}`);
     } else {
     const checkout_session_info = await getCheckoutSession(session_id);
@@ -2269,7 +2269,7 @@ async function checkOrdersForSession(session_id) {
   if (orders.length > 0) {
     return orders[0].order_id;
   }
-  return false;
+  return "NONE";
 }
 
 async function createOrder(cart, checkout_session_info, pricing_obj) {
