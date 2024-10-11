@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEdit, FaTrash, FaTimes, FaTags, FaLayerGroup } from 'react-icons/fa';
+import { FaSearch, FaEdit, FaTrash, FaTimes, FaTags, FaLayerGroup, FaLock } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -68,7 +68,9 @@ function ProductManagement() {
     const fetchProducts = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/product?action=list`, {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/product`, {
+                action: 'list'
+            }, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -288,7 +290,9 @@ function ProductManagement() {
                 collection_id: selectedCollection.collection_id,
                 collection_name: selectedCollection.collection_name,
                 collection_description: selectedCollection.collection_description,
-                collection_image_url: selectedCollection.collection_image_url
+                collection_image_url: selectedCollection.collection_image_url,
+                password_protected: selectedCollection.password_protected,
+                password: selectedCollection.password_protected ? selectedCollection.password : undefined,
             }, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -360,7 +364,7 @@ function ProductManagement() {
         item => Object.values(item).some(
             val => val && val.toString().toLowerCase().includes(filterText.toLowerCase())
         )
-    );
+    ).reverse();
 
     const sortProductsByDate = (products) => {
         return [...products].sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
@@ -382,7 +386,7 @@ function ProductManagement() {
     return (
         <div className="p-6">
             <h2 className="text-2xl font-bold mb-6">Product Management</h2>
-            
+
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-xl font-bold mb-4">Loading Products</p>
@@ -474,7 +478,7 @@ function ProductManagement() {
             )}
 
             <h2 className="text-2xl font-bold my-6">Collection Management</h2>
-            
+
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-xl font-bold mb-4">Loading Collections</p>
@@ -494,19 +498,37 @@ function ProductManagement() {
                                 <TableHead>Name</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead>Image</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {collections.map((collection) => (
                                 <TableRow key={collection.collection_id}>
-                                    <TableCell className="font-medium"><a href={`/collections/${collection.collection_id}`} target="_blank" rel="noopener noreferrer">{collection.collection_name}</a></TableCell>
+                                    <TableCell className="font-medium">
+                                        <a href={`/collections/${collection.collection_id}`} target="_blank" rel="noopener noreferrer">
+                                            {collection.collection_name}
+                                        </a>
+                                    </TableCell>
                                     <TableCell>{collection.collection_description.substring(0, 50)}...</TableCell>
                                     <TableCell>
                                         {collection.collection_image_url ? (
                                             <img src={collection.collection_image_url} alt={collection.collection_name} className="w-16 h-16 object-cover rounded" />
                                         ) : (
                                             <span className="text-gray-400">No image</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {collection.password_protected && (
+                                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300 flex items-center gap-1">
+                                                <FaLock className="w-3 h-3" />
+                                                Protected
+                                            </Badge>
+                                        )}
+                                        {collection.featured && (
+                                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300 ml-2">
+                                                Featured
+                                            </Badge>
                                         )}
                                     </TableCell>
                                     <TableCell>
@@ -576,23 +598,23 @@ function ProductManagement() {
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label htmlFor="title" className="text-right">Title</label>
-                                <Input id="title" value={selectedProduct.product_title} onChange={(e) => setSelectedProduct({...selectedProduct, product_title: e.target.value})} className="col-span-3" />
+                                <Input id="title" value={selectedProduct.product_title} onChange={(e) => setSelectedProduct({ ...selectedProduct, product_title: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label htmlFor="description" className="text-right">Description</label>
-                                <Input id="description" value={selectedProduct.product_description} onChange={(e) => setSelectedProduct({...selectedProduct, product_description: e.target.value})} className="col-span-3" />
+                                <Input id="description" value={selectedProduct.product_description} onChange={(e) => setSelectedProduct({ ...selectedProduct, product_description: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label htmlFor="author" className="text-right">Author</label>
-                                <Input id="author" value={selectedProduct.product_author} onChange={(e) => setSelectedProduct({...selectedProduct, product_author: e.target.value})} className="col-span-3" />
+                                <Input id="author" value={selectedProduct.product_author} onChange={(e) => setSelectedProduct({ ...selectedProduct, product_author: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label htmlFor="license" className="text-right">License</label>
-                                <Input id="license" value={selectedProduct.product_license} onChange={(e) => setSelectedProduct({...selectedProduct, product_license: e.target.value})} className="col-span-3" />
+                                <Input id="license" value={selectedProduct.product_license} onChange={(e) => setSelectedProduct({ ...selectedProduct, product_license: e.target.value })} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label htmlFor="url" className="text-right">URL</label>
-                                <Input id="url" value={selectedProduct.product_url} onChange={(e) => setSelectedProduct({...selectedProduct, product_url: e.target.value})} className="col-span-3" />
+                                <Input id="url" value={selectedProduct.product_url} onChange={(e) => setSelectedProduct({ ...selectedProduct, product_url: e.target.value })} className="col-span-3" />
                             </div>
                         </div>
                     )}
@@ -654,14 +676,15 @@ function ProductManagement() {
                             </div>
                             <div className="flex-1">
                                 <ShowcaseProduct
-                                    product_title={selectedProduct.product_title}
-                                    product_description={selectedProduct.product_description}
+                                    product_title={selectedProduct.product_title || "Product Title"}
+                                    product_description={selectedProduct.product_description || "Product Description"}
                                     product_image_url={selectedProduct.product_image_url || "https://via.placeholder.com/300"}
-                                    product_fileid={selectedProduct.product_fileid}
-                                    product_author={selectedProduct.product_author}
-                                    product_author_url={selectedProduct.product_author_url}
-                                    product_license={selectedProduct.product_license}
                                     product_features={selectedProduct.product_features}
+                                    product_fileid={selectedProduct.product_fileid}
+                                    product_author={selectedProduct.product_author || "Mandarin 3D"}
+                                    product_author_url={selectedProduct.product_author_url || "https://mandarin3d.com"}
+                                    product_license={selectedProduct.product_license || "Public Domain"}
+                                    file_obj={selectedProduct.file_obj}
                                 />
                             </div>
                         </div>
@@ -715,7 +738,7 @@ function ProductManagement() {
                         <label htmlFor="collection" className="block text-sm font-medium text-foreground mb-2">Select Collection</label>
                         <Select
                             value={selectedProduct?.product_collection || null}
-                            onValueChange={(value) => setSelectedProduct({...selectedProduct, product_collection: value})}
+                            onValueChange={(value) => setSelectedProduct({ ...selectedProduct, product_collection: value })}
                         >
                             <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Select a collection" />
@@ -775,7 +798,7 @@ function ProductManagement() {
                                 <Input
                                     id="collectionName"
                                     value={selectedCollection.collection_name}
-                                    onChange={(e) => setSelectedCollection({...selectedCollection, collection_name: e.target.value})}
+                                    onChange={(e) => setSelectedCollection({ ...selectedCollection, collection_name: e.target.value })}
                                     className="col-span-3"
                                 />
                             </div>
@@ -784,7 +807,7 @@ function ProductManagement() {
                                 <Input
                                     id="collectionDescription"
                                     value={selectedCollection.collection_description}
-                                    onChange={(e) => setSelectedCollection({...selectedCollection, collection_description: e.target.value})}
+                                    onChange={(e) => setSelectedCollection({ ...selectedCollection, collection_description: e.target.value })}
                                     className="col-span-3"
                                 />
                             </div>
@@ -794,11 +817,11 @@ function ProductManagement() {
                                     {selectedCollection.collection_image_url && (
                                         <img src={selectedCollection.collection_image_url} alt="Collection" className="w-32 h-32 object-cover rounded mb-2" />
                                     )}
-                                    <UploadButton 
+                                    <UploadButton
                                         endpoint="imageUploader"
                                         onClientUploadComplete={(res) => {
                                             if (res && res[0]) {
-                                                setSelectedCollection({...selectedCollection, collection_image_url: res[0].url});
+                                                setSelectedCollection({ ...selectedCollection, collection_image_url: res[0].url });
                                                 toast.success('Image uploaded successfully');
                                             }
                                         }}
@@ -808,6 +831,29 @@ function ProductManagement() {
                                     />
                                 </div>
                             </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor="collectionPasswordProtected" className="text-right">Password Protected</label>
+                                <div className="col-span-3">
+                                    <input
+                                        type="checkbox"
+                                        id="collectionPasswordProtected"
+                                        checked={selectedCollection.password_protected}
+                                        onChange={(e) => setSelectedCollection({ ...selectedCollection, password_protected: e.target.checked })}
+                                    />
+                                </div>
+                            </div>
+                            {selectedCollection.password_protected && (
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <label htmlFor="collectionPassword" className="text-right">Password</label>
+                                    <Input
+                                        id="collectionPassword"
+                                        type="password"
+                                        value={selectedCollection.password || ''}
+                                        onChange={(e) => setSelectedCollection({ ...selectedCollection, password: e.target.value })}
+                                        className="col-span-3"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                     <div className="flex justify-end mt-4">

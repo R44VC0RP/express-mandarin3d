@@ -164,6 +164,14 @@ export const collectionSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    password_protected: {
+        type: Boolean,
+        default: false,
+    },
+    password: {
+        type: String,
+        required: false,
+    },
     // ... any other existing fields ...
 }, { versionKey: false });
 
@@ -173,8 +181,6 @@ export const orderNumberSchema = new mongoose.Schema({
         default: 4000 // Starting point for order numbers
     }
 }, { versionKey: false });
-
-
 
 export const orderSchema = new mongoose.Schema({
     order_id: String,

@@ -1258,9 +1258,16 @@ const getProduct = async (product_id) => {
   return product;
 }
 
+const checkIfProductIsInAPasswordProtectedCollection = async (product_id) => {
+  const product = await Product.findOne({ product_id });
+  const collection = await Collection.findOne({ collection_id: product.product_collection });
+  return collection ? collection.password_protected : false;
+}
+
 const getProductList = async () => {
   const products = await Product.find();
-  for (const product of products) {
+  
+  for (const product of products) {  
     const file = await File.findOne({ fileid: product.product_fileid });
     const filament = await Filament.findOne({ });
     if (file && file.file_status === "success") {
@@ -1271,8 +1278,33 @@ const getProductList = async () => {
       product.product_price = 1;
       product.file_obj = null;
     }
+
   }
   return products;
+}
+
+const getPublicProductList = async () => {
+  const products = await Product.find();
+  const publicProducts = [];
+  
+  for (const product of products) {
+    const isPasswordProtected = await checkIfProductIsInAPasswordProtectedCollection(product.product_id);
+    console.log(product.product_title + " " + isPasswordProtected);
+    if (!isPasswordProtected) {
+      const file = await File.findOne({ fileid: product.product_fileid });
+      const filament = await Filament.findOne({ });
+      if (file && file.file_status === "success") {
+        const price = calculatePrice(file, filament, { quantity: 1, quality: '0.20mm' });
+        product.product_price = price;
+        product.file_obj = file;
+      } else {
+        product.product_price = 1;
+        product.file_obj = null;
+      }
+      publicProducts.push(product);
+    }
+  }
+  return publicProducts;
 }
 
 const updateProduct = async (product_id, product_title, product_description, product_features, product_image_url, product_fileid, product_author, product_author_url, product_license, product_url, product_tags, product_collection) => {
@@ -1344,7 +1376,7 @@ const getCollectionList = async () => {
   return collections;
 }
 
-const updateCollection = async (collection_id, collection_name, collection_description, collection_image_url, featured) => {
+const updateCollection = async (collection_id, collection_name, collection_description, collection_image_url, password_protected, password, featured) => {
   const collection = await Collection.findOne({ collection_id });
   if (!collection) {
     return null;
@@ -1352,6 +1384,14 @@ const updateCollection = async (collection_id, collection_name, collection_descr
   if (collection_name) collection.collection_name = collection_name;
   if (collection_description) collection.collection_description = collection_description;
   if (collection_image_url) collection.collection_image_url = collection_image_url;
+  if (password_protected !== undefined) {
+    collection.password_protected = password_protected;
+    if (password_protected) {
+      collection.password = password;
+    } else {
+      collection.password = undefined;
+    }
+  }
   if (featured !== undefined) {
     collection.featured = featured;
   }
@@ -1377,7 +1417,7 @@ app.get('/api/product', async (req, res) => {
   try {
     switch (action) {
       case 'list':
-        result = await getProductList();
+        result = await getPublicProductList();
         break;
       case 'featured_product':
         result = await Product.findOne({ product_tags: 'featured' });
@@ -1451,7 +1491,9 @@ app.post('/api/collection', requireLogin, requireAdmin, async (req, res) => {
     collection_name,
     collection_description,
     collection_image_url,
-    featured
+    featured,
+    password_protected,
+    password
   } = req.body;
   try {
     let result;
@@ -1470,7 +1512,7 @@ app.post('/api/collection', requireLogin, requireAdmin, async (req, res) => {
           // Unset featured on all other collections
           await Collection.updateMany({}, { featured: false });
         }
-        result = await updateCollection(collection_id, collection_name, collection_description, collection_image_url, featured);
+        result = await updateCollection(collection_id, collection_name, collection_description, collection_image_url, password_protected, password, featured);
         break;
       case 'delete':
         result = await deleteCollection(collection_id);
@@ -1566,13 +1608,51 @@ app.get('/api/collection/:collectionId', async (req, res) => {
   const { collectionId } = req.params;
   try {
     const collection = await getCollection(collectionId);
-    const result = await getCollectionProducts(collectionId);
-    if (!result) {
+    if (!collection) {
       return res.status(404).json({ status: 'error', message: 'Collection not found' });
     }
-    res.json({ status: 'success', products: result, collection: collection });
+    
+    if (collection.password_protected) {
+      return res.json({ status: 'success', isProtected: true, collection: { 
+        collection_id: collection.collection_id,
+        collection_name: collection.collection_name,
+        collection_description: collection.collection_description,
+        collection_image_url: collection.collection_image_url
+      }});
+    }
+    
+    const result = await getCollectionProducts(collectionId);
+    res.json({ status: 'success', isProtected: false, products: result, collection: collection });
   } catch (error) {
     console.error('Error fetching collection with products:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
+app.post('/api/collection/:collectionId/verify-password', async (req, res) => {
+  const { collectionId } = req.params;
+  const { password } = req.body;
+  
+  try {
+    const collection = await getCollection(collectionId);
+    if (!collection) {
+      return res.status(404).json({ status: 'error', message: 'Collection not found' });
+    }
+    
+    if (!collection.password_protected) {
+      return res.status(400).json({ status: 'error', message: 'This collection is not password protected' });
+    }
+    
+    const isPasswordCorrect = password === collection.password;
+    
+    if (isPasswordCorrect) {
+      const result = await getCollectionProducts(collectionId);
+      res.json({ status: 'success', products: result, collection: collection });
+    } else {
+      res.status(401).json({ status: 'error', message: 'Incorrect password' });
+    }
+  } catch (error) {
+    console.error('Error verifying collection password:', error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 });
