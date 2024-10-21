@@ -17,11 +17,13 @@ import FullPageDropzone from './components/FullPageDropzone'; // {{ add: import 
 import CookieCutterForm from './pages/customJobs/cookieCutter';
 import OrderConfirmation from './pages/Confirmation';
 import CollectionPage from './pages/Collections';
+import Products from './pages/Products';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useCart } from './context/Cart';
-import VHSISLIFE from './pages/client/vhsislife';
+import CustomNameplate from './pages/CustomNameplate';
+
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -123,9 +125,12 @@ function App() {
                 <Route path="/confirmation/:orderId" element={<OrderConfirmation  />} />
                 <Route path="/quote/:quoteId" element={<Quote />} />
                 {/* Client Sections */}
-                <Route path="/client/vhsislife" element={<VHSISLIFE />} />
+                <Route path="/products" element={<Products />} />
                 <Route path="/collections/:collectionId" element={<CollectionPage />} />
                 {/* End of Client Sections */}
+                {/* Product Sections */}
+                <Route path="/custom-nameplates" element={<CustomNameplate />} />
+                {/* End of Product Sections */}
               </Routes>
 
               <AlertManager /> 

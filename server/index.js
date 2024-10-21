@@ -604,7 +604,19 @@ const ourFileRouter = {
       file
     }) => {
       console.log("File uploaded: ", file.name);
+    }),
+    svgUploader: f({
+      "image/svg+xml": {
+        maxFileSize: "8MB",
+        maxFileCount: 1
+      }
     })
+      .onUploadComplete(async ({
+        metadata,
+        file
+      }) => {
+        console.log("File uploaded: ", file.name);
+      })
 
 };
 
@@ -1540,7 +1552,8 @@ app.get('/api/collection/featured', async (req, res) => {
       collection: {
         name: collection.collection_name,
         description: collection.collection_description,
-        image_url: collection.collection_image_url
+        image_url: collection.collection_image_url,
+        id: collection.collection_id
       }
     });
   } catch (error) {

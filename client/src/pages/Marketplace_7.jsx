@@ -239,7 +239,7 @@ export default function LuxuryMarketplace() {
                       <p className="text-base md:text-xl mb-1 md:mb-2 max-w-2xl">
                         {featuredCollection.description}
                       </p>
-                      <Button className="w-fit" size='lg'>
+                      <Button className="w-fit" size='lg' onClick={() => window.location.href = `/collections/${featuredCollection.id}`}>
                         Explore Collection <ChevronRight className="ml-2" />
                       </Button>
                     </div>
@@ -348,7 +348,7 @@ export default function LuxuryMarketplace() {
               </div>
               <div className="flex flex-col md:flex-row">
                 {/* Categories */}
-                <div className="w-full md:w-[20%] mb-4 md:mb-0 md:mr-4 bg-white bg-opacity-10 rounded-3xl p-4 md:p-8 backdrop-blur-md border border-white border-opacity-20">
+                {/* <div className="w-full md:w-[20%] mb-4 md:mb-0 md:mr-4 bg-white bg-opacity-10 rounded-3xl p-4 md:p-8 backdrop-blur-md border border-white border-opacity-20">
                   <h3 className="text-xl font-semibold mb-2">Categories</h3>
                   <ul className="space-y-2">
                     <li>
@@ -377,10 +377,10 @@ export default function LuxuryMarketplace() {
                       </Button>
                     </li>
                   </ul>
-                </div>
+                </div> */}
                 {/* Products Grid */}
-                <div className="w-full md:w-3/4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+                <div className="w-full">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1 md:gap-8">
                     {currentProducts.map((item, index) => (
                       <div key={index} className="px-2">
                         <PricingPlan {...item} onAddToCart={handleAddToCart} />

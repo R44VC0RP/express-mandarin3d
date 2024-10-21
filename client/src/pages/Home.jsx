@@ -229,24 +229,22 @@ function Home() {
         )}
         {/* Hero Section */}
         <section className="flex flex-col md:flex-row justify-center items-center">
-
           <Carousel
-            className="w-[80%] rounded-lg"
+            className="w-full md:w-[80%] rounded-lg"
             plugins={[
               Autoplay({
-                delay: 4000,
+                delay: 8000,
               }),
             ]}>
-            <CarouselContent >
-
+            <CarouselContent>
               {carouselItems.map((item, index) => (
                 <CarouselItem key={index}>
-                  <div className="w-full  relative overflow-hidden shadow-2xl rounded-lg">
-                    <div className="relative">
+                  <div className="w-full relative overflow-hidden  rounded-lg">
+                    <div className="relative aspect-[16/9]">
                       {item.video_or_image === 'video' ? (
                         <video
                           src={item.video_url}
-                          className="object-cover w-full h-[80vh] md:h-[50vh]"
+                          className="object-cover w-full h-full"
                           autoPlay
                           muted
                           loop
@@ -256,61 +254,60 @@ function Home() {
                         <img
                           src={item.image}
                           alt={item.title}
-                          className="object-cover w-full h-[80vh] md:h-[50vh]"
+                          className="object-cover w-full h-full"
                         />
                       )}
-                      <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-8">
-                        <div className="bg-black bg-opacity-40 backdrop-blur-sm p-4 rounded-lg border-2 border-[#5E5E5E] border-opacity-20">
-                        <h1 className="text-2xl md:text-4xl font-bold mb-2 text-white">{item.title}</h1>
-                        <p className="text-base md:text-xl mb-4 text-white">{item.description}</p>
-                        <div className="flex space-x-4">
-                          {item.buttons.map((button, buttonIndex) => (
-                            <button key={buttonIndex} className={`px-4 py-2 rounded ${button.className}`} onClick={button.onClick}>
-                              {button.text}
-                            </button>
-                          ))}
-                        </div>
+                    </div>
+                    
+                    <div className="md:absolute md:inset-0 flex flex-col justify-end md:p-8">
+                    <div className="bg-black bg-opacity-40 backdrop-blur-sm p-4 border-2 border-[#5E5E5E] border-opacity-20 rounded-b-lg">
+                      <h1 className="text-xl md:text-4xl font-bold mb-2 text-white">{item.title}</h1>
+                      <p className="text-sm md:text-xl mb-4 text-white">{item.description}</p>
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        {item.buttons.map((button, buttonIndex) => (
+                          <button key={buttonIndex} className={`px-4 py-2 rounded ${button.className}`} onClick={button.onClick}>
+                            {button.text}
+                          </button>
+                        ))}
                       </div>
                     </div>
+                    </div>
                   </div>
-                </div>
                 </CarouselItem>
               ))}
-
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-        </Carousel>
+            <CarouselPrevious className="hidden md:flex" />
+            <CarouselNext className="hidden md:flex" />
+          </Carousel>
+        </section>
+        {/* End Hero Section */}
+        {/* Product Showcase Section */}
+        <section className="py-8 max-w-screen-lg mx-auto" >
+          <h2 className="text-3xl font-bold mb-6">Our Products</h2>
+          <div className="md:px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {showcaseProducts.map((product, index) => (
+              <ProductItem key={index} {...product} />
+            ))}
+          </div>
+        </section>
 
-      </section>
-      {/* End Hero Section */}
-      {/* Product Showcase Section */}
-      <section className="py-8 max-w-screen-lg mx-auto" >
-        <h2 className="text-3xl font-bold mb-6">Our Products</h2>
-        <div className="md:px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {showcaseProducts.map((product, index) => (
-            <ProductItem key={index} {...product} />
-          ))}
-        </div>
-      </section>
-
-      {/* Pricing Plans Section */}
-      <section className="py-8 px-4 max-w-screen-lg mx-auto">
-        <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
-        <Slider {...settings}>
-          {products.map((plan, index) => (
-            <div key={index} className="px-2">
-              <PricingPlan {...plan} onAddToCart={handleAddToCart} />
-            </div>
-          ))}
-        </Slider>
-      </section>
-    </main>
+        {/* Pricing Plans Section */}
+        <section className="py-8 px-4 max-w-screen-lg mx-auto">
+          <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
+          <Slider {...settings}>
+            {products.map((plan, index) => (
+              <div key={index} className="px-2">
+                <PricingPlan {...plan} onAddToCart={handleAddToCart} />
+              </div>
+            ))}
+          </Slider>
+        </section>
+      </main>
 
       {/* Footer */ }
-  <div className="relative z-50">
-    <Footer />
-  </div>
+      <div className="relative z-50">
+        <Footer />
+      </div>
     </div >
   );
 }

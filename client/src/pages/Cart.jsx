@@ -352,8 +352,8 @@ function Home() {
       handleRemove(fileid);
       return;
     }
-    if (newQuantity > 20) {
-      toast.error("You cannot have more than 20 of the same item in your cart");
+    if (newQuantity > 100) {
+      toast.error("You cannot have more than 100 of the same item in your cart");
       return;
     }
     try {
