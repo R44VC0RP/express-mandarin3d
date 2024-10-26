@@ -184,6 +184,15 @@ export default function OrderFocused({ orderId }) {
   const tax = order.total_details.amount_tax / 100;
   const total = items_total + shipping + tax;
 
+  const shippingFieldsLabels = {
+    line1: 'Line 1',
+    line2: 'Line 2',
+    city: 'City',
+    state: 'State',
+    postal_code: 'Postal Code',
+    country: 'Country'
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       <div className="flex justify-between items-start">
@@ -342,18 +351,22 @@ export default function OrderFocused({ orderId }) {
                 <div key={field} className="mb-2">
                   {editingShipping[field] ? (
                     <Input
+                      autoFocus
                       value={modifiedShipping[field] || ''}
                       onChange={(e) => handleShippingChange(field, e.target.value)}
                       onBlur={() => setEditingShipping(prev => ({ ...prev, [field]: false }))}
                       className="w-full"
                     />
                   ) : (
-                    <p
-                      className="cursor-pointer hover:bg-gray-100 p-1 rounded"
+                    <div className="flex items-center space-x-2">
+                      <Badge className="font-semibold">{shippingFieldsLabels[field]}:</Badge> 
+                      <p
+                      className="cursor-pointer p-1 rounded hover:bg-gray-600"
                       onClick={() => handleShippingEdit(field)}
                     >
-                      {order.shipping_details.address[field]}
-                    </p>
+                      {modifiedShipping[field] || order.shipping_details.address[field] || <code className="text-gray-400 border border-gray-400 p-1 rounded-md">No Value</code>}
+                      </p>
+                    </div>
                   )}
                 </div>
               ))}
