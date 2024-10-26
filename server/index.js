@@ -39,7 +39,8 @@ import {
 import { 
   sendOrderReceivedEmail, 
   sendOrderShippedEmail,
-  businessOrderReceived
+  businessOrderReceived,
+  sendContactEmailToAdmin
 } from './modules/email_sending.js';
 
 const utapi = new UTApi();
@@ -2398,6 +2399,8 @@ app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, re
   }
 });
 
+
+
 async function sendReceiptEmail(orderId) {
   const order = await Order.findOne({ order_id: orderId });
   if (!order) {
@@ -2405,6 +2408,11 @@ async function sendReceiptEmail(orderId) {
   }
   const email_result = await sendOrderReceivedEmail(order);
   return { status: 'success', message: 'Receipt sent to customer', email_result };
+}
+
+async function sendContactEmail(name, email, message) {
+  const email_result = await sendContactEmailToAdmin(name, email, message);
+  return { status: 'success', message: 'Message sent to admin', email_result };
 }
 
 async function checkOrdersForSession(session_id) {
@@ -2573,6 +2581,12 @@ app.get('/api/quote/get/:quote_id', async (req, res) => {
 // #endregion QUOTE MANAGEMENT
 
 // #region CONTACT AND CUSTOM ORDER MANAGEMENT
+
+app.post('/api/contact', async (req, res) => {
+  const { name, email, message } = req.body;
+  const result = await sendContactEmail(name, email, message);
+  res.json(result);
+});
 
 app.post('/api/contact/fileissue', async (req, res) => {
   const { fileid, email } = req.body;

@@ -751,6 +751,9 @@ function Home() {
                       <label htmlFor="testMode" className="text-sm text-gray-300">Test Mode</label>
                     </div>
                   )}
+                  <div className="mt-4">
+                    By placing this order you agree to Mandarin 3D's <a href="/terms-of-service" className="text-blue-500">Terms and Conditions</a>
+                  </div>
                 </div>
               </div>
               <div className="card-special w-full p-4 mt-4">

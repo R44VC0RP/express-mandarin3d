@@ -1,6 +1,6 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import dotenv from 'dotenv';
-import { order_received, order_shipped, business_order_received } from '../email_templates/order_templates.js';
+import { order_received, order_shipped, business_order_received, contact_email } from '../email_templates/order_templates.js';
 import path from 'path';
 
 dotenv.config({ path: '../.env.local' });
@@ -15,6 +15,37 @@ const sesClient = new SESClient({
     secretAccessKey: process.env.aws_secret_access_key,
   },
 });
+
+const sendContactEmailToAdmin = async (name, email, message) => {
+  const params = {
+    Source: 'Mandarin 3D Prints <order@mandarin3d.com>',
+    Destination: {
+      ToAddresses: ['ryan@mandarin3d.com'],
+    },
+    ReplyToAddresses: [email],
+    Message: {
+      Body: {
+        Html: {
+          Charset: 'UTF-8',
+          Data: contact_email(name, email, message),
+        },
+      },
+      Subject: {
+        Charset: 'UTF-8',
+        Data: `New Contact Form Submission from ${name}`,
+      },
+    },
+  };
+
+  try {
+    const command = new SendEmailCommand(params);
+    const response = await sesClient.send(command);
+    console.log("Contact email sent successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Error sending contact email:", error.message);
+  }
+};
 
 const sendOrderReceivedEmail = async (orderObject) => {
   const trackingUrl = `${process.env.FRONTEND_URL}/confirmation/${orderObject.order_id}`;
@@ -124,6 +155,6 @@ const businessOrderReceived = async (orderObject) => {
 
 
 
-export { sendOrderReceivedEmail, sendOrderShippedEmail, businessOrderReceived };
+export { sendOrderReceivedEmail, sendOrderShippedEmail, businessOrderReceived, sendContactEmailToAdmin };
 
 

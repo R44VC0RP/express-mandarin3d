@@ -76,20 +76,11 @@ module.exports = withUt({
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
-        },
-        'border-dance': {
-          '0%': {
-            'background-position': '0px 0px, 300px 116px, 0px 150px, 216px 0px'
-          },
-          '100%': {
-            'background-position': '300px 0px, 0px 116px, 0px 0px, 216px 150px'
-          }
         }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        'border-dance': 'border-dance 4s linear infinite'
+        "accordion-up": "accordion-up 0.2s ease-out"
       },
       customClasses: {
         'greycard-sp': 'bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-[15px] overflow-hidden',

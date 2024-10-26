@@ -23,7 +23,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { useCart } from './context/Cart';
 import CustomNameplate from './pages/CustomNameplate';
-
+import TermsOfService from './pages/TermsOfService';
+import Contact from './pages/Contact';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -131,6 +132,8 @@ function App() {
                 {/* Product Sections */}
                 <Route path="/custom-nameplates" element={<CustomNameplate />} />
                 {/* End of Product Sections */}
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/contact" element={<Contact />} />
               </Routes>
 
               <AlertManager /> 
