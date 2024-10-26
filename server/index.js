@@ -79,9 +79,13 @@ app.use((req, res, next) => {
 const corsOptions = {
   origin: process.env.FRONTEND_URL,
   optionsSuccessStatus: 200
+  
 };
 
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: '*',
+  optionsSuccessStatus: 200
+}));
 
 app.use(express.json());
 
