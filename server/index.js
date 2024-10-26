@@ -2329,6 +2329,41 @@ async function printReceipt(orderId) {
   
 }
 
+// Add this function near your other order management functions
+const updateOrder = async (orderId, updateData) => {
+  try {
+    const order = await Order.findOne({ order_id: orderId });
+    if (!order) {
+      return { status: 'error', message: 'Order not found' };
+    }
+
+    // If shipping details are being updated
+    if (updateData.shipping_details) {
+      order.shipping_details = {
+        ...order.shipping_details,
+        ...updateData.shipping_details
+      };
+    }
+
+    // Update the dateUpdated field
+    order.dateUpdated = new Date();
+
+    await order.save();
+    return { 
+      status: 'success', 
+      message: 'Order updated successfully',
+      order 
+    };
+  } catch (error) {
+    console.error('Error updating order:', error);
+    return { 
+      status: 'error', 
+      message: 'Failed to update order',
+      error: error.message 
+    };
+  }
+};
+
 app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, res) => {
   const { orderId, action, newStatus } = req.body;
   let result;
@@ -2351,6 +2386,9 @@ app.post('/api/admin/orders/actions', requireLogin, requireAdmin, async (req, re
         break;
       case 'sendReceipt':
         result = await sendReceiptEmail(orderId);
+        break;
+      case 'updateOrder':
+        result = await updateOrder(orderId, req.body);
         break;
     }
     res.json({ status: 'success', result });

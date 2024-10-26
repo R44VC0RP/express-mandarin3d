@@ -8,12 +8,16 @@ import DeliveryStatus from "./comp_LinearDeliveryStatus"
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { toast } from 'sonner';
+import { Input } from "@/components/ui/input" // Add this import
 
 export default function OrderFocused({ orderId }) {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  
+  const [editingShipping, setEditingShipping] = useState({});
+  const [modifiedShipping, setModifiedShipping] = useState({});
+  const [hasShippingChanges, setHasShippingChanges] = useState(false);
+
   useEffect(() => {
     fetchOrderDetails()
   }, [orderId])
@@ -108,6 +112,62 @@ export default function OrderFocused({ orderId }) {
   const printShippingLabel = async () => {
     await handleOrderAction('printShippingLabel')
   }
+
+  // Add this function to handle shipping field edits
+  const handleShippingEdit = (field) => {
+    setEditingShipping(prev => ({
+      ...prev,
+      [field]: true
+    }));
+    setModifiedShipping(prev => ({
+      ...prev,
+      [field]: order.shipping_details.address[field]
+    }));
+  };
+
+  // Add this function to handle shipping field changes
+  const handleShippingChange = (field, value) => {
+    setModifiedShipping(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setHasShippingChanges(true);
+  };
+
+  // Add this function to save shipping changes
+  const saveShippingChanges = async () => {
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/admin/orders/actions`,
+        {
+          orderId,
+          action: 'updateOrder',
+          shipping_details: {
+            ...order.shipping_details,
+            address: {
+              ...order.shipping_details.address,
+              ...modifiedShipping
+            }
+          }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (response.data.status === 'success') {
+        setEditingShipping({});
+        setHasShippingChanges(false);
+        fetchOrderDetails();
+        toast.success('Shipping details updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating shipping details:', error);
+      toast.error('Failed to update shipping details');
+    }
+  };
 
   if (loading) return <div>Loading...</div>
   if (error) return <div>{error}</div>
@@ -278,9 +338,34 @@ export default function OrderFocused({ orderId }) {
             </div>
             <div>
               <h4 className="font-semibold mb-2">Shipping details</h4>
-              <p>{order.shipping_details.address.line1}</p>
-              <p>{order.shipping_details.address.line2}</p>
-              <p>{order.shipping_details.address.city}, {order.shipping_details.address.state} {order.shipping_details.address.postal_code} {order.shipping_details.address.country}</p>
+              {['line1', 'line2', 'city', 'state', 'postal_code', 'country'].map((field) => (
+                <div key={field} className="mb-2">
+                  {editingShipping[field] ? (
+                    <Input
+                      value={modifiedShipping[field] || ''}
+                      onChange={(e) => handleShippingChange(field, e.target.value)}
+                      onBlur={() => setEditingShipping(prev => ({ ...prev, [field]: false }))}
+                      className="w-full"
+                    />
+                  ) : (
+                    <p
+                      className="cursor-pointer hover:bg-gray-100 p-1 rounded"
+                      onClick={() => handleShippingEdit(field)}
+                    >
+                      {order.shipping_details.address[field]}
+                    </p>
+                  )}
+                </div>
+              ))}
+              {hasShippingChanges && (
+                <Button
+                  size="sm"
+                  onClick={saveShippingChanges}
+                  className="mt-2 github-primary"
+                >
+                  Save Shipping Changes
+                </Button>
+              )}
             </div>
             <div>
               <h4 className="font-semibold mb-2">Download all files as a zip</h4>
