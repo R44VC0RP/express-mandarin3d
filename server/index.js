@@ -2165,7 +2165,19 @@ async function createShippingLabel(orderId) {
       description: "3D Printed Items",
       customer_reference: orderId,
       product_code: "STANDARD-DROPOFF",
-      pickup_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      pickup_date: (() => {
+        const getNextBusinessDay = (date) => {
+          const day = date.getDay();
+          if (day === 6) return new Date(date.setDate(date.getDate() + 2)); // Saturday -> Monday
+          if (day === 0) return new Date(date.setDate(date.getDate() + 1)); // Sunday -> Monday
+          return date;
+        };
+
+        let nextDay = new Date();
+        nextDay.setDate(nextDay.getDate() + 1); // At least one day in future
+        nextDay = getNextBusinessDay(nextDay); // Ensure it's a business day
+        return nextDay.toISOString().split('T')[0];
+      })(),
       packaging_type: "box",
       hide_pickup_address: false
     }, {
