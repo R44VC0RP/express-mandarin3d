@@ -2240,6 +2240,7 @@ async function createShippingLabel(orderId) {
 
     if (error.response) {
       console.error('Error response:', error.response.data.messages.receiver);
+      console.error('Error Message: ', error.response.data.messages);
       errorDetails = {
         status: error.response.status,
         statusText: error.response.statusText,
