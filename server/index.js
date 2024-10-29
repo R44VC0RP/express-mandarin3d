@@ -2234,7 +2234,7 @@ async function createShippingLabel(orderId) {
     const shippingLabel = response.data;
     return { status: 'success', message: 'Shipping label created', shippingLabel };
   } catch (error) {
-    console.error('Error creating shipping label:', error);
+    console.error('Error creating shipping label:', JSON.stringify(error, null, 2));
     let errorMessage = 'Failed to create shipping label';
     let errorDetails = {};
 
