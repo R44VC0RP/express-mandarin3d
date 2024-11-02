@@ -79,7 +79,7 @@ const Header = () => {
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex md:items-center md:justify-end w-full md:w-auto">
                     <nav className="flex items-center space-x-6">
-                        <a href="/marketplace" className="text-white hover:text-[#11B3BD] transition-colors">Model Marketplace</a>
+                        {/* <a href="/marketplace" className="text-white hover:text-[#11B3BD] transition-colors">Model Marketplace</a> */}
                         <a href="https://shop.mandarin3d.com" className="text-white hover:text-[#11B3BD] transition-colors">Product Store</a>
                         <a href="/contact" className="text-white hover:text-[#11B3BD] transition-colors">Contact Us</a>
                     </nav>
