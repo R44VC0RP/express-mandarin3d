@@ -126,18 +126,18 @@ const Header = () => {
                         </button>
                     </div>
                     <nav className="flex flex-col space-y-6">
-                        <a
+                        {/* <a
                             href="/marketplace"
                             className="text-white hover:text-[#11B3BD] transition-colors text-2xl sm:text-3xl font-semibold"
                         >
                             Model Marketplace
-                        </a>
-                        {/* <a
-                            href="/products"
+                        </a> */}
+                        <a
+                            href="https://shop.mandarin3d.com"
                             className="text-white hover:text-[#11B3BD] transition-colors text-2xl sm:text-3xl font-semibold"
                         >
                             Products
-                        </a> */}
+                        </a>
                         <a
                             href="/contact"
                             className="text-white hover:text-[#11B3BD] transition-colors text-2xl sm:text-3xl font-semibold"
