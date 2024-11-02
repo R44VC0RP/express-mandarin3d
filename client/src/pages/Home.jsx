@@ -292,7 +292,7 @@ function Home() {
         </section>
 
         {/* Pricing Plans Section */}
-        <section className="py-8 px-4 max-w-screen-lg mx-auto">
+        {/* <section className="py-8 px-4 max-w-screen-lg mx-auto">
           <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
           <Slider {...settings}>
             {products.map((plan, index) => (
@@ -301,7 +301,8 @@ function Home() {
               </div>
             ))}
           </Slider>
-        </section>
+        </section> */}
+        {/* INSERT SHPOIFY STUFF HERE: */}
       </main>
 
       {/* Footer */ }
