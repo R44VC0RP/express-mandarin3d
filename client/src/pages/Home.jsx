@@ -175,7 +175,7 @@ function Home() {
       description: "Bringing your ideas to life, one layer at a time.",
       buttons: [
         { text: "See our Model Library", className: "primary-button", onClick: () => {
-          window.location.href = "/marketplace";
+          window.location.href = "https://shop.mandarin3d.com";
         } },
         { text: "Contact Sales", className: "secondary-button", onClick: () => {
           window.location.href = "/contact";
@@ -189,7 +189,7 @@ function Home() {
       description: "We curate the best designs from the maker community and make them available to you.",
       buttons: [
         { text: "Get your own!", className: "primary-button", onClick: () => {
-          window.location.href = "/products/cookie-cutters";
+          window.location.href = "https://shop.mandarin3d.com/pages/cookie-cutters";
         } },
       ]
     },
@@ -200,7 +200,7 @@ function Home() {
       description: "Stand out with a custom nameplate or plaque. Perfect for gifts, awards, or personalization.",
       buttons: [
         { text: "Get your own!", className: "primary-button", onClick: () => {
-          window.location.href = "/products/nameplates";
+          window.location.href = "https://shop.mandarin3d.com/pages/nameplates";
         } },
       ]
     }
