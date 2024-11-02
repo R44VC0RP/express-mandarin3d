@@ -80,7 +80,7 @@ const Header = () => {
                 <div className="hidden md:flex md:items-center md:justify-end w-full md:w-auto">
                     <nav className="flex items-center space-x-6">
                         <a href="/marketplace" className="text-white hover:text-[#11B3BD] transition-colors">Model Marketplace</a>
-                        {/* <a href="/products" className="text-white hover:text-[#11B3BD] transition-colors">Products</a> */}
+                        <a href="https://shop.mandarin3d.com" className="text-white hover:text-[#11B3BD] transition-colors">Product Store</a>
                         <a href="/contact" className="text-white hover:text-[#11B3BD] transition-colors">Contact Us</a>
                     </nav>
                     <div className="flex items-center ml-4">
