@@ -1173,6 +1173,24 @@ const deleteFilament = async (filament_id) => {
   await Filament.deleteOne({ filament_id });
 }
 
+app.get('/api/filament', async (req, res) => {
+  const { action } = req.query;
+  let result;
+  try {
+    switch (action) {
+      case 'list':
+        result = await getFilamentList();
+        break;
+      default:
+        return res.status(400).json({ status: 'error', message: 'Invalid action' });
+    }
+    res.json({ status: 'success', result });
+  } catch (error) {
+    console.error('Error handling filament action:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+});
+
 app.post('/api/filament', async (req, res) => {
   const {
     action,
