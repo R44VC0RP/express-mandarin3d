@@ -40,7 +40,8 @@ import {
   sendOrderReceivedEmail, 
   sendOrderShippedEmail,
   businessOrderReceived,
-  sendContactEmailToAdmin
+  sendContactEmailToAdmin,
+  sendFileIssueEmail
 } from './modules/email_sending.js';
 
 const utapi = new UTApi();
@@ -2630,7 +2631,8 @@ app.post('/api/contact/fileissue', async (req, res) => {
     if (!file) {
       return res.status(404).json({ status: 'error', message: 'File not found' });
     }
-    return res.status(200).json({ status: 'success', message: 'File forwarded for review successfully.' });
+    const result = await sendFileIssueEmail(fileid, email, file.utfile_url);
+    return res.status(200).json({ status: 'success', message: 'File forwarded for review successfully.', result });
   } catch (error) {
     console.error('Error forwarding file for review:', error);
     return res.status(500).json({ status: 'error', message: 'An error occurred while forwarding the file. Please try again.' });

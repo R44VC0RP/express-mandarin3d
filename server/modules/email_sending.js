@@ -1,6 +1,6 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import dotenv from 'dotenv';
-import { order_received, order_shipped, business_order_received, contact_email } from '../email_templates/order_templates.js';
+import { order_received, order_shipped, business_order_received, contact_email, file_issue_email } from '../email_templates/order_templates.js';
 import path from 'path';
 
 dotenv.config({ path: '../.env.local' });
@@ -152,9 +152,41 @@ const businessOrderReceived = async (orderObject) => {
   }
 };
   
+const sendFileIssueEmail = async (fileid, email, fileurl) => {
+  const params = {
+    Source: 'Mandarin 3D Prints <order@mandarin3d.com>',
+    Destination: {
+      ToAddresses: ['ryan@mandarin3d.com'],
+    },
+    Message: {
+      Body: {
+        Html: {
+          Charset: 'UTF-8',
+          Data: file_issue_email(fileid, email, fileurl),
+        },
+      },
+      Subject: {
+        Charset: 'UTF-8',
+        Data: `New File Issue Submission - File ${fileid}`,
+      },
+    },
+  };
+  
+  try {
+    const command = new SendEmailCommand(params);
+    const response = await sesClient.send(command);
+    console.log("File issue email sent successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Error sending file issue email:", error.message);
+    if (error.$metadata) {
+      console.error("Error metadata:", error.$metadata);
+    }
+    throw error;
+  }
+};
 
 
-
-export { sendOrderReceivedEmail, sendOrderShippedEmail, businessOrderReceived, sendContactEmailToAdmin };
+export { sendOrderReceivedEmail, sendOrderShippedEmail, businessOrderReceived, sendContactEmailToAdmin, sendFileIssueEmail };
 
 
