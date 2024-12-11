@@ -425,28 +425,28 @@ const sliceFile = async (fileid) => {
   };
 }
 
-app.post('/api/submit-remote', upload.single('file'), (req, res) => {
-  try {
-    // If a file was uploaded, you can access it via req.file
-    const uploadedFile = req.file;
+// app.post('/api/submit-remote', upload.single('file'), (req, res) => {
+//   try {
+//     // If a file was uploaded, you can access it via req.file
+//     const uploadedFile = req.file;
 
-    // Process the form data
-    const response = await utapi.uploadFiles(uploadedFile);
+//     // Process the form data
+//     const response = await utapi.uploadFiles(uploadedFile);
 
-    // Here you would typically save to database, send emails, etc.
-    console.log('Received Response of: ' + response);
+//     // Here you would typically save to database, send emails, etc.
+//     console.log('Received Response of: ' + response);
 
-    res.status(200).json({
-      message: 'Form submitted successfully',
-      response: response
-    });
-  } catch (error) {
-    console.error('Form submission error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error' 
-    });
-  }
-});
+//     res.status(200).json({
+//       message: 'Form submitted successfully',
+//       response: response
+//     });
+//   } catch (error) {
+//     console.error('Form submission error:', error);
+//     res.status(500).json({ 
+//       error: 'Internal server error' 
+//     });
+//   }
+// });
 
 
 const createNewFile = async (filename, utfile_id, utfile_url, price_override = null) => {
