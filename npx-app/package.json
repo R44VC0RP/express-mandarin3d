@@ -1,0 +1,16 @@
+{
+  "name": "mandarin3d",
+  "version": "2.1.1",
+  "description": "CLI tool to upload STL files to Mandarin3D",
+  "main": "src/main.js",
+  "bin": {
+    "mandarin3d": "./bin/index.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "chalk": "^5.3.0",
+    "form-data": "^4.0.0",
+    "inquirer": "^9.2.15"
+  }
+}

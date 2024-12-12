@@ -25,7 +25,7 @@ import { useCart } from './context/Cart';
 import CustomNameplate from './pages/CustomNameplate';
 import TermsOfService from './pages/TermsOfService';
 import Contact from './pages/Contact';
-
+import FilePreview from './pages/FilePreview';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
@@ -128,6 +128,7 @@ function App() {
                 {/* Client Sections */}
                 <Route path="/products" element={<Products />} />
                 <Route path="/collections/:collectionId" element={<CollectionPage />} />
+                <Route path="/file/:fileId" element={<FilePreview />} />
                 {/* End of Client Sections */}
                 {/* Product Sections */}
                 <Route path="/custom-nameplates" element={<CustomNameplate />} />
