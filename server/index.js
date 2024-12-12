@@ -3,6 +3,7 @@ dotenv.config({
   'path': '.env.local'
 });
 import axios from 'axios';
+import multer from 'multer';
 import JSZip from 'jszip';
 import saveAs from 'file-saver';
 import fs from 'fs';
@@ -89,6 +90,16 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 128 * 1024 * 1024 // 128MB limit
+  }
+});
 
 // MongoDB Connection
 
@@ -425,28 +436,46 @@ const sliceFile = async (fileid) => {
   };
 }
 
-// app.post('/api/submit-remote', upload.single('file'), (req, res) => {
-//   try {
-//     // If a file was uploaded, you can access it via req.file
-//     const uploadedFile = req.file;
+app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
+  try {
+    // If a file was uploaded, you can access it via req.file
+    const uploadedFile = req.file;
+    
+    // Create a Blob with the file data
+    const blob = new Blob([uploadedFile.buffer], { type: uploadedFile.mimetype });
+    
+    // Add the name property to make it FileEsque
+    const file = Object.assign(blob, {
+      name: uploadedFile.originalname
+    });
+    
+    console.log("Uploading file: ", file.name);
 
-//     // Process the form data
-//     const response = await utapi.uploadFiles(uploadedFile);
+    // Process the form data with the properly formatted file
+    const response = await utapi.uploadFiles(file);
 
-//     // Here you would typically save to database, send emails, etc.
-//     console.log('Received Response of: ' + response);
+    console.log('Upload response:', response);
 
-//     res.status(200).json({
-//       message: 'Form submitted successfully',
-//       response: response
-//     });
-//   } catch (error) {
-//     console.error('Form submission error:', error);
-//     res.status(500).json({ 
-//       error: 'Internal server error' 
-//     });
-//   }
-// });
+
+    const newFile = await createNewFile(file.name, response.data.file_id, response.data.url);
+    console.log("New file created: ", newFile);
+
+    const quote = await createNewQuote([newFile.fileid], "");
+    console.log("New quote created: ", quote);
+
+    res.status(200).json({
+      message: 'File uploaded successfully',
+      response: response,
+      url: "https://mandarin3d.com/quote/" + quote.quote_id
+    });
+  } catch (error) {
+    console.error('Form submission error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+});
 
 
 const createNewFile = async (filename, utfile_id, utfile_url, price_override = null) => {
@@ -2627,6 +2656,22 @@ app.post('/api/quote/mgmt', requireLogin, async (req, res) => {
       break;
   }
 });
+
+async function createNewQuote(quote_file_ids, quote_comments) {
+  const quote_files = quote_file_ids.map(fileid => ({
+    fileid,
+    quantity: 1,
+    quality: "0.20mm",
+  }));
+
+  const quote = new Quote({
+    quote_id: "quote_" + uuidv4(),
+    quote_files,
+    quote_comments
+  });
+  await quote.save();
+  return quote;
+}
 
 app.get('/api/quote/get/:quote_id', async (req, res) => {
   const { quote_id } = req.params;
