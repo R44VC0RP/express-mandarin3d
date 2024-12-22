@@ -344,9 +344,9 @@ export default function OrderFocused({ orderId }) {
               <p>{order.customer_details.address.line1}</p>
               <p>{order.customer_details.address.line2}</p>
               <p>{order.customer_details.address.city}, {order.customer_details.address.state} {order.customer_details.address.postal_code} {order.customer_details.address.country}</p>
-              <div>
+              <div className="mt-4">
                 <h4 className="font-semibold mb-2">Order notes</h4>
-                <p>{order.order_notes}</p>
+                <p>{order.order_comments}</p>
               </div>
             </div>
             <div>
