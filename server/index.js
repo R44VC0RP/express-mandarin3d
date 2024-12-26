@@ -2015,9 +2015,9 @@ app.get('/api/checkout/success', async (req, res) => {
     } else {
     const checkout_session_info = await getCheckoutSession(session_id);
     let cart_id = checkout_session_info.metadata.cart_id;
-    let pricing_obj = JSON.parse(checkout_session_info.metadata.pricing_obj);
+    
     const cart = await getCartComplete(cart_id);
-    pricing_obj = cart.pricing_obj;
+    let pricing_obj = cart.pricing_obj;
     console.log("Pricing Object: ", pricing_obj);
     console.log("NEW ORDER CREATED AT " + new Date().toLocaleString());
 
