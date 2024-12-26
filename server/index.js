@@ -1973,6 +1973,10 @@ app.post('/api/checkout', async (req, res) => {
     }
 
     // console.log('Checkout object:', JSON.stringify(checkoutObject, null, 2));
+    // Update the cart with the pricing_obj
+    const cart_to_update = await Cart.findOne({ cart_id: cart_id });
+    cart_to_update.pricing_obj = pricing_obj;
+    await cart_to_update.save();
     // Here you would create a Stripe checkout session using the checkoutObject
     const session = await createSession(checkoutObject, shipping_option_id, cart_id, order_comments, test_mode, pricing_obj);
     // console.log('Stripe checkout session:', session);
@@ -2004,9 +2008,6 @@ app.get('/api/checkout/success', async (req, res) => {
   if (!session_id) {
     return res.status(400).json({ status: 'error', message: 'Session ID is required' });
   }
-  
-
-
   try {
     const order_id = await checkOrdersForSession(session_id);
     if (order_id != "NONE") {
@@ -2016,6 +2017,8 @@ app.get('/api/checkout/success', async (req, res) => {
     let cart_id = checkout_session_info.metadata.cart_id;
     let pricing_obj = JSON.parse(checkout_session_info.metadata.pricing_obj);
     const cart = await getCartComplete(cart_id);
+    pricing_obj = cart.pricing_obj;
+    console.log("Pricing Object: ", pricing_obj);
     console.log("NEW ORDER CREATED AT " + new Date().toLocaleString());
 
       // const payment = await getPayment(checkout_session_info.payment_intent);

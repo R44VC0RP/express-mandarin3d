@@ -91,6 +91,10 @@ export const cartSchema = new mongoose.Schema({
     dateCreated: {
         type: Date,
         default: Date.now
+    },
+    pricing_obj: {
+        type: Object,
+        required: false
     }
 }, { versionKey: false });
 
