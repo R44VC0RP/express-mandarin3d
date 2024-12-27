@@ -520,6 +520,9 @@ function Home() {
   
 
   const processCheckout = async () => {
+    window?.datafast("checkout", {
+      description: "user checked out"
+    });
     console.log("Processing Checkout");
 
     // Get the cookies

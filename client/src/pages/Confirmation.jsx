@@ -125,6 +125,10 @@ function OrderConfirmation() {
     ]
   };
 
+  window?.datafast("order_confirmation", {
+    description: "user completed checkout or is on order confirmation page"
+  });
+
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
       <Header />
