@@ -107,7 +107,9 @@ export const createSession  = async (checkoutObject, shipping_option_id, cart_id
     metadata: {
       cart_id: cart_id,
       order_comments: order_comments,
-      test_mode: test_mode ? true : false
+      test_mode: test_mode ? true : false,
+      visitorId: datafast_visitor_id,
+      sessionId: datafast_session_id
     }
   });
     return session;

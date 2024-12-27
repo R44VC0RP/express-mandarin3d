@@ -522,6 +522,17 @@ function Home() {
   const processCheckout = async () => {
     console.log("Processing Checkout");
 
+    // Get the cookies
+    const datafast_visitor_id = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('datafast_visitor_id='))
+      ?.split('=')[1];
+    
+    const datafast_session_id = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('datafast_session_id='))
+      ?.split('=')[1];
+
     // Checks to make sure the cart is valid before processing checkout
     if (cartItems.length === 0) {
       toast.error("Your cart is empty. Please add some items to your cart before you can checkout.");
@@ -553,7 +564,9 @@ function Home() {
       order_comments: order_comments,
       shipping_option_id: shipping_option_id,
       cart_id: checkout_cart_id,
-      test_mode: testMode
+      test_mode: testMode,
+      datafast_visitor_id,
+      datafast_session_id
     }
 
     console.log("Checkout: ", checkout);

@@ -1893,7 +1893,15 @@ app.post('/api/configs', requireLogin, requireAdmin, async (req, res) => {
 // #region CHECKOUT MANAGEMENT
 
 app.post('/api/checkout', async (req, res) => {
-  const { order_comments, shipping_option_id, cart_id, test_mode } = req.body;
+  const { 
+    order_comments, 
+    shipping_option_id, 
+    cart_id, 
+    test_mode,
+    datafast_visitor_id,
+    datafast_session_id 
+  } = req.body;
+  
   try {
     const cart = await getCart(cart_id);
     if (!cart) {
@@ -1978,7 +1986,16 @@ app.post('/api/checkout', async (req, res) => {
     cart_to_update.pricing_obj = pricing_obj;
     await cart_to_update.save();
     // Here you would create a Stripe checkout session using the checkoutObject
-    const session = await createSession(checkoutObject, shipping_option_id, cart_id, order_comments, test_mode, pricing_obj);
+    const session = await createSession(
+      checkoutObject, 
+      shipping_option_id, 
+      cart_id, 
+      order_comments, 
+      test_mode, 
+      pricing_obj,
+      datafast_visitor_id,
+      datafast_session_id
+    );
     // console.log('Stripe checkout session:', session);
 
     // For now, we'll just return a mock response
@@ -2611,7 +2628,11 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
         addon_price: parseFloat(addon.addon_price).toFixed(2)
       })),
       dateCreated: cart.dateCreated,
-      livemode: checkout_session_info.metadata.test_mode === 'false'
+      livemode: checkout_session_info.metadata.test_mode === 'false',
+      datafast_details: {
+        visitor_id: checkout_session_info.metadata.datafast_visitor_id,
+        session_id: checkout_session_info.metadata.datafast_session_id
+      }
     }
   });
   await order.save();
