@@ -78,7 +78,7 @@ export const getShippingOptions = async () => {
     return shippingOptionsArray;
 }
 
-export const createSession  = async (checkoutObject, shipping_option_id, cart_id, order_comments, test_mode, pricing_obj) => {
+export const createSession  = async (checkoutObject, shipping_option_id, cart_id, order_comments, test_mode, pricing_obj, datafast_visitor_id, datafast_session_id) => {
     const stripe_handler = test_mode ? dev_stripe : stripe;
     if (checkoutObject.free_shipping) {
         shipping_option_id = free_shipping_rate;
