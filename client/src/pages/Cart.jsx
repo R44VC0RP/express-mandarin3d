@@ -526,15 +526,23 @@ function Home() {
     console.log("Processing Checkout");
 
     // Get the cookies
-    const datafast_visitor_id = document.cookie
+    let datafast_visitor_id = document.cookie
       .split('; ')
       .find(row => row.startsWith('datafast_visitor_id='))
       ?.split('=')[1];
     
-    const datafast_session_id = document.cookie
+    let datafast_session_id = document.cookie
       .split('; ')
       .find(row => row.startsWith('datafast_session_id='))
       ?.split('=')[1];
+
+    if (!datafast_visitor_id || !datafast_session_id) {
+      datafast_visitor_id = "none";
+      datafast_session_id = "none";
+    }
+
+    console.log("Datafast Visitor ID: ", datafast_visitor_id);
+    console.log("Datafast Session ID: ", datafast_session_id);
 
     // Checks to make sure the cart is valid before processing checkout
     if (cartItems.length === 0) {
