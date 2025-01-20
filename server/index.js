@@ -1973,7 +1973,7 @@ app.post('/api/checkout', async (req, res) => {
               addon_id: addon.addon_id
             }
           },
-          unit_amount: addon.addon_price
+          unit_amount: addon.addon_price * 100
         },
         quantity: 1
       });
