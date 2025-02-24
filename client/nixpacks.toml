@@ -1,14 +1,14 @@
 [phases.setup]
-nixPkgs = ['nodejs', 'nodePackages.npm']
+nixPkgs = ['bun']
 
 [phases.install]
-cmds = ['npm ci']
+cmds = ['bun install']
 
 [phases.build]
-cmds = ['npm run build']
+cmds = ['bun run build']
 
 [start]
-cmd = 'npx serve -s build'
+cmd = 'bunx serve -s build'
 
 [variables]
 NIXPACKS_PATH = "/app"
