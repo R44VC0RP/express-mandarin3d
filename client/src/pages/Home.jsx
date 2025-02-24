@@ -1,64 +1,56 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { FaInfoCircle, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaInfoCircle, FaCube, FaCloudUploadAlt, FaCogs, FaPalette, FaCheck, FaArrowRight } from 'react-icons/fa';
 import ProductItem from '../components/ProductItem';
-import PricingPlan from '../components/ShowcaseProduct';
-import Autoplay from "embla-carousel-autoplay"
-import Slider from "react-slick";
+import Autoplay from "embla-carousel-autoplay";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel"
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import FileUploadProgress from '../components/FileUploadProgress';
+} from "@/components/ui/carousel";
 import { useCart } from '../context/Cart';
 import Loading from 'react-fullscreen-loading';
 import axios from 'axios';
 import { toast } from 'sonner';
-import BackgroundEffects from '../components/BackgroundEffects'; // Import the new component
 
 // Asset Imports
-import prining_bambu from '../assets/videos/printing_bambu.mp4'
-import fusion360 from '../assets/images/fusion360.gif'
-import building from '../assets/images/outdoor.png'
-import custom_cookie_cutters from '../assets/images/custom_cookie_cutters.jpg'
-import nameplates from '../assets/images/customnameplates.png'
+import prining_bambu from '../assets/videos/printing_bambu.mp4';
+import fusion360 from '../assets/images/fusion360.gif';
+import building from '../assets/images/outdoor.png';
+import custom_cookie_cutters from '../assets/images/custom_cookie_cutters.jpg';
+import nameplates from '../assets/images/customnameplates.png';
+
+export const metadata = {
+  title: 'Mandarin 3D | Custom 3D Prints & Models',
+  description: 'Mandarin 3D is a custom 3D printing and modeling service that specializes in creating high-quality 3D models for a wide range of applications.',
+  openGraph: {
+    type: 'website'
+  }
+};
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
-  const { cart, deleteFile, addFile } = useCart();
+  const { cart, addFile } = useCart();
   const [localLoading, setLocalLoading] = useState(true);
   const [showAlert, setShowAlert] = useState(false);
   const location = useLocation();
   const [showcaseProducts, setShowcaseProducts] = useState([]);
-  const [files, setFiles] = useState([]);
-
-  const [isLoading, setIsLoading] = useState(false);
-
-
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-
-
   const handleAddToCart = async (product_fileid) => {
-    console.log("Adding to cart: ", product_fileid);
-
     try {
       const result = await addFile(product_fileid);
       if (result.status === 'success') {
         toast.success('File added to cart successfully');
-
       } else {
         toast.error(result.message || 'Failed to add file to cart');
       }
@@ -73,14 +65,11 @@ function Home() {
       const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/product?action=list`);
       if (response.data.status === 'success') {
         setProducts(response.data.result);
-        console.log("Products: ", response.data.result);
       } else {
-        console.error('Error fetching products:', response.data.message);
         toast.error('Failed to fetch products. Please try again later.');
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('An error occurred while fetching products. Please try again later.');
+      toast.error('An error occurred while fetching products.');
     }
   };
 
@@ -88,84 +77,16 @@ function Home() {
     if (!loading) {
       setLocalLoading(false);
     }
-  }, [loading, isAuthenticated, user]);
+  }, [loading]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('code') === 'C01') {
       setShowAlert(true);
-      setTimeout(() => setShowAlert(false), 5000); // Hide alert after 5 seconds
-      // remove the parameter from the url
+      setTimeout(() => setShowAlert(false), 5000);
       window.history.replaceState(null, '', location.pathname);
     }
   }, [location]);
-
-  useEffect(() => {
-    // This is where you would fetch the showcase products from the server
-    // For now, we'll use local data
-    const localShowcaseProducts = [
-      {
-        imageOrVideo: 'video',
-        src_file: prining_bambu,
-        title: "High Quality Custom 3D Printing",
-        description: "We provide an easy way to print high quality custom 3D prints, you just simply have to upload your 3D file* and get an instant quote. By only using BambuLabs 3D printer it allows us to achieve fast print times without compromising on quality or accuracy* on anything you print!",
-        footnotes: ["*3D files limited to .stl, .3mf, .step and print bed size limited to 250mm", "*As we try to achieve the best accuracy and print quality prints may differ from 3D file to file"]
-      },
-      {
-        imageOrVideo: 'image',
-        src_file: fusion360,
-        title: "Custom 3D Modeling and Design",
-        description: "We can help you on whatever step of the design process you are on. Still in early development? Talk to one of our designers to get advice on what to improve. Working on modularity? We can make sure it all goes together! We are here to help you accomplish your project!"
-      },
-      {
-        imageOrVideo: 'image',
-        src_file: building,
-        title: "Architectural Models and Mockups",
-        description: "We can help you visualize your project in a way that is not possible with other methods. We can print in high quality filaments and printers that allow for a level of detail that is not possible with other methods."
-      },
-    ];
-    setShowcaseProducts(localShowcaseProducts);
-
-    // In the future, you would replace the above with something like:
-    // async function fetchShowcaseProducts() {
-    //   try {
-    //     const response = await fetch('/api/showcase-products');
-    //     const data = await response.json();
-    //     setShowcaseProducts(data);
-    //   } catch (error) {
-    //     console.error('Error fetching showcase products:', error);
-    //   }
-    // }
-    // fetchShowcaseProducts();
-  }, []);
-
-  if (localLoading) {
-    return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
-  }
-
-  const settings = {
-    dots: true,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-        }
-      },
-      {
-        breakpoint: 640,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1
-        }
-      }
-    ]
-  };
 
   const carouselItems = [
     {
@@ -174,11 +95,11 @@ function Home() {
       title: "Custom 3D Prints Done Right",
       description: "Bringing your ideas to life, one layer at a time.",
       buttons: [
-        { text: "See our Model Library", className: "primary-button", onClick: () => {
-          window.location.href = "https://shop.mandarin3d.com";
+        { text: "Start Your Project", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
+          window.location.href = "/upload";
         } },
-        { text: "Contact Sales", className: "secondary-button", onClick: () => {
-          window.location.href = "/contact";
+        { text: "Browse Models", className: "border border-[#0D939B] text-[#0D939B] hover:bg-[#0D939B] hover:text-white transition-colors duration-300", onClick: () => {
+          window.location.href = "https://shop.mandarin3d.com";
         } }
       ]
     },
@@ -188,7 +109,7 @@ function Home() {
       title: "Custom Cookie Cutters",
       description: "We curate the best designs from the maker community and make them available to you.",
       buttons: [
-        { text: "Get your own!", className: "primary-button", onClick: () => {
+        { text: "Design Your Cutter", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
           window.location.href = "https://shop.mandarin3d.com/pages/cookie-cutters";
         } },
       ]
@@ -199,38 +120,87 @@ function Home() {
       title: "Custom Nameplates and Plaques",
       description: "Stand out with a custom nameplate or plaque. Perfect for gifts, awards, or personalization.",
       buttons: [
-        { text: "Get your own!", className: "primary-button", onClick: () => {
+        { text: "Create Your Design", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
           window.location.href = "https://shop.mandarin3d.com/pages/nameplates";
         } },
       ]
     }
   ];
 
-  console.log(products);
+  const features = [
+    {
+      icon: <FaCube className="w-8 h-8" />,
+      title: "Ready-to-Print Models",
+      description: "Browse our curated collection of pre-designed models",
+      action: "Browse Models",
+      link: "https://shop.mandarin3d.com"
+    },
+    {
+      icon: <FaCloudUploadAlt className="w-8 h-8" />,
+      title: "Custom Uploads",
+      description: "Upload your designs for professional printing",
+      action: "Upload Now",
+      link: "/upload"
+    },
+    {
+      icon: <FaCogs className="w-8 h-8" />,
+      title: "Advanced Technology",
+      description: "State-of-the-art printers and materials",
+      action: "Learn More",
+      link: "/about"
+    },
+    {
+      icon: <FaPalette className="w-8 h-8" />,
+      title: "Custom Finishing",
+      description: "Professional painting and finishing services",
+      action: "See Options",
+      link: "/services"
+    }
+  ];
 
-
+  if (localLoading) {
+    return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
+  }
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white relative">
-      <BackgroundEffects /> {/* Use the new component */}
-
+    <div className="min-h-screen bg-gradient-to-b from-[#0F0F0F] to-[#1A1A1A] text-white relative">
       {/* Header */}
-      <div className="sticky top-0 z-50">
+      <div className="sticky top-0 z-40">
         <Header />
       </div>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-8 relative z-10 ">
+      <main className="relative z-10">
         {showAlert && (
           <div className="bg-blue-500 text-white p-4 rounded mb-4 flex items-center">
             <FaInfoCircle className="mr-2" />
             You are already logged in.
           </div>
         )}
+
+        {/* Quick Action Banner */}
+        <div className="bg-gradient-to-r from-cyan-500/20 via-cyan-500/10 to-cyan-500/20 border-y border-cyan-500/20">
+          <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center mb-4 md:mb-0">
+              <div>
+                <h3 className="text-xl font-semibold">Ready to bring your ideas to life?</h3>
+                <p className="text-gray-400">Get started with our instant quote system</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => window.location.href = '/upload'}
+              className="px-6 py-3 bg-[#0D939B] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center group"
+            >
+              Start Your Project
+              <FaArrowRight className="ml-2 transform group-hover:translate-x-1 transition-transform duration-300" />
+            </button>
+          </div>
+        </div>
+
         {/* Hero Section */}
-        <section className="flex flex-col md:flex-row justify-center items-center">
+        <section className="container mx-auto px-4 py-8 md:py-12">
           <Carousel
-            className="w-full md:w-[80%] rounded-lg"
+            className="w-full rounded-2xl overflow-hidden shadow-2xl"
             plugins={[
               Autoplay({
                 delay: 8000,
@@ -239,8 +209,8 @@ function Home() {
             <CarouselContent>
               {carouselItems.map((item, index) => (
                 <CarouselItem key={index}>
-                  <div className="w-full relative overflow-hidden  rounded-lg">
-                    <div className="relative aspect-[16/9]">
+                  <div className="relative overflow-hidden rounded-2xl">
+                    <div className="relative aspect-[21/9]">
                       {item.video_or_image === 'video' ? (
                         <video
                           src={item.video_url}
@@ -257,20 +227,25 @@ function Home() {
                           className="object-cover w-full h-full"
                         />
                       )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
                     </div>
                     
-                    <div className="md:absolute md:inset-0 flex flex-col justify-end md:p-8">
-                    <div className="bg-black bg-opacity-40 backdrop-blur-sm p-4 border-2 border-[#5E5E5E] border-opacity-20 rounded-b-lg">
-                      <h1 className="text-xl md:text-4xl font-bold mb-2 text-white">{item.title}</h1>
-                      <p className="text-sm md:text-xl mb-4 text-white">{item.description}</p>
-                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                        {item.buttons.map((button, buttonIndex) => (
-                          <button key={buttonIndex} className={`px-4 py-2 rounded ${button.className}`} onClick={button.onClick}>
-                            {button.text}
-                          </button>
-                        ))}
+                    <div className="absolute inset-0 flex flex-col justify-end p-8">
+                      <div className="max-w-3xl">
+                        <h1 className="text-3xl md:text-5xl font-bold mb-4 drop-shadow-lg">{item.title}</h1>
+                        <p className="text-base md:text-lg mb-6 text-gray-200 drop-shadow">{item.description}</p>
+                        <div className="flex flex-wrap gap-4">
+                          {item.buttons.map((button, buttonIndex) => (
+                            <button
+                              key={buttonIndex}
+                              className={`px-6 py-3 rounded-full text-sm font-medium shadow-lg hover:shadow-cyan-500/20 ${button.className}`}
+                              onClick={button.onClick}
+                            >
+                              {button.text}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
                     </div>
                   </div>
                 </CarouselItem>
@@ -280,36 +255,86 @@ function Home() {
             <CarouselNext className="hidden md:flex" />
           </Carousel>
         </section>
-        {/* End Hero Section */}
+
+        {/* Features Section */}
+        <section className="container mx-auto px-4 py-16 md:py-24">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center px-4 py-2 mb-6 rounded-full bg-gradient-to-r from-cyan-500/10 to-cyan-500/0 border border-cyan-500/20">
+              <div className="w-2 h-2 rounded-full bg-cyan-500 mr-3 animate-pulse" />
+              <span className="text-xs font-semibold tracking-wide text-cyan-500 uppercase">
+                Features
+              </span>
+            </div>
+            <h2 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 mb-4">
+              Bring Your Ideas to Life
+            </h2>
+            <p className="text-lg text-white/60 max-w-2xl mx-auto">
+              Advanced 3D printing solutions for every project
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature, index) => (
+              <div key={index} className="group relative">
+                <div className="relative h-full flex flex-col items-center p-8 rounded-[20px] bg-gradient-to-b from-[#0A0A0B] to-[#141415] border border-[#2A2B2E] group-hover:border-cyan-500/20 transition-all duration-500 shadow-lg hover:shadow-cyan-500/10">
+                  <div className="relative mb-8">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-cyan-500/50 rounded-2xl opacity-0 group-hover:opacity-100 blur transition duration-500" />
+                    <div className="relative flex items-center justify-center w-[72px] h-[72px] rounded-xl bg-[#0A0A0B] border border-[#2A2B2E] group-hover:border-cyan-500/20">
+                      <div className="text-cyan-500 transform group-hover:scale-110 transition-transform duration-500">
+                        {feature.icon}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 text-center">
+                    <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-cyan-500 transition-colors duration-500">
+                      {feature.title}
+                    </h3>
+                    <p className="text-[15px] leading-relaxed text-[#8F9099] group-hover:text-white/70 transition-colors duration-500 mb-4">
+                      {feature.description}
+                    </p>
+                    <button
+                      onClick={() => window.location.href = feature.link}
+                      className="px-4 py-2 text-sm text-cyan-500 hover:text-white border border-cyan-500 rounded-full hover:bg-cyan-500 transition-all duration-300 flex items-center mx-auto group"
+                    >
+                      {feature.action}
+                      <FaArrowRight className="ml-2 transform group-hover:translate-x-1 transition-transform duration-300" />
+                    </button>
+                  </div>
+
+                  <div className="absolute bottom-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Product Showcase Section */}
-        <section className="py-8 max-w-screen-lg mx-auto" >
-          <h2 className="text-3xl font-bold mb-6">Our Products</h2>
-          <div className="md:px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="container mx-auto px-4 py-16 md:py-24">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#1E1F22] border border-[#2A2B2E]">
+              <span className="text-xs font-medium tracking-wide text-[#8F9099] uppercase">
+                Our Products
+              </span>
+            </div>
+            <h2 className="mt-8 text-[56px] font-bold text-white leading-tight">
+              Featured Solutions
+            </h2>
+            <p className="mt-4 text-lg text-[#8F9099] max-w-2xl mx-auto">
+              Discover our range of professional 3D printing services
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {showcaseProducts.map((product, index) => (
               <ProductItem key={index} {...product} />
             ))}
           </div>
         </section>
-
-        {/* Pricing Plans Section */}
-        {/* <section className="py-8 px-4 max-w-screen-lg mx-auto">
-          <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
-          <Slider {...settings}>
-            {products.map((plan, index) => (
-              <div key={index} className="px-2">
-                <PricingPlan {...plan} onAddToCart={handleAddToCart} />
-              </div>
-            ))}
-          </Slider>
-        </section> */}
-        {/* INSERT SHPOIFY STUFF HERE: */}
       </main>
 
-      {/* Footer */ }
-      <div className="relative z-50">
-        <Footer />
-      </div>
-    </div >
+      <Footer />
+    </div>
   );
 }
 
