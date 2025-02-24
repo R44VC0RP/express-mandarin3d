@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Loading from 'react-fullscreen-loading';
 import { useCart } from '@/context/Cart';
 import { StlViewer } from "react-stl-viewer";
-import { FaShoppingCart, FaDownload, FaInfoCircle, FaRuler, FaWeight, FaCube, FaSpinner, FaCheck, FaExclamationTriangle } from "react-icons/fa";
+import { FaShoppingCart, FaDownload, FaInfoCircle, FaRuler, FaWeight, FaCube, FaSpinner, FaCheck, FaExclamationTriangle, FaSync } from "react-icons/fa";
 
 const LazyModelViewer = ({ url, style, hexColor }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -115,36 +115,104 @@ const LazyModelViewer = ({ url, style, hexColor }) => {
 export default function FilePreview() {
   const [isLoading, setIsLoading] = useState(true);
   const [fileData, setFileData] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollCount, setPollCount] = useState(0);
+  const pollInterval = useRef(null);
   const { addFile } = useCart();
   const navigate = useNavigate();
   const { fileId } = useParams();
 
-  // Add useEffect to fetch file data
-  useEffect(() => {
-    console.log("Fetching file data for fileId:", fileId);
-    const fetchFileData = async () => {
-      try {
-        const response = await axios.post(process.env.REACT_APP_BACKEND_URL + '/api/file', {
-          action: 'get',
-          fileid: fileId
-        });
+  // Function to fetch file data
+  const fetchFileData = async () => {
+    try {
+      const response = await axios.post(process.env.REACT_APP_BACKEND_URL + '/api/file', {
+        action: 'get',
+        fileid: fileId
+      });
+      
+      if (response.data.status === 'success') {
+        const newFileData = response.data.result;
         
-        if (response.data.status === 'success') {
-          setFileData(response.data.result);
+        // If we're polling and the status has changed, show a toast notification
+        if (isPolling && fileData && fileData.file_status !== newFileData.file_status) {
+          if (newFileData.file_status === 'success') {
+            toast.success('Your file has been processed successfully!');
+          } else if (newFileData.file_status === 'error') {
+            toast.error('There was an error processing your file.');
+          }
+        }
+        
+        setFileData(newFileData);
+        
+        // If file is no longer in 'unsliced' status, stop polling
+        if (newFileData.file_status !== 'unsliced') {
+          stopPolling();
+        }
+      } else {
+        console.log("Response data:", response.data);
+        if (isPolling) {
+          // Don't show error toast during polling to avoid spam
+          console.error('Failed to load file data during polling');
         } else {
           toast.error('Failed to load file data');
-          console.log("Response data:", response.data);
         }
-      } catch (error) {
-        console.error('Error fetching file:', error);
+      }
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      if (!isPolling) {
         toast.error('Error loading file data');
-      } finally {
+      }
+    } finally {
+      if (!isPolling) {
         setIsLoading(false);
       }
-    };
+    }
+  };
 
+  // Start polling function
+  const startPolling = () => {
+    if (!isPolling && fileData && fileData.file_status === 'unsliced') {
+      setIsPolling(true);
+      setPollCount(0);
+      
+      // Poll every 2 seconds
+      pollInterval.current = setInterval(() => {
+        fetchFileData();
+        setPollCount(prev => prev + 1);
+      }, 2000);
+    }
+  };
+
+  // Stop polling function
+  const stopPolling = () => {
+    if (pollInterval.current) {
+      clearInterval(pollInterval.current);
+      pollInterval.current = null;
+      setIsPolling(false);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    console.log("Fetching file data for fileId:", fileId);
     fetchFileData();
   }, [fileId]);
+
+  // Start polling if file is in 'unsliced' status
+  useEffect(() => {
+    if (fileData && fileData.file_status === 'unsliced') {
+      startPolling();
+    }
+    
+    // Cleanup function to stop polling when component unmounts
+    return () => stopPolling();
+  }, [fileData?.file_status]);
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    toast.info('Refreshing file status...');
+    fetchFileData();
+  };
 
   const style = {
     width: '100%',
@@ -243,6 +311,24 @@ export default function FilePreview() {
                    isFileError ? 'Processing Error' :
                    'Processing...'}
                 </span>
+                
+                {/* Manual refresh button */}
+                {(isFileError || (!isPolling && isFileProcessing)) && (
+                  <button 
+                    onClick={handleRefresh}
+                    className="ml-3 text-neutral-400 hover:text-white transition-colors"
+                    title="Refresh status"
+                  >
+                    <FaSync className={isPolling ? "animate-spin" : ""} />
+                  </button>
+                )}
+                
+                {/* Show polling indicator */}
+                {isPolling && (
+                  <span className="ml-3 text-xs text-neutral-500">
+                    Auto-refreshing... ({pollCount})
+                  </span>
+                )}
               </div>
             </div>
 
@@ -346,6 +432,12 @@ export default function FilePreview() {
                         <p className="text-neutral-300">
                           There was an error processing your file. Please try uploading it again or contact support for assistance.
                         </p>
+                        <button 
+                          onClick={handleRefresh}
+                          className="mt-3 text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-2"
+                        >
+                          <FaSync /> Refresh Status
+                        </button>
                       </motion.div>
                     )}
 
@@ -364,6 +456,12 @@ export default function FilePreview() {
                         <p className="text-neutral-300">
                           Your file is currently being processed. This may take a few minutes depending on the complexity of the model.
                         </p>
+                        <div className="mt-3 flex items-center text-sm text-neutral-400">
+                          <FaSync className={isPolling ? "animate-spin mr-2" : "mr-2"} />
+                          {isPolling 
+                            ? `Auto-refreshing status every 2 seconds (${pollCount})` 
+                            : "Status checking paused"}
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -372,7 +470,11 @@ export default function FilePreview() {
                   <div className="flex flex-col sm:flex-row gap-4 mb-6">
                     <button
                       onClick={handleAddToCart}
-                      className="group flex items-center justify-center gap-2 px-6 py-3 bg-[#0D939B] hover:bg-[#0B7F86] text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-cyan-500/20"
+                      className={`group flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all duration-300 shadow-lg ${
+                        isFileSliced 
+                          ? "bg-[#0D939B] hover:bg-[#0B7F86] text-white hover:shadow-cyan-500/20" 
+                          : "bg-neutral-700/50 text-neutral-400 cursor-not-allowed"
+                      }`}
                       disabled={!isFileSliced}
                     >
                       <FaShoppingCart className="text-lg" />
