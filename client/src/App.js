@@ -26,6 +26,7 @@ import CustomNameplate from './pages/CustomNameplate';
 import TermsOfService from './pages/TermsOfService';
 import Contact from './pages/Contact';
 import FilePreview from './pages/FilePreview';
+import Upload from './pages/Upload';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
@@ -118,6 +119,7 @@ function App() {
                 <Route path="/login" element={<LoginRoute />} />
                 <Route path="/" element={<Home />} />
                 <Route path="/cart" element={<Cart />} />
+                <Route path="/upload" element={<Upload />} />
                 <Route path="/logout" element={<Logout />} />
                 <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                 <Route path="/hex" element={<Hex />} />

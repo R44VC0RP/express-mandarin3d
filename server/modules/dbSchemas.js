@@ -41,6 +41,10 @@ export const fileSchema = new mongoose.Schema({
         default: function() {
             return new Date(this.dateCreated.getTime() + 30 * 24 * 60 * 60 * 1000);
         }
+    },
+    ref_fileid: {
+        type: String,
+        required: false
     }
 }, { versionKey: false });
 

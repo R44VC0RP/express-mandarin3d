@@ -427,7 +427,7 @@ const sliceFile = async (fileid) => {
       },
       body: JSON.stringify({
           "fileid": fileid,
-          "env": process.env.NODE_ENV
+          "env": "prod"
       })
   });
   return {
@@ -440,6 +440,7 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
   try {
     // If a file was uploaded, you can access it via req.file
     const uploadedFile = req.file;
+    const external_source = req.body.external_source || null;
     
     // Create a Blob with the file data
     const blob = new Blob([uploadedFile.buffer], { type: uploadedFile.mimetype });
@@ -457,7 +458,7 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
     console.log('Upload response:', response);
 
 
-    const newFile = await createNewFile(file.name, response.data.file_id, response.data.url);
+    const newFile = await createNewFile(file.name, response.data.file_id, response.data.url, null, external_source);
     console.log("New file created: ", newFile);
 
     // const quote = await createNewQuote([newFile.fileid], "");
@@ -478,7 +479,7 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
 });
 
 
-const createNewFile = async (filename, utfile_id, utfile_url, price_override = null) => {
+const createNewFile = async (filename, utfile_id, utfile_url, price_override = null, ref_fileid = null) => {
   const fileid = "file_" + uuidv4();
   const stripeProduct = await createNewStripeProduct(filename, fileid, utfile_id, utfile_url);
   const newFile = new File({
@@ -488,7 +489,8 @@ const createNewFile = async (filename, utfile_id, utfile_url, price_override = n
       utfile_url,
       filename,
       price_override,
-      file_status: "unsliced"
+      file_status: "unsliced",
+      ref_fileid
   });
   await newFile.save();
   // Post to https://api.mandarin3d.com/v2/api/slice
@@ -1378,7 +1380,7 @@ const getPublicProductList = async () => {
   
   for (const product of products) {
     const isPasswordProtected = await checkIfProductIsInAPasswordProtectedCollection(product.product_id);
-    console.log(product.product_title + " " + isPasswordProtected);
+    // console.log(product.product_title + " " + isPasswordProtected);
     if (!isPasswordProtected) {
       const file = await File.findOne({ fileid: product.product_fileid });
       const filament = await Filament.findOne({ });

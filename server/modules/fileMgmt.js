@@ -34,6 +34,7 @@ export const sliceFile = async (fileid) => {
     const file = await File.findOne({
         fileid
     });
+    console.log("Slicing file: ", fileid);
     if (!file) {
         return null;
     }
@@ -47,6 +48,7 @@ export const sliceFile = async (fileid) => {
             "env": process.env.NODE_ENV
         })
     });
+    console.log("Slice response: ", sliceResponse);
     return {
         "status": "success",
         "message": "File sliced successfully"

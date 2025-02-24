@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { FaInfoCircle, FaArrowLeft, FaArrowDown, FaArrowUp } from 'react-icons/fa';
+import { FaInfoCircle, FaArrowLeft, FaArrowDown, FaArrowUp, FaTrash } from 'react-icons/fa';
 import ShowcaseProduct from '../components/ShowcaseProduct';
 import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
@@ -175,7 +175,7 @@ function Home() {
     }
   }, [location]);
 
- 
+
   useEffect(() => {
     if (activeShippingOption && subtotal) {
       const addonTotal = selectedAddons.reduce((total, addon) => total + addon.addon_price, 0);
@@ -215,7 +215,7 @@ function Home() {
     fetchShippingOptions();
     fetchProducts();
     console.log("User: ", isAuthenticated);
-    
+
   }, []);
 
   useEffect(() => { // SUBTOTAL CALCULATION
@@ -242,7 +242,7 @@ function Home() {
       const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/filament`, {
         action: 'list'
       });
-      
+
 
       setFilamentColors(response.data.result);
     } catch (error) {
@@ -285,12 +285,12 @@ function Home() {
       if (response.data.status === 'success') {
         const fetchedAddons = response.data.addons;
         setAddons(fetchedAddons);
-        
+
         // Filter out any selected addons that are no longer valid
-        const validSelectedAddons = selectedAddons.filter(selectedAddon => 
+        const validSelectedAddons = selectedAddons.filter(selectedAddon =>
           fetchedAddons.some(addon => addon.addon_id === selectedAddon.addon_id)
         );
-        
+
         // Update selectedAddons if any invalid addons were removed
         if (validSelectedAddons.length !== selectedAddons.length) {
           setSelectedAddons(validSelectedAddons);
@@ -417,7 +417,19 @@ function Home() {
     }
   };
 
-  
+  const handleRemoveAllFiles = async () => {
+    try {
+
+      const promises = cartItems.map(item => handleRemove(item.fileid));
+      await Promise.all(promises);
+      
+      toast.success('All items removed from cart');
+      fetchCartItems(false);
+    } catch (error) {
+      console.error('Error removing all items:', error);
+      toast.error('Failed to remove all items from cart');
+    }
+  };
 
   useEffect(() => {
     setCartFilesLength(cartItems.length);
@@ -492,7 +504,7 @@ function Home() {
   if (localLoading) {
     return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
   }
- 
+
   const settings = {
     dots: true,
     infinite: true,
@@ -517,7 +529,7 @@ function Home() {
     ]
   };
 
-  
+
 
   const processCheckout = async () => {
     window?.datafast("checkout", {
@@ -530,7 +542,7 @@ function Home() {
       .split('; ')
       .find(row => row.startsWith('datafast_visitor_id='))
       ?.split('=')[1];
-    
+
     let datafast_session_id = document.cookie
       .split('; ')
       .find(row => row.startsWith('datafast_session_id='))
@@ -566,7 +578,7 @@ function Home() {
 
     // If we made it here, the cart is valid and we can process the checkout
     var order_comments = orderComments;
-    
+
     var shipping_option_id = shippingOption;
 
     var checkout_cart_id = cart.cart_id;
@@ -602,20 +614,17 @@ function Home() {
     }
   };
 
-  
+
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
       <Header />
-      <div className="mt-3 w-full border-t border-b border-[#5E5E5E] bg-[#2A2A2A]">
-        <div className="flex items-center justify-left mt-2">
-          <a href="/" className="ml-4 my-4 inline-block"><FaArrowLeft /></a>
-          <p className="ml-2 text-3xl font-bold">Your Project</p>
+      <div className="mt-3 mb-3 w-full border-t border-b border-[#5E5E5E] bg-[#2A2A2A]">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-left mt-2">
+            <p className="ml-2 mb-2 text-3xl font-bold">Your Cart</p>
+          </div>
         </div>
-        <div className="flex items-center justify-left mb-4">
-          <p className="ml-4 mr-4 inline-block text-sm font-light"><a href="/" className="text-white">Home</a> / <span className="text-white font-bold">Shopping Cart</span></p>
-        </div>
-
       </div>
       <main className="container mx-auto ">
         {showAlert && (
@@ -629,11 +638,11 @@ function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-4">
             {/* Left Column: Shopping Cart Items */}
-            
+
             <div name="checkout-items" className="col-span-2 mt-4 lg:mt-4">
               <div className="w-full">
                 <div className="lg:hidden">
-                  <button 
+                  <button
                     onClick={() => {
                       const checkoutConfig = document.querySelector('div[name="checkout-config"]');
                       if (checkoutConfig) {
@@ -653,6 +662,27 @@ function Home() {
                   </div>
                 ) : cartItems.length > 0 ? (
                   <>
+                    <div className="flex justify-end mb-4">
+                      {/* <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="github-remove inline-flex items-center px-3 py-1">
+                            Remove All Files
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure you want to remove all files?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently remove all files from your cart.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleRemoveAllFiles}>Remove All</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog> */}
+                    </div>
                     {cartItems.filter(item => item.file_status === 'unsliced').map((item) => (
                       <ShoppingCartItem
                         key={item.fileid}
@@ -687,7 +717,7 @@ function Home() {
                         onColorChange={handleColorChange}
                         onRemove={handleRemove}
                         isAuthenticated={isAuthenticated}
-                        
+
                       />
                     ))}
                   </>
@@ -745,16 +775,16 @@ function Home() {
                   <p className="font-light">Estimated Total:</p>
                   <p className="font-bold">${total.toFixed(2)}</p>
                 </div>
-                <button 
+                <button
                   className={`primary-button w-full py-2 rounded-lg ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={cartItems.length === 0}
-                  onClick={() => {processCheckout()}}
+                  onClick={() => { processCheckout() }}
                 >
                   Checkout
                 </button>
                 {/* Add Freeze Cart button for authenticated users */}
                 {isAuthenticated && (
-                  <button 
+                  <button
                     className="secondary-button w-full py-2 mt-4 rounded-lg"
                     onClick={createQuote}
                   >
@@ -770,7 +800,7 @@ function Home() {
                         className="mr-2"
                         checked={testMode}
                         onChange={() => setTestMode(!testMode)}
-                        // Add state and handler for this checkbox
+                      // Add state and handler for this checkbox
                       />
                       <label htmlFor="testMode" className="text-sm text-gray-300">Test Mode</label>
                     </div>
@@ -830,7 +860,7 @@ function Home() {
         </section>
       </main>
       <Footer />
-      
+
       {cartStatus === 'slicing' && (
         <div className="fixed bottom-0 left-0 right-0 bg-yellow-500 text-black p-2 text-center">
           Some files in your cart are being processed. Please wait... (if you do not see any updates for a white, please refresh the page)

@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect, useRef } from 'react';
-import { FaMinus, FaPlus, FaSpinner, FaExclamationTriangle, FaEdit } from 'react-icons/fa';
+import { FaMinus, FaPlus, FaSpinner, FaExclamationTriangle, FaEdit, FaLink } from 'react-icons/fa';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { StlViewer } from "react-stl-viewer";
@@ -203,29 +203,39 @@ const ShoppingCartItem = ({
       <div className="p-4">
         <div className="flex flex-col sm:flex-row items-start justify-between mb-4">
           <div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <a href="#" className="hover:underline">
-                  <p className="text-white font-bold text-xl sm:text-2xl mb-2">
-                    {filename}
-                  </p>
-                </a>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Download File</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to download {filename}?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction>
-                    <a href={utfile_url} download>Download</a>
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <a href="#" className="hover:underline">
+                    <p className="text-white font-bold text-xl sm:text-2xl">
+                      {filename}
+                    </p>
+                  </a>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Download File</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to download {filename}?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction>
+                      <a href={utfile_url} download>Download</a>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <a 
+                href={`/file/${fileid}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-white hover:text-primary transition-colors"
+              >
+                <FaLink className="text-lg" />
+              </a>
+            </div>
             {isAuthenticated && (
               <div className="mb-2">
                 <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md">{fileid}</code>
@@ -314,6 +324,14 @@ const ShoppingCartItem = ({
           <div className="flex items-center mb-2 sm:mb-0">
             <FaExclamationTriangle className="text-red-500 mr-2" />
             <p className="text-white">{filename}</p>
+            <a 
+              href={`/file/${fileid}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-white hover:text-primary transition-colors ml-2"
+            >
+              <FaLink className="text-lg" />
+            </a>
           </div>
           <div className="mb-2 sm:mb-0">
             <p className="text-red-500">There was an error processing your file.</p>
@@ -373,34 +391,48 @@ const ShoppingCartItem = ({
 
   return (
     <div className="p-4">
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <a href="#" className="hover:underline">
-            <p className="text-white font-bold text-xl sm:text-2xl mb-2">
-              {filename}
-            </p>
-          </a>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Download File</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to download {filename}?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction>
-              <a href={utfile_url} download>Download</a>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      {isAuthenticated && (
-        <div className="mb-2">
-          <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md">{fileid}</code>
+      <div className="flex flex-col sm:flex-row items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <a href="#" className="hover:underline">
+                  <p className="text-white font-bold text-xl sm:text-2xl">
+                    {filename}
+                  </p>
+                </a>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Download File</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to download {filename}?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction>
+                    <a href={utfile_url} download>Download</a>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <a 
+              href={`/file/${fileid}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-white hover:text-primary transition-colors"
+            >
+              <FaLink className="text-lg" />
+            </a>
+          </div>
+          {isAuthenticated && (
+            <div className="mb-2">
+              <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md">{fileid}</code>
+            </div>
+          )}
         </div>
-      )}
+      </div>
       <div className="flex flex-col lg:flex-row items-start justify-between">
         <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 lg:mb-0 w-full lg:w-auto">
           <div className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4" style={{ backgroundColor: contrastColor }}>

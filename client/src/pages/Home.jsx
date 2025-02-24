@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { FaInfoCircle, FaCube, FaCloudUploadAlt, FaCogs, FaPalette, FaCheck, FaArrowRight } from 'react-icons/fa';
+import { FaInfoCircle, FaCube, FaCloudUploadAlt, FaCogs, FaPalette, FaCheck, FaArrowRight, FaHandshake, FaQuoteLeft } from 'react-icons/fa';
 import ProductItem from '../components/ProductItem';
 import Autoplay from "embla-carousel-autoplay";
 import {
@@ -32,6 +32,30 @@ export const metadata = {
     type: 'website'
   }
 };
+
+const testimonials = [
+  {
+    image: "/benm.jpg",
+    quote: "YOOOOOO, everything arrived, so sick. Just passed them out in the office and everyone was so hyped.",
+    author: "Ben M.",
+    role: "Software Engineer at Vitalize Care",
+    project: "Custom Nameplates"
+  },
+  {
+    image: "/dailydriver.jpeg",
+    quote: "The quality is outstanding. They helped prototype our product quickly with great attention to detail.",
+    author: "Thomas",
+    role: "Founder of Daily Driver",
+    project: "Custom 3D Printed Keychains"
+  },
+  {
+    image: "/macmini.jpeg",
+    quote: "Mandarin 3D helped us prototype a custom Mac Mini enclosure with incredible precision and attention to detail. The final product exceeded our quality standards.",
+    author: "Ryan H.",
+    role: "Designer at Apple",
+    project: "Custom Mac Mini Enclosure"
+  }
+];
 
 function Home() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -144,17 +168,17 @@ function Home() {
     },
     {
       icon: <FaCogs className="w-8 h-8" />,
-      title: "Advanced Technology",
-      description: "State-of-the-art printers and materials",
-      action: "Learn More",
-      link: "/about"
+      title: "Work with Us",
+      description: "Work with us to create your next project, even if you don't have a design!",
+      action: "Contact Us",
+      link: "/contact"
     },
     {
-      icon: <FaPalette className="w-8 h-8" />,
-      title: "Custom Finishing",
-      description: "Professional painting and finishing services",
-      action: "See Options",
-      link: "/services"
+      icon: <FaHandshake className="w-8 h-8" />,
+      title: "Business Solutions",
+      description: "Partner with us for your business 3D printing needs",
+      action: "Get in Touch",
+      link: "/contact"
     }
   ];
 
@@ -163,14 +187,14 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0F0F0F] to-[#1A1A1A] text-white relative">
+    <div className="min-h-screen bg-gradient-to-b from-[#0F0F0F] to-[#1A1A1A] text-white flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-40">
         <Header />
       </div>
 
       {/* Main content */}
-      <main className="relative z-10">
+      <main className="relative z-10 flex-grow">
         {showAlert && (
           <div className="bg-blue-500 text-white p-4 rounded mb-4 flex items-center">
             <FaInfoCircle className="mr-2" />
@@ -309,25 +333,58 @@ function Home() {
           </div>
         </section>
 
-        {/* Product Showcase Section */}
+        {/* Testimonials & Showcase Section */}
         <section className="container mx-auto px-4 py-16 md:py-24">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#1E1F22] border border-[#2A2B2E]">
-              <span className="text-xs font-medium tracking-wide text-[#8F9099] uppercase">
-                Our Products
+            <div className="inline-flex items-center px-4 py-2 mb-6 rounded-full bg-gradient-to-r from-cyan-500/10 to-cyan-500/0 border border-cyan-500/20">
+              <div className="w-2 h-2 rounded-full bg-cyan-500 mr-3 animate-pulse" />
+              <span className="text-xs font-semibold tracking-wide text-cyan-500 uppercase">
+                Success Stories
               </span>
             </div>
-            <h2 className="mt-8 text-[56px] font-bold text-white leading-tight">
-              Featured Solutions
+            <h2 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 mb-4">
+              Client Showcases
             </h2>
-            <p className="mt-4 text-lg text-[#8F9099] max-w-2xl mx-auto">
-              Discover our range of professional 3D printing services
+            <p className="text-lg text-white/60 max-w-2xl mx-auto">
+              See how we've helped businesses and individuals bring their ideas to life
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {showcaseProducts.map((product, index) => (
-              <ProductItem key={index} {...product} />
+            {testimonials.map((testimonial, index) => (
+              <div 
+                key={index}
+                className="group relative rounded-2xl overflow-hidden bg-[#1a1b1e]/80 border border-neutral-800/50 backdrop-blur-sm hover:border-cyan-500/20 transition-all duration-500"
+              >
+                {/* Image Section */}
+                <div className="relative h-64 overflow-hidden">
+                  <div className="absolute inset-0 bg-black/20 mix-blend-overlay pointer-events-none" /> {/* Grain effect */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a1b1e] via-transparent opacity-60" />
+                  <img
+                    src={testimonial.image}
+                    alt={testimonial.project}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+
+                {/* Content Section */}
+                <div className="p-6 relative">
+                  <FaQuoteLeft className="text-cyan-500/20 text-4xl absolute top-4 left-4" />
+                  <div className="relative">
+                    <p className="text-white/80 text-sm leading-relaxed mb-4 italic">
+                      "{testimonial.quote}"
+                    </p>
+                    <div className="border-t border-neutral-800/50 pt-4">
+                      <p className="font-medium text-white">{testimonial.author}</p>
+                      <p className="text-sm text-white/60">{testimonial.role}</p>
+                      <p className="text-xs text-cyan-400 mt-1">{testimonial.project}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hover Effect Border */}
+                <div className="absolute bottom-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
+              </div>
             ))}
           </div>
         </section>

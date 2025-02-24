@@ -36,9 +36,11 @@ export const CartProvider = ({ children }) => {
   };
 
   const addFile = async (fileid, quantity = 1, quality = '0.20mm') => {
-    window?.datafast("add_to_cart", {
-      description: "user uploaded file to cart" 
-    });
+    if (process.env.NODE_ENV === 'prod') {
+      window?.datafast("add_to_cart", {
+        description: "user uploaded file to cart" 
+      });
+    }
     const cartId = Cookies.get('cart_id');
     try {
       const response = await axios.post(`${backendUrl}/api/cart/add`, { cart_id: cartId, fileid, quantity, quality });

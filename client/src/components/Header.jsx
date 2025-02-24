@@ -112,7 +112,7 @@ const Header = () => {
                                         )}
                                     </a>
                                 )}
-                                {isAuthenticated ? (
+                                {isAuthenticated && (
                                     <div className="flex items-center space-x-4">
                                         <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20 transition-all hover:ring-cyan-500/40">
                                             <AvatarImage src={user.profilePicture || "https://via.placeholder.com/40"} alt="Profile" />
@@ -127,14 +127,7 @@ const Header = () => {
                                             <FaSignOutAlt className="transform group-hover:translate-x-1 transition-transform" />
                                         </button>
                                     </div>
-                                ) : (
-                                    <a 
-                                        href="/login"
-                                        className="px-4 py-2 rounded-full border border-cyan-500 text-cyan-500 hover:bg-cyan-500 hover:text-white transition-all duration-300"
-                                    >
-                                        Sign In
-                                    </a>
-                                )}
+                                ) }
                             </div>
                         </div>
                     </div>
@@ -182,7 +175,7 @@ const Header = () => {
                                 <FaArrowRight className="ml-auto opacity-0 group-hover:opacity-100 transform group-hover:translate-x-2 transition-all" />
                             </a>
                         )}
-                        {isAuthenticated ? (
+                        {isAuthenticated && (
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
                                     <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20">
@@ -200,14 +193,6 @@ const Header = () => {
                                     <FaSignOutAlt className="text-xl" />
                                 </button>
                             </div>
-                        ) : (
-                            <a 
-                                href="/login"
-                                className="flex items-center justify-center px-6 py-3 rounded-full border border-cyan-500 text-cyan-500 hover:bg-cyan-500 hover:text-white transition-all duration-300 group"
-                            >
-                                Sign In
-                                <FaArrowRight className="ml-2 transform group-hover:translate-x-2 transition-all" />
-                            </a>
                         )}
                     </div>
                 </div>
