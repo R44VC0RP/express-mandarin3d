@@ -2048,7 +2048,6 @@ app.get('/api/checkout/success', async (req, res) => {
       const order = await createOrder(cart, checkout_session_info, pricing_obj);
 
       // Print the receipt
-
       console.log("Order: ", order.cart.files);
       var order_object = {
         "order_number": order.order_number,
@@ -2065,22 +2064,32 @@ app.get('/api/checkout/success', async (req, res) => {
         }))
       }
 
-      
-      const response = await axios.post('https://host.home.exonenterprise.com/print', {
-        name: `receipt ${order.order_id}`,
-        pdf_url: "none",
-        action: 'print_receipt',
-        order_object: order_object
-      });
+      // Try to print receipt but don't block order processing if it fails
+      try {
+        const response = await axios.post('https://host.home.exonenterprise.com/print', {
+          name: `receipt ${order.order_id}`,
+          pdf_url: "none",
+          action: 'print_receipt',
+          order_object: order_object
+        });
+        console.log("Receipt printing success");
+      } catch (printError) {
+        // Log error but continue with order processing
+        console.error('Error printing receipt:', printError.message);
+      }
 
-      const email_result = await sendOrderReceivedEmail(order);
-      const business_email_result = await businessOrderReceived(order);
-      console.log("Email result: ", email_result);
+      // Continue with email notifications
+      try {
+        const email_result = await sendOrderReceivedEmail(order);
+        const business_email_result = await businessOrderReceived(order);
+        console.log("Email result: ", email_result);
+      } catch (emailError) {
+        console.error('Error sending email notifications:', emailError.message);
+      }
 
-      // console.log("Checkout session info: ", checkout_session_info);
+      // Still redirect to confirmation page even if printing or email sending failed
       res.redirect(`${process.env.FRONTEND_URL}/confirmation/${order.order_id}`);
     }
-    //res.json({ status: 'success', message: 'Checkout successful', order_id: order.order_id });
   } catch (error) {
     console.error('Error retrieving checkout session:', error);
     res.status(500).json({ status: 'error', message: 'Failed to retrieve checkout session' });
@@ -2409,36 +2418,44 @@ async function printShippingLabel(orderId) {
 }
 
 async function printReceipt(orderId) {
-  const order = await Order.findOne({ order_id: orderId });
-  if (!order) {
-    return { status: 'error', message: 'Order not found' };
+  try {
+    const order = await Order.findOne({ order_id: orderId });
+    if (!order) {
+      return { status: 'error', message: 'Order not found' };
+    }
+
+    var order_object = {
+      "order_number": order.order_number,
+      "customer_name": order.customer_details.name,
+      "order_date": order.dateCreated,
+      "line_items": order.cart.files.map(file => ({
+        qty: file.quantity,
+        product: file.filename,
+        price: file.file_sale_cost
+      })),
+      "addons": order.cart.cart_addons ? order.cart.cart_addons.map(addon => ({
+        name: addon.addon_name,
+        price: parseFloat(addon.addon_price / 100)
+      })) : []
+    }
+
+    try {
+      const response = await axios.post('https://host.home.exonenterprise.com/print', {
+        name: `receipt ${order.order_id}`,
+        pdf_url: "none",
+        action: 'print_receipt',
+        order_object: order_object
+      });
+      return { status: 'success', message: 'Receipt sent to printer' };
+    } catch (printError) {
+      console.error('Error sending to printer:', printError.message);
+      // Still return success to the client, but with a different message
+      return { status: 'partial_success', message: 'Order processed but printing failed. Please check printer connection.' };
+    }
+  } catch (error) {
+    console.error('Error in printReceipt function:', error);
+    return { status: 'error', message: 'Failed to process receipt printing request' };
   }
-
-  var order_object = {
-    "order_number": order.order_number,
-    "customer_name": order.customer_details.name,
-    "order_date": order.dateCreated,
-    "line_items": order.cart.files.map(file => ({
-      qty: file.quantity,
-      product: file.filename,
-      price: file.file_sale_cost
-    })),
-    "addons": order.cart.cart_addons.map(addon => ({
-      name: addon.addon_name,
-      price: parseFloat(addon.addon_price / 100)
-    }))
-  }
-
-  
-  const response = await axios.post('https://host.home.exonenterprise.com/print', {
-    name: `receipt ${order.order_id}`,
-    pdf_url: "none",
-    action: 'print_receipt',
-    order_object: order_object
-  });
-
-  return { status: 'success', message: 'Receipt sent to printer' };
-  
 }
 
 // Add this function near your other order management functions
