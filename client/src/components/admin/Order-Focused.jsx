@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, CheckCircle2, CreditCard, Truck, Download, Printer, Plus, Mail, Package, FileText, User, Calendar, Clock, DollarSign, Edit, ExternalLink } from "lucide-react"
+import { AlertCircle, CheckCircle2, CreditCard, Truck, Download, Printer, Plus, Mail, Package, FileText, User, Calendar, Clock, DollarSign, Edit, ExternalLink, X } from "lucide-react"
 import { ReactComponent as Printer3DIcon } from "@/assets/svgs/3dprinter.svg"
 import DeliveryStatus from "./comp_LinearDeliveryStatus"
 import { useState, useEffect } from "react"
@@ -11,7 +11,7 @@ import axios from "axios"
 import { toast } from 'sonner';
 import { Input } from "@/components/ui/input" // Add this import
 
-export default function OrderFocused({ orderId }) {
+export default function OrderFocused({ orderId, onClose }) {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -160,6 +160,7 @@ export default function OrderFocused({ orderId }) {
         {
           orderId,
           action: 'updateOrder',
+          dateUpdated: new Date().toISOString(),
           shipping_details: {
             address: {
               ...order.shipping_details.address,
@@ -187,13 +188,35 @@ export default function OrderFocused({ orderId }) {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full relative">
+      <div className="absolute top-2 right-2 z-10">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onClose} 
+          className="h-10 w-10 rounded-full bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white border border-neutral-700 shadow-md"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
     </div>
   );
   
   if (error) return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full relative">
+      <div className="absolute top-2 right-2 z-10">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onClose} 
+          className="h-10 w-10 rounded-full bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white border border-neutral-700 shadow-md"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
       <div className="text-center p-6 bg-red-500/20 border border-red-500/30 rounded-lg">
         <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-4" />
         <p className="text-red-300 text-lg font-medium">{error}</p>
@@ -205,7 +228,18 @@ export default function OrderFocused({ orderId }) {
   );
   
   if (!order) return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full relative">
+      <div className="absolute top-2 right-2 z-10">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onClose} 
+          className="h-10 w-10 rounded-full bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white border border-neutral-700 shadow-md"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
       <div className="text-center p-6 bg-amber-500/20 border border-amber-500/30 rounded-lg">
         <AlertCircle className="h-10 w-10 text-amber-400 mx-auto mb-4" />
         <p className="text-amber-300 text-lg font-medium">No order found</p>
@@ -234,7 +268,20 @@ export default function OrderFocused({ orderId }) {
   };
 
   return (
-    <div className="space-y-6 pb-6">
+    <div className="space-y-6 pb-6 relative">
+      {/* Close button at the top right */}
+      <div className="absolute top-2 right-2 z-10">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onClose} 
+          className="h-10 w-10 rounded-full bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white border border-neutral-700 shadow-md"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
+
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
