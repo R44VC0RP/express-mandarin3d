@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { FaPlus, FaTimes, FaTrash, FaEdit, FaSpinner, FaCheck, FaSync, FaCalendarAlt, FaSearch, FaCopy, FaClipboard, FaCheckCircle, FaFileUpload, FaDatabase, FaSadTear, FaFilter, FaFileDownload } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaTrash, FaEdit, FaSpinner, FaCheck, FaSync, FaCalendarAlt, FaSearch, FaCopy, FaClipboard, FaCheckCircle, FaFileUpload, FaDatabase, FaSadTear, FaFilter, FaFileDownload, FaUserFriends } from 'react-icons/fa';
 import { UploadButton } from "../../utils/uploadthing";
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -127,7 +127,6 @@ function FileManagement() {
         product_url: ''
     });
     const [fileProduct, setFileProduct] = useState(null);
-    const [refFileNames, setRefFileNames] = useState({});
     const [copiedFileId, setCopiedFileId] = useState(null);
 
     const handleUpdatePrice = async (fileid, priceOverride) => {
@@ -160,25 +159,6 @@ function FileManagement() {
         const interval = setInterval(fetchFileStatuses, 5000);
         return () => clearInterval(interval);
     }, []);
-
-    useEffect(() => {
-        const fetchRefFileNames = async () => {
-            const fileNamesMap = {};
-            for (const file of files) {
-                if (file.ref_fileid) {
-                    const fileName = await getRefFileName(file.ref_fileid);
-                    if (fileName) {
-                        fileNamesMap[file.ref_fileid] = fileName;
-                    }
-                }
-            }
-            setRefFileNames(fileNamesMap);
-        };
-        
-        if (files.length > 0) {
-            fetchRefFileNames();
-        }
-    }, [files]);
 
     const fetchFiles = async () => {
         setIsLoading(true);
@@ -472,29 +452,10 @@ function FileManagement() {
         return pageLinks;
     };
 
-    // Add a function to get the filename for a reference file
-    const getRefFileName = async (refFileId) => {
-        if (!refFileId) return null;
-        
-        try {
-            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/file`, {
-                action: 'get',
-                fileid: refFileId
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-
-            if (response.data.status === 'success') {
-                return response.data.result.filename;
-            } else {
-                return null;
-            }
-        } catch (error) {
-            console.error('Error fetching reference file:', error);
-            return null;
-        }
+    // Function to truncate file ID for display
+    const truncateFileId = (fileId) => {
+        if (!fileId) return '';
+        return fileId.substring(0, 8) + '...';
     };
 
     // Add copy to clipboard function
@@ -513,12 +474,6 @@ function FileManagement() {
                 console.error('Failed to copy text: ', err);
                 toast.error('Failed to copy to clipboard');
             });
-    };
-
-    // Function to truncate file ID for display
-    const truncateFileId = (fileId) => {
-        if (!fileId) return '';
-        return fileId.substring(0, 8) + '...';
     };
 
     return (
@@ -581,9 +536,9 @@ function FileManagement() {
                                         
                                         {fileDetails.ref_fileid && (
                                             <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-                                                <span className="text-gray-400 text-sm">Reference File:</span>
-                                                <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                                                    {refFileNames[fileDetails.ref_fileid] || fileDetails.ref_fileid}
+                                                <span className="text-gray-400 text-sm">Referral Partner:</span>
+                                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                    {fileDetails.ref_fileid}
                                                 </Badge>
                                             </div>
                                         )}
@@ -833,7 +788,7 @@ function FileManagement() {
                                 <TableHead>Price Override</TableHead>
                                 <TableHead>Date Created</TableHead>
                                 <TableHead>Product Name</TableHead>
-                                <TableHead>Reference File</TableHead>
+                                <TableHead>Referral Partner</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -923,8 +878,9 @@ function FileManagement() {
                                         </TableCell>
                                         <TableCell onClick={() => handleRowClick(file)}>
                                             {file.ref_fileid ? (
-                                                <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                                                    {refFileNames[file.ref_fileid] || truncateFileId(file.ref_fileid)}
+                                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                                    <FaUserFriends className="text-xs" />
+                                                    {file.ref_fileid}
                                                 </Badge>
                                             ) : (
                                                 <span className="text-gray-400">—</span>

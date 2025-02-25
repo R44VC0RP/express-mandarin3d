@@ -2,7 +2,128 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+/* Import Apfel Grotezk font */
+@font-face {
+  font-family: 'Apfel Grotezk';
+  src: url('../public/fonts/ApfelGrotezk-Regular.woff2') format('woff2'),
+       url('../public/fonts/ApfelGrotezk-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Apfel Grotezk';
+  src: url('../public/fonts/ApfelGrotezk-Mittel.woff2') format('woff2'),
+       url('../public/fonts/ApfelGrotezk-Mittel.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Apfel Grotezk';
+  src: url('../public/fonts/ApfelGrotezk-Fett.woff2') format('woff2'),
+       url('../public/fonts/ApfelGrotezk-Fett.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Apfel Grotezk';
+  src: url('../public/fonts/ApfelGrotezk-Satt.woff2') format('woff2'),
+       url('../public/fonts/ApfelGrotezk-Satt.woff') format('woff');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Apfel Grotezk Brukt';
+  src: url('../public/fonts/ApfelGrotezk-Brukt.woff2') format('woff2'),
+       url('../public/fonts/ApfelGrotezk-Brukt.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Noise grain effect */
+.noise-grain {
+  position: relative;
+}
+
+.noise-grain::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('../public/noise-light.png');
+  background-repeat: repeat;
+  opacity: 0.15; /* 5% noise */
+  z-index: 10;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Utility classes for different noise levels */
+@layer utilities {
+  .noise-5 {
+    position: relative;
+  }
+  .noise-5::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('../public/noise-light.png');
+    background-repeat: repeat;
+    opacity: 0.15;
+    z-index: 10;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  
+  .noise-10 {
+    position: relative;
+  }
+  .noise-10::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/noise-light.png');
+    background-repeat: repeat;
+    opacity: 0.1;
+    z-index: 10;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  
+  .noise-15 {
+    position: relative;
+  }
+  .noise-15::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/noise-light.png');
+    background-repeat: repeat;
+    opacity: 0.15;
+    z-index: 10;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+}
 
 @layer base {
   :root {
@@ -90,7 +211,7 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Apfel Grotezk', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

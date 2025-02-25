@@ -154,8 +154,8 @@ const Contact = () => {
               </div>
 
               {/* Image Section */}
-              <div className="relative hidden md:block h-[500px]">
-                <div className="absolute inset-0 bg-black/20 mix-blend-overlay pointer-events-none" /> {/* Grain effect */}
+              <div className="relative hidden md:block h-[500px] noise-5">
+                <div className="absolute inset-0 bg-black/20 mix-blend-overlay pointer-events-none" /> {/* Overlay effect */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F0F] via-transparent opacity-60" /> {/* Gradient overlay */}
                 <img
                   src="/contact.png"

@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useParams } from 'react-router-dom';
 import Home from './pages/Home';
+import AdamCad from './pages/adamtest/AdamCad';
+import WasmCadViewer from './pages/adamtest/WasmCadViewer';
 import { Toaster } from "@/components/ui/sonner"
 import Admin from '@/components/Admin.jsx';
 import Cart from './pages/Cart';
@@ -116,6 +118,7 @@ function App() {
           <Router>
             <FullPageDropzone>
               <Routes>
+                <Route path="/adamcad" element={<AdamCad />} />
                 <Route path="/login" element={<LoginRoute />} />
                 <Route path="/" element={<Home />} />
                 <Route path="/cart" element={<Cart />} />

@@ -66,7 +66,8 @@ module.exports = withUt({
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", ...fontFamily.sans],
+        sans: ["Apfel Grotezk", ...fontFamily.sans],
+        brukt: ["Apfel Grotezk Brukt", ...fontFamily.sans],
       },
       keyframes: {
         "accordion-down": {
@@ -76,11 +77,21 @@ module.exports = withUt({
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
+        },
+        "fadeIn": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" }
+        },
+        "scaleIn": {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" }
         }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out"
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "fadeIn": "fadeIn 0.2s ease-out",
+        "scaleIn": "scaleIn 0.25s ease-out"
       },
       customClasses: {
         'greycard-sp': 'bg-[#2A2A2A] border-[#5E5E5E] border-2 rounded-[15px] overflow-hidden',

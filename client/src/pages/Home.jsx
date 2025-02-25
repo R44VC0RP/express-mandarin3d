@@ -119,12 +119,16 @@ function Home() {
       title: "Custom 3D Prints Done Right",
       description: "Bringing your ideas to life, one layer at a time.",
       buttons: [
-        { text: "Start Your Project", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
-          window.location.href = "/upload";
-        } },
-        { text: "Browse Models", className: "border border-[#0D939B] text-[#0D939B] hover:bg-[#0D939B] hover:text-white transition-colors duration-300", onClick: () => {
-          window.location.href = "https://shop.mandarin3d.com";
-        } }
+        {
+          text: "Start Your Project", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
+            window.location.href = "/upload";
+          }
+        },
+        {
+          text: "Browse Models", className: "border border-[#0D939B] text-[#0D939B] hover:bg-[#0D939B] hover:text-white transition-colors duration-300", onClick: () => {
+            window.location.href = "https://shop.mandarin3d.com";
+          }
+        }
       ]
     },
     {
@@ -133,9 +137,11 @@ function Home() {
       title: "Custom Cookie Cutters",
       description: "We curate the best designs from the maker community and make them available to you.",
       buttons: [
-        { text: "Design Your Cutter", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
-          window.location.href = "https://shop.mandarin3d.com/pages/cookie-cutters";
-        } },
+        {
+          text: "Design Your Cutter", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
+            window.location.href = "https://shop.mandarin3d.com/pages/cookie-cutters";
+          }
+        },
       ]
     },
     {
@@ -144,9 +150,11 @@ function Home() {
       title: "Custom Nameplates and Plaques",
       description: "Stand out with a custom nameplate or plaque. Perfect for gifts, awards, or personalization.",
       buttons: [
-        { text: "Create Your Design", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
-          window.location.href = "https://shop.mandarin3d.com/pages/nameplates";
-        } },
+        {
+          text: "Create Your Design", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
+            window.location.href = "https://shop.mandarin3d.com/pages/nameplates";
+          }
+        },
       ]
     }
   ];
@@ -211,7 +219,7 @@ function Home() {
                 <p className="text-gray-400">Get started with our instant quote system</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => window.location.href = '/upload'}
               className="px-6 py-3 bg-[#0D939B] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center group"
             >
@@ -253,7 +261,7 @@ function Home() {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
                     </div>
-                    
+
                     <div className="absolute inset-0 flex flex-col justify-end p-8">
                       <div className="max-w-3xl">
                         <h1 className="text-3xl md:text-5xl font-bold mb-4 drop-shadow-lg">{item.title}</h1>
@@ -289,9 +297,11 @@ function Home() {
                 Features
               </span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 mb-4 px-4">
-              Bring Your Ideas to Life
-            </h2>
+            <div>
+              <span className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 mb-4 px-4">
+                Bring Your Ideas to Life
+              </span>
+            </div>
             <p className="text-lg text-white/60 max-w-2xl mx-auto px-4">
               Advanced 3D printing solutions for every project
             </p>
@@ -352,7 +362,7 @@ function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div 
+              <div
                 key={index}
                 className="group relative rounded-2xl overflow-hidden bg-[#1a1b1e]/80 border border-neutral-800/50 backdrop-blur-sm hover:border-cyan-500/20 transition-all duration-500"
               >
