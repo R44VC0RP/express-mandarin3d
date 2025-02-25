@@ -137,7 +137,7 @@ app.post('/login', async (req, res) => {
     const token = jwt.sign({
       userId: user._id
     }, process.env.JWT_SECRET, {
-      expiresIn: '1h'
+      expiresIn: '7d'
     });
     console.log("User {username: ", user.username, ", role: ", user.role, "} logged in");
     res.json({
@@ -440,7 +440,7 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
   try {
     // If a file was uploaded, you can access it via req.file
     const uploadedFile = req.file;
-    const external_source = req.body.external_source || null;
+    const external_source = req.body.external_source || "remote-submit";
     
     // Create a Blob with the file data
     const blob = new Blob([uploadedFile.buffer], { type: uploadedFile.mimetype });
@@ -2738,3 +2738,339 @@ app.listen(8080, () => {
   console.log('Server is running on port 8080')
   console.log('CORS is enabled for: ', process.env.FRONTEND_URL)
 })
+
+// #region ADMIN DASHBOARD ENDPOINTS
+
+// Get user count
+app.get('/api/admin/users/count', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.json({ status: 'success', count });
+  } catch (error) {
+    console.error('Error counting users:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to count users' });
+  }
+});
+
+// Get recent files
+app.get('/api/admin/files/recent', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const { limit = 5 } = req.query;
+    const files = await File.find()
+      .sort({ dateCreated: -1 })
+      .limit(Number(limit));
+    
+    // Enhance file objects with additional information if needed
+    const enhancedFiles = files.map(file => {
+      const fileObj = file.toObject();
+      return {
+        ...fileObj,
+        // Add any additional computed properties here if needed
+        formattedDate: new Date(file.dateCreated).toLocaleString()
+      };
+    });
+    
+    res.json({ 
+      status: 'success', 
+      files: enhancedFiles 
+    });
+  } catch (error) {
+    console.error('Error fetching recent files:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch recent files' });
+  }
+});
+
+// Get top referenced files
+app.get('/api/admin/files/top-referenced', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const { limit = 4 } = req.query;
+    
+    // Find all files that have a referral source
+    const allFiles = await File.find({ ref_fileid: { $exists: true, $ne: null } });
+    
+    // Create a map to count references for each referral source
+    const referenceCountMap = {};
+    
+    // Count references for each referral source
+    allFiles.forEach(file => {
+      if (file.ref_fileid) {
+        if (!referenceCountMap[file.ref_fileid]) {
+          referenceCountMap[file.ref_fileid] = {
+            count: 0,
+            files: []
+          };
+        }
+        referenceCountMap[file.ref_fileid].count++;
+        referenceCountMap[file.ref_fileid].files.push({
+          fileid: file.fileid,
+          filename: file.filename,
+          dateCreated: file.dateCreated
+        });
+      }
+    });
+    
+    // Convert the map to an array of objects
+    const referenceCounts = Object.keys(referenceCountMap).map(refCode => ({
+      referralCode: refCode,
+      count: referenceCountMap[refCode].count,
+      recentFiles: referenceCountMap[refCode].files
+        .sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated))
+        .slice(0, 3) // Include up to 3 recent files for each referral
+    }));
+    
+    // Sort by reference count (descending)
+    referenceCounts.sort((a, b) => b.count - a.count);
+    
+    // Take the top N referral sources
+    const topReferrals = referenceCounts.slice(0, Number(limit));
+    
+    res.json({ 
+      status: 'success', 
+      topReferencedFiles: topReferrals.map(ref => ({
+        fileid: ref.referralCode, // Use the referral code as the ID
+        filename: `Referral: ${ref.referralCode}`, // Display the referral code as the name
+        referenceCount: ref.count,
+        dateCreated: ref.recentFiles[0]?.dateCreated || new Date(), // Use the date of the most recent file
+        recentFiles: ref.recentFiles,
+        isReferralCode: true // Flag to indicate this is a referral code, not a file
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching top referenced files:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch top referenced files' });
+  }
+});
+
+// Get customer analytics data
+app.get('/api/admin/customer-analytics', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    // Get all orders
+    const allOrders = await Order.find().sort({ dateCreated: -1 });
+    
+    // Get all users
+    const allUsers = await User.find();
+    
+    // Create a map of customer emails to their orders
+    const customerOrdersMap = {};
+    const emailToUserMap = {};
+    
+    // Map users by email for quick lookup
+    allUsers.forEach(user => {
+      if (user.email) {
+        emailToUserMap[user.email.toLowerCase()] = {
+          userId: user._id,
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role,
+          email: user.email
+        };
+      }
+    });
+    
+    // Process orders to group by customer
+    allOrders.forEach(order => {
+      if (order.customer_details && order.customer_details.email) {
+        const email = order.customer_details.email.toLowerCase();
+        
+        if (!customerOrdersMap[email]) {
+          customerOrdersMap[email] = {
+            email: order.customer_details.email,
+            name: order.customer_details.name,
+            user: emailToUserMap[email] || null,
+            orders: [],
+            totalSpent: 0,
+            firstOrderDate: order.dateCreated,
+            lastOrderDate: order.dateCreated,
+            averageOrderValue: 0
+          };
+        }
+        
+        // Add order to customer's orders
+        customerOrdersMap[email].orders.push({
+          orderId: order.order_id,
+          orderNumber: order.order_number,
+          date: order.dateCreated,
+          total: order.total_details.amount_total / 100, // Convert cents to dollars
+          status: order.order_status,
+          items: order.cart.files.length
+        });
+        
+        // Update customer metrics
+        customerOrdersMap[email].totalSpent += order.total_details.amount_total / 100;
+        
+        // Update first order date if this order is earlier
+        if (new Date(order.dateCreated) < new Date(customerOrdersMap[email].firstOrderDate)) {
+          customerOrdersMap[email].firstOrderDate = order.dateCreated;
+        }
+        
+        // Update last order date if this order is later
+        if (new Date(order.dateCreated) > new Date(customerOrdersMap[email].lastOrderDate)) {
+          customerOrdersMap[email].lastOrderDate = order.dateCreated;
+        }
+      }
+    });
+    
+    // Calculate additional metrics for each customer
+    const customers = Object.values(customerOrdersMap).map(customer => {
+      // Calculate average order value
+      customer.averageOrderValue = customer.orders.length > 0 
+        ? customer.totalSpent / customer.orders.length 
+        : 0;
+      
+      // Calculate days since first order
+      const firstOrderDate = new Date(customer.firstOrderDate);
+      const now = new Date();
+      const daysSinceFirstOrder = Math.floor((now - firstOrderDate) / (1000 * 60 * 60 * 24));
+      customer.daysSinceFirstOrder = daysSinceFirstOrder;
+      
+      // Calculate days since last order
+      const lastOrderDate = new Date(customer.lastOrderDate);
+      const daysSinceLastOrder = Math.floor((now - lastOrderDate) / (1000 * 60 * 60 * 24));
+      customer.daysSinceLastOrder = daysSinceLastOrder;
+      
+      // Determine if customer is a repeat customer
+      customer.isRepeatCustomer = customer.orders.length > 1;
+      
+      return customer;
+    });
+    
+    // Sort customers by total spent (descending)
+    customers.sort((a, b) => b.totalSpent - a.totalSpent);
+    
+    // Calculate overall metrics
+    const totalCustomers = customers.length;
+    const totalOrders = allOrders.length;
+    const totalRevenue = customers.reduce((sum, customer) => sum + customer.totalSpent, 0);
+    const repeatCustomers = customers.filter(customer => customer.isRepeatCustomer).length;
+    const repeatCustomerRate = totalCustomers > 0 ? (repeatCustomers / totalCustomers) * 100 : 0;
+    const averageOrdersPerCustomer = totalCustomers > 0 ? totalOrders / totalCustomers : 0;
+    const averageRevenuePerCustomer = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
+    
+    res.json({
+      status: 'success',
+      analytics: {
+        summary: {
+          totalCustomers,
+          totalOrders,
+          totalRevenue,
+          repeatCustomers,
+          repeatCustomerRate,
+          averageOrdersPerCustomer,
+          averageRevenuePerCustomer
+        },
+        customers
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching customer analytics:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch customer analytics' });
+  }
+});
+
+// Get dashboard stats with current and previous month comparisons
+app.get('/api/admin/dashboard/stats', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    // Get current date info
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+    
+    // Calculate first and last day of current month
+    const currentMonthStart = new Date(currentYear, currentMonth, 1);
+    const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+    
+    // Calculate first and last day of previous month
+    const prevMonthStart = new Date(currentYear, currentMonth - 1, 1);
+    const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+    
+    // Get users created in current and previous month
+    const currentMonthUsers = await User.countDocuments({
+      dateCreated: { $gte: currentMonthStart, $lte: currentMonthEnd }
+    });
+    
+    const prevMonthUsers = await User.countDocuments({
+      dateCreated: { $gte: prevMonthStart, $lte: prevMonthEnd }
+    });
+    
+    const totalUsers = await User.countDocuments();
+    
+    // Get orders created in current and previous month
+    const currentMonthOrders = await Order.find({
+      dateCreated: { $gte: currentMonthStart, $lte: currentMonthEnd }
+    });
+    
+    const prevMonthOrders = await Order.find({
+      dateCreated: { $gte: prevMonthStart, $lte: prevMonthEnd }
+    });
+    
+    const totalOrders = await Order.countDocuments();
+    
+    // Calculate revenue for current and previous month
+    const currentMonthRevenue = currentMonthOrders.reduce((sum, order) => {
+      return sum + (order.total_details.amount_total || 0);
+    }, 0) / 100; // Convert cents to dollars
+    
+    const prevMonthRevenue = prevMonthOrders.reduce((sum, order) => {
+      return sum + (order.total_details.amount_total || 0);
+    }, 0) / 100; // Convert cents to dollars
+    
+    // Calculate total revenue from all orders
+    const allOrders = await Order.find();
+    const totalRevenue = allOrders.reduce((sum, order) => {
+      return sum + (order.total_details.amount_total || 0);
+    }, 0) / 100; // Convert cents to dollars
+    
+    // Calculate percentage changes
+    // If previous month is 0, we can't calculate percentage increase
+    // In that case, we'll use 100% if current month has values, or 0% if current month is also 0
+    let userGrowth = 0;
+    if (prevMonthUsers === 0) {
+      userGrowth = currentMonthUsers > 0 ? 100 : 0;
+    } else {
+      userGrowth = ((currentMonthUsers - prevMonthUsers) / prevMonthUsers) * 100;
+    }
+    
+    let orderGrowth = 0;
+    if (prevMonthOrders.length === 0) {
+      orderGrowth = currentMonthOrders.length > 0 ? 100 : 0;
+    } else {
+      orderGrowth = ((currentMonthOrders.length - prevMonthOrders.length) / prevMonthOrders.length) * 100;
+    }
+    
+    let revenueGrowth = 0;
+    if (prevMonthRevenue === 0) {
+      revenueGrowth = currentMonthRevenue > 0 ? 100 : 0;
+    } else {
+      revenueGrowth = ((currentMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100;
+    }
+    
+    res.json({
+      status: 'success',
+      stats: {
+        users: {
+          total: totalUsers,
+          currentMonth: currentMonthUsers,
+          prevMonth: prevMonthUsers,
+          growth: parseFloat(userGrowth.toFixed(2))
+        },
+        orders: {
+          total: totalOrders,
+          currentMonth: currentMonthOrders.length,
+          prevMonth: prevMonthOrders.length,
+          growth: parseFloat(orderGrowth.toFixed(2))
+        },
+        revenue: {
+          total: parseFloat(totalRevenue.toFixed(2)),
+          currentMonth: parseFloat(currentMonthRevenue.toFixed(2)),
+          prevMonth: parseFloat(prevMonthRevenue.toFixed(2)),
+          growth: parseFloat(revenueGrowth.toFixed(2))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch dashboard stats' });
+  }
+});
+
+// #endregion ADMIN DASHBOARD ENDPOINTS

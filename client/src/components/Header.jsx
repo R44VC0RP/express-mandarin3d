@@ -114,7 +114,7 @@ const Header = () => {
                                 )}
                                 {isAuthenticated && (
                                     <div className="flex items-center space-x-4">
-                                        <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20 transition-all hover:ring-cyan-500/40">
+                                        <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20 transition-all hover:ring-cyan-500/40" onClick={() => window.location.href = '/admin'}>
                                             <AvatarImage src={user.profilePicture || "https://via.placeholder.com/40"} alt="Profile" />
                                             <AvatarFallback className="bg-cyan-500/10 text-cyan-500">
                                                 {user.username.charAt(0).toUpperCase()}
@@ -178,7 +178,7 @@ const Header = () => {
                         {isAuthenticated && (
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20">
+                                    <Avatar className="h-8 w-8 ring-2 ring-cyan-500/20" onClick={() => window.location.href = '/admin'}>
                                         <AvatarImage src={user.profilePicture || "https://via.placeholder.com/40"} alt="Profile" />
                                         <AvatarFallback className="bg-cyan-500/10 text-cyan-500">
                                             {user.username.charAt(0).toUpperCase()}

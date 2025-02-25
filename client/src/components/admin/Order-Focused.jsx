@@ -2,10 +2,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, CheckCircle2, CreditCard, Truck, Download, Printer, Plus, Mail } from "lucide-react"
+import { AlertCircle, CheckCircle2, CreditCard, Truck, Download, Printer, Plus, Mail, Package, FileText, User, Calendar, Clock, DollarSign, Edit, ExternalLink } from "lucide-react"
 import { ReactComponent as Printer3DIcon } from "@/assets/svgs/3dprinter.svg"
 import DeliveryStatus from "./comp_LinearDeliveryStatus"
 import { useState, useEffect } from "react"
+import { FaFileDownload, FaTag, FaPrint, FaEnvelope, FaBoxOpen, FaShippingFast, FaEdit, FaSave, FaUserAlt } from "react-icons/fa"
 import axios from "axios"
 import { toast } from 'sonner';
 import { Input } from "@/components/ui/input" // Add this import
@@ -48,93 +49,110 @@ export default function OrderFocused({ orderId }) {
           responseType: 'blob' // Important to handle binary data
         }
       )
-      if (response.status === 200) {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${orderId}_files.zip`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        toast.success("All files downloaded successfully")
-      }
-    } catch (error) {
-      console.error("Error downloading all files:", error)
-      toast.error("Failed to download all files")
+      
+      // Create a blob from the response data
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      
+      // Create an anchor element and trigger download
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `order_${orderId}_files.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      
+      // Clean up the object URL
+      setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 100);
+      
+      toast.success("Files downloaded successfully");
+    } catch (err) {
+      console.error('Error downloading files:', err);
+      toast.error("Failed to download files");
     }
-  }
+  };
 
   const handleOrderAction = async (action, newStatus) => {
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/admin/orders/actions`, 
-        { orderId, action, newStatus },
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/admin/orders/actions`, {
+        orderId,
+        action,
+        newStatus
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      )
+      });
+      
       if (response.data.status === 'success') {
-        fetchOrderDetails()
-        console.log("Action completed successfully: ", response.data)
-        toast.success(`Action ${action} completed successfully`)
+        fetchOrderDetails();
+        toast.success(`Order ${action} successful`);
+      } else {
+        toast.error(response.data.message || `Failed to ${action} order`);
       }
     } catch (error) {
-      console.error(`Error performing action ${action}:`, error)
-      toast.error(`Failed to perform action ${action}`)
+      console.error(`Error ${action} order:`, error);
+      toast.error(`Failed to ${action} order`);
     }
-  }
+  };
 
   const updateOrderStatus = async (newStatus) => {
-    await handleOrderAction('updateStatus', newStatus)
-  }
+    handleOrderAction('updateStatus', newStatus);
+  };
 
   const createShippingLabel = async () => {
-    await handleOrderAction('createShippingLabel', null)
-  }
+    handleOrderAction('createShippingLabel');
+  };
 
   const sendReceipt = async () => {
-    await handleOrderAction('sendReceipt', null)
-  }
+    handleOrderAction('sendReceipt');
+  };
 
   const printReceipt = async () => {
-    await handleOrderAction('printReceipt', null)
-  }
+    handleOrderAction('printReceipt');
+  };
 
   const downloadShippingLabel = async () => {
-    downloadFile(order.shipping_label_url)
-  }
+    if (order && order.shipping_label_url) {
+      downloadFile(order.shipping_label_url);
+    } else {
+      toast.error('Shipping label not found. Please create a shipping label first.');
+    }
+  };
 
   const downloadFile = (url) => {
-    window.open(url, '_blank')
-  }
+    window.open(url, '_blank');
+  };
 
   const printShippingLabel = async () => {
-    await handleOrderAction('printShippingLabel')
-  }
+    handleOrderAction('printShippingLabel');
+  };
 
-  // Add this function to handle shipping field edits
   const handleShippingEdit = (field) => {
+    // Initialize the modified value with the current value
+    if (!modifiedShipping[field]) {
+      setModifiedShipping(prev => ({
+        ...prev,
+        [field]: order.shipping_details.address[field] || ''
+      }));
+    }
+    
+    // Set editing state for this field
     setEditingShipping(prev => ({
       ...prev,
       [field]: true
     }));
-    setModifiedShipping(prev => ({
-      ...prev,
-      [field]: order.shipping_details.address[field]
-    }));
   };
 
-  // Add this function to handle shipping field changes
   const handleShippingChange = (field, value) => {
     setModifiedShipping(prev => ({
       ...prev,
       [field]: value
     }));
+    
     setHasShippingChanges(true);
   };
 
-  // Add this function to save shipping changes
   const saveShippingChanges = async () => {
     try {
       const response = await axios.post(
@@ -143,7 +161,6 @@ export default function OrderFocused({ orderId }) {
           orderId,
           action: 'updateOrder',
           shipping_details: {
-            ...order.shipping_details,
             address: {
               ...order.shipping_details.address,
               ...modifiedShipping
@@ -169,9 +186,32 @@ export default function OrderFocused({ orderId }) {
     }
   };
 
-  if (loading) return <div>Loading...</div>
-  if (error) return <div>{error}</div>
-  if (!order) return <div>No order found</div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-full">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center p-6 bg-red-500/20 border border-red-500/30 rounded-lg">
+        <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+        <p className="text-red-300 text-lg font-medium">{error}</p>
+        <Button variant="secondary" className="mt-4 bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white" onClick={fetchOrderDetails}>
+          Try Again
+        </Button>
+      </div>
+    </div>
+  );
+  
+  if (!order) return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center p-6 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+        <AlertCircle className="h-10 w-10 text-amber-400 mx-auto mb-4" />
+        <p className="text-amber-300 text-lg font-medium">No order found</p>
+      </div>
+    </div>
+  );
 
   const statusOrder = order.order_status_options || ["Reviewing", "In Queue", "Printing", "Completed", "Shipping", "Delivered"]
   const deliveries = [{ status: order.order_status, date: new Date(order.dateUpdated).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }]
@@ -194,266 +234,327 @@ export default function OrderFocused({ orderId }) {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-6 pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
-          <h2 className="text-2xl font-bold mb-1">PAYMENT</h2>
-          <div className="flex items-center space-x-2">
-            <span className="text-3xl font-bold">${total.toFixed(2)}</span>
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-lg font-medium text-gray-400">Order</h2>
+            <div className="px-2 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded text-cyan-300 font-mono">
+              {order.order_number}
+            </div>
+            {order.test_mode === "true" && (
+              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30">Test Order</Badge>
+            )}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-3xl font-bold text-white">${total.toFixed(2)}</h3>
             <span className="text-xl text-gray-500">USD</span>
-            <Badge variant="secondary" className="bg-green-100 text-green-600">
-              {order.payment_status} ✓
+            <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 ml-2">
+              <CheckCircle2 className="w-3 h-3 mr-1" /> {order.payment_status}
             </Badge>
           </div>
-          <h4>FOR ORDER <pre className="inline color-blue-600 bg-[#064346] p-1 rounded-md">{order.order_number}</pre></h4>
         </div>
         
-        <div className="text-sm text-gray-500">
-          {order.order_id}
+        <div className="flex flex-col items-end">
+          <span className="text-xs text-gray-500 mb-1">Order ID</span>
+          <code className="text-xs bg-[#1e2229] px-2 py-1 rounded border border-neutral-800 text-gray-400 font-mono">
+            {order.order_id}
+          </code>
         </div>
       </div>
 
-      <Card>
+      <Card className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg overflow-hidden shadow-md">
         <CardContent className="p-4">
-          <div className="grid grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="font-semibold mb-1">Last update</div>
-              <div>{new Date(order.dateUpdated).toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="font-semibold mb-1">Customer</div>
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline">{order.customer_details.name}</Badge>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-sm">
+            <div className="space-y-1">
+              <div className="text-gray-400 text-xs">Last update</div>
+              <div className="flex items-center gap-2 text-white">
+                <Clock className="h-4 w-4 text-cyan-400/70" />
+                <span className="font-medium">{new Date(order.dateUpdated).toLocaleString()}</span>
               </div>
             </div>
-            <div>
-              <div className="font-semibold mb-1">Payment method</div>
-              <div className="flex items-center space-x-2">
-                <CreditCard className="h-4 w-4" />
-                <span>Stripe</span>
-              </div>
-            </div>
-            <div>
-              <div className="font-semibold mb-1">Order Status</div>
-              <div className="flex items-center space-x-2">
-                <Printer className="h-4 w-4" />
-                <span>{order.order_status}</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-xl font-bold">Timeline</CardTitle>
-          <div>
-            {statusOrder.indexOf(order.order_status) < statusOrder.length - 1 && (
-              <Button 
-                variant="outline"
-                size="sm" 
-                className="bg-primary text-white"
-                onClick={() => updateOrderStatus(statusOrder[statusOrder.indexOf(order.order_status) + 1])}
-              >
-                Progress order to {statusOrder[statusOrder.indexOf(order.order_status) + 1]}
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="relative mb-8">
-            <DeliveryStatus deliveries={deliveries} statusOrder={statusOrder} />
-          </div>
-          <div className="space-y-4">
-            {statusOrder.map((status, index) => (
-              <div key={index} className="flex items-start space-x-2">
-                <CheckCircle2 className={`h-5 w-5 ${index <= statusOrder.indexOf(order.order_status) ? 'text-green-500' : 'text-gray-300'} mt-0.5`} />
-                <div>
-                  <p className="font-medium">{status}</p>
-                  <p className="text-sm text-gray-500">{index === statusOrder.indexOf(order.order_status) ? new Date(order.dateUpdated).toLocaleString() : ''}</p>
+            
+            <div className="space-y-1">
+              <div className="text-gray-400 text-xs">Customer</div>
+              <div className="flex items-center gap-2 text-white">
+                <div className="w-6 h-6 rounded-full bg-cyan-800/30 flex items-center justify-center border border-cyan-700/20">
+                  <User className="h-3 w-3 text-cyan-400/70" />
                 </div>
+                <span className="font-medium">{order.customer_details.name}</span>
               </div>
-            ))}
+            </div>
+            
+            <div className="space-y-1">
+              <div className="text-gray-400 text-xs">Payment method</div>
+              <div className="flex items-center gap-2 text-white">
+                <CreditCard className="h-4 w-4 text-cyan-400/70" />
+                <span className="font-medium">Stripe</span>
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <div className="text-gray-400 text-xs">Order Status</div>
+              <div className="flex items-center gap-2">
+                <Badge className={`bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5`}>
+                  <Package className="h-3 w-3" />
+                  {order.order_status}
+                </Badge>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Shipping</CardTitle>
+      <Card className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg overflow-hidden shadow-md">
+        <CardHeader className="px-6 py-4 border-b border-neutral-800/70">
+          <CardTitle className="text-lg font-medium text-white">Order Timeline</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={sendReceipt}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              <span>Send receipt</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={printReceipt}
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              <span>Print receipt</span>
-            </Button>
-            {!order.shipping_label_url ? (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={createShippingLabel}
-              >
-                <Truck className="h-4 w-4 mr-2" />
-                <span>Create shipping label</span>
-              </Button>
-            ) : (
-              <>
+        <CardContent className="p-6">
+          <DeliveryStatus currentStatus={order.order_status} deliveries={deliveries} statusOrder={statusOrder} />
+          
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <h4 className="text-lg font-medium text-white">Update Order Status</h4>
+              <div className="flex flex-wrap gap-2">
+                {statusOrder.map((status) => (
+                  <Button
+                    key={status}
+                    onClick={() => updateOrderStatus(status)}
+                    disabled={status === order.order_status}
+                    variant="outline"
+                    className={`text-xs py-1 h-auto ${
+                      status === order.order_status 
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' 
+                        : 'bg-[#2A2A2A]/50 border-neutral-700 hover:bg-[#2A2A2A] text-gray-300'
+                    }`}
+                  >
+                    {status}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h4 className="text-lg font-medium text-white">Actions</h4>
+              <div className="grid grid-cols-2 gap-2">
                 <Button 
-                  size="sm"
-                  onClick={downloadShippingLabel}
+                  variant="outline" 
+                  onClick={createShippingLabel}
+                  className="text-xs h-auto py-1.5 flex items-center justify-center bg-[#2A2A2A]/50 border-neutral-700 hover:bg-[#2A2A2A] text-gray-300"
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  <span>Download Shipping Label</span>
+                  <FaTag className="mr-1.5 h-3 w-3" />
+                  Create Shipping Label
                 </Button>
                 <Button 
-                  size="sm"
+                  variant="outline" 
                   onClick={printShippingLabel}
+                  className="text-xs h-auto py-1.5 flex items-center justify-center bg-[#2A2A2A]/50 border-neutral-700 hover:bg-[#2A2A2A] text-gray-300"
                 >
-                  <Printer className="h-4 w-4 mr-2" />
+                  <FaPrint className="mr-1.5 h-3 w-3" />
                   Print Shipping Label
                 </Button>
-              </>
-            )}
+                <Button 
+                  variant="outline" 
+                  onClick={downloadShippingLabel}
+                  className="text-xs h-auto py-1.5 flex items-center justify-center bg-[#2A2A2A]/50 border-neutral-700 hover:bg-[#2A2A2A] text-gray-300"
+                >
+                  <FaFileDownload className="mr-1.5 h-3 w-3" />
+                  Download Shipping Label
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={sendReceipt}
+                  className="text-xs h-auto py-1.5 flex items-center justify-center bg-[#2A2A2A]/50 border-neutral-700 hover:bg-[#2A2A2A] text-gray-300"
+                >
+                  <FaEnvelope className="mr-1.5 h-3 w-3" />
+                  Send Receipt
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={printReceipt}
+                  className="text-xs h-auto py-1.5 flex items-center justify-center bg-[#2A2A2A]/50 border-neutral-700 hover:bg-[#2A2A2A] text-gray-300"
+                >
+                  <FaPrint className="mr-1.5 h-3 w-3" />
+                  Print Receipt
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Checkout summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <h4 className="font-semibold mb-2">Customer</h4>
-              <p>{order.customer_details.email}</p>
-              <p>{order.customer_details.name}</p>
-              <p>{order.customer_details.address.line1}</p>
-              <p>{order.customer_details.address.line2}</p>
-              <p>{order.customer_details.address.city}, {order.customer_details.address.state} {order.customer_details.address.postal_code} {order.customer_details.address.country}</p>
-              <div className="mt-4">
-                <h4 className="font-semibold mb-2">Order notes</h4>
-                <p>{order.order_comments}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg overflow-hidden shadow-md h-full">
+          <CardHeader className="px-6 py-4 border-b border-neutral-800/70">
+            <CardTitle className="text-lg font-medium text-white">
+              <div className="flex items-center gap-2">
+                <FaShippingFast className="text-cyan-400/70" />
+                Shipping Information
               </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">Shipping details</h4>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
               {['line1', 'line2', 'city', 'state', 'postal_code', 'country'].map((field) => (
-                <div key={field} className="mb-2">
+                <div key={field} className="flex items-start gap-2">
+                  <div className="min-w-24 text-xs text-gray-400 pt-1">
+                    {shippingFieldsLabels[field]}:
+                  </div>
                   {editingShipping[field] ? (
-                    <Input
-                      autoFocus
-                      value={modifiedShipping[field] || ''}
-                      onChange={(e) => handleShippingChange(field, e.target.value)}
-                      onBlur={() => setEditingShipping(prev => ({ ...prev, [field]: false }))}
-                      className="w-full"
-                    />
+                    <div className="flex-1">
+                      <Input
+                        autoFocus
+                        value={modifiedShipping[field] || ''}
+                        onChange={(e) => handleShippingChange(field, e.target.value)}
+                        onBlur={() => setEditingShipping(prev => ({ ...prev, [field]: false }))}
+                        className="w-full bg-[#2A2A2A] border-neutral-700 text-white focus:border-cyan-500"
+                      />
+                    </div>
                   ) : (
-                    <div className="flex items-center space-x-2">
-                      <Badge className="font-semibold">{shippingFieldsLabels[field]}:</Badge> 
-                      <p
-                      className="cursor-pointer p-1 rounded hover:bg-gray-600"
+                    <div 
+                      className="flex-1 flex items-center text-white group cursor-pointer"
                       onClick={() => handleShippingEdit(field)}
                     >
-                      {modifiedShipping[field] || order.shipping_details.address[field] || <code className="text-gray-400 border border-gray-400 p-1 rounded-md">No Value</code>}
-                      </p>
+                      <div className="bg-[#2A2A2A]/50 border border-neutral-700/50 py-1 px-2 rounded w-full flex items-center justify-between">
+                        <span className="text-gray-200">
+                          {modifiedShipping[field] || order.shipping_details.address[field] || 
+                            <span className="text-gray-500 italic">Not provided</span>
+                          }
+                        </span>
+                        <FaEdit className="h-3 w-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                     </div>
                   )}
                 </div>
               ))}
+              
               {hasShippingChanges && (
                 <Button
-                  size="sm"
                   onClick={saveShippingChanges}
-                  className="mt-2 github-primary"
+                  className="mt-4 bg-gradient-to-r from-cyan-600/90 to-cyan-700/80 hover:from-cyan-700 hover:to-cyan-800 text-white"
                 >
+                  <FaSave className="mr-2 h-4 w-4" />
                   Save Shipping Changes
                 </Button>
               )}
             </div>
-            <div>
-              <h4 className="font-semibold mb-2">Download all files as a zip</h4>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg overflow-hidden shadow-md h-full">
+          <CardHeader className="px-6 py-4 border-b border-neutral-800/70">
+            <CardTitle className="text-lg font-medium text-white">
+              <div className="flex items-center gap-2">
+                <FaFileDownload className="text-cyan-400/70" />
+                Files
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3">
+                {order.cart.files.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-[#2A2A2A]/50 border border-neutral-700/50 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-cyan-400/70" />
+                      <span className="text-gray-200 text-sm truncate max-w-52">{file.filename}</span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0 rounded-full text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/30"
+                      onClick={() => downloadFile(file.utfile_url)}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              
               <Button
-                size="sm"
-                onClick={() => downloadAllFiles(orderId)}
-                className="github-secondary"
+                onClick={downloadAllFiles}
+                className="w-full bg-gradient-to-r from-cyan-600/90 to-cyan-700/80 hover:from-cyan-700 hover:to-cyan-800 text-white"
               >
-                <Download className="h-4 w-4 mr-2 inline" />
-                <span>Download All</span>
+                <Download className="mr-2 h-4 w-4" />
+                Download All Files
               </Button>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg overflow-hidden shadow-md">
+        <CardHeader className="px-6 py-4 border-b border-neutral-800/70">
+          <CardTitle className="text-lg font-medium text-white">Order Items</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50%]">ITEMS</TableHead>
-                <TableHead className="text-right">COLOR</TableHead>
-                <TableHead className="text-right">LAYER HEIGHT</TableHead>
-                <TableHead className="text-right">AMOUNT</TableHead>
-                <TableHead className="text-right">UNIT PRICE</TableHead>
-                <TableHead className="text-right">AMOUNT</TableHead>
+              <TableRow className="bg-[#1e2229] border-b border-neutral-800">
+                <TableHead className="text-white font-medium py-3">Item</TableHead>
+                <TableHead className="text-white font-medium py-3 text-right">Color</TableHead>
+                <TableHead className="text-white font-medium py-3 text-right">Layer Height</TableHead>
+                <TableHead className="text-white font-medium py-3 text-right">Quantity</TableHead>
+                <TableHead className="text-white font-medium py-3 text-right">Unit Price</TableHead>
+                <TableHead className="text-white font-medium py-3 text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {order.cart.files.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">
-                    <span 
-                      className="cursor-pointer hover:underline" 
+                <TableRow key={index} className="border-b border-neutral-800/50 hover:bg-[#2A2A2A]/30">
+                  <TableCell className="py-3 font-medium">
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-cyan-400 hover:text-cyan-300 hover:underline"
                       onClick={() => downloadFile(item.utfile_url)}
                     >
+                      <FileText className="w-3.5 h-3.5 mr-2 inline" />
                       {item.filename}
-                    </span>
+                    </Button>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Badge className="bg-[#064346] text-white">{item.filament_color}</Badge>
+                  <TableCell className="py-3 text-right">
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">{item.filament_color}</Badge>
                   </TableCell>
-                  <TableCell className="text-right">{item.quality}</TableCell>
-                  <TableCell className="text-right">{item.quantity}x</TableCell>
-                  <TableCell className="text-right">${item.file_sale_cost.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">${(item.file_sale_cost * item.quantity).toFixed(2)}</TableCell>
+                  <TableCell className="py-3 text-right text-gray-300">{item.quality}</TableCell>
+                  <TableCell className="py-3 text-right font-medium text-white">{item.quantity}x</TableCell>
+                  <TableCell className="py-3 text-right text-gray-300">${item.file_sale_cost.toFixed(2)}</TableCell>
+                  <TableCell className="py-3 text-right font-medium text-white">${(item.file_sale_cost * item.quantity).toFixed(2)}</TableCell>
                 </TableRow>
               ))}
+              
               {order.cart.cart_addons.map((addon, index) => (
-                <TableRow key={`addon-${index}`}>
-                  <TableCell className="font-medium">{addon.addon_name}</TableCell>
-                  <TableCell className="text-right"></TableCell>
-                  <TableCell className="text-right"></TableCell>
-                  <TableCell className="text-right">1</TableCell>
-                  <TableCell className="text-right">${(addon.addon_price).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">${(addon.addon_price).toFixed(2)}</TableCell>
+                <TableRow key={`addon-${index}`} className="border-b border-neutral-800/50 hover:bg-[#2A2A2A]/30">
+                  <TableCell className="py-3 font-medium">
+                    <div className="flex items-center">
+                      <Plus className="w-3.5 h-3.5 mr-2 text-amber-400/80" />
+                      <span className="text-amber-300">{addon.addon_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3 text-right"></TableCell>
+                  <TableCell className="py-3 text-right"></TableCell>
+                  <TableCell className="py-3 text-right font-medium text-white">1</TableCell>
+                  <TableCell className="py-3 text-right text-gray-300">${(addon.addon_price / 100).toFixed(2)}</TableCell>
+                  <TableCell className="py-3 text-right font-medium text-white">${(addon.addon_price / 100).toFixed(2)}</TableCell>
                 </TableRow>
               ))}
-              <TableRow>
-                <TableCell colSpan={5} className="text-right font-medium">Subtotal</TableCell>
-                <TableCell className="text-right font-medium">
+              
+              <TableRow className="border-t border-neutral-700 bg-[#1a1b1e]/60">
+                <TableCell colSpan={5} className="py-3 text-right font-medium text-gray-400">Subtotal</TableCell>
+                <TableCell className="py-3 text-right font-medium text-white">
                   ${items_total.toFixed(2)}
                 </TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell colSpan={5} className="text-right">Shipping</TableCell>
-                <TableCell className="text-right">${shipping.toFixed(2)}</TableCell>
+              <TableRow className="border-b-0">
+                <TableCell colSpan={5} className="py-3 text-right text-gray-400">Shipping</TableCell>
+                <TableCell className="py-3 text-right text-white">${shipping.toFixed(2)}</TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell colSpan={5} className="text-right">Tax</TableCell>
-                <TableCell className="text-right">${tax.toFixed(2)}</TableCell>
+              <TableRow className="border-b-0">
+                <TableCell colSpan={5} className="py-3 text-right text-gray-400">Tax</TableCell>
+                <TableCell className="py-3 text-right text-white">${tax.toFixed(2)}</TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell colSpan={5} className="text-right font-bold">Total</TableCell>
-                <TableCell className="text-right font-bold">${total.toFixed(2)}</TableCell>
+              <TableRow className="border-t border-neutral-700 font-bold bg-[#1e2229]">
+                <TableCell colSpan={5} className="py-4 text-right text-lg font-semibold text-white">Total</TableCell>
+                <TableCell className="py-4 text-right text-lg font-semibold text-white">${total.toFixed(2)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>

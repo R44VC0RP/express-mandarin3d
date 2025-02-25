@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaTimes, FaTrash, FaEdit } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaTrash, FaEdit, FaUser, FaSearch, FaShieldAlt, FaUserCog } from 'react-icons/fa';
 import { UploadButton } from "../../utils/uploadthing";
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -29,8 +29,10 @@ import {
     SheetHeader,
     SheetTitle,
     SheetTrigger,
+    SheetFooter,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 function UserManagement() {
     const [newUser, setNewUser] = useState({ username: '', fullName: '', password: '', profilePic: '', role: 'user' });
@@ -172,182 +174,222 @@ function UserManagement() {
         )
     );
 
-    const subHeaderComponent = (
-        <div className="flex items-center mb-4">
-            <Input
-                type="text"
-                placeholder="Search users..."
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                className="max-w-sm"
-                autoComplete="off"
-            />
-        </div>
-    );
-
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">User Management</h2>
+        <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0.5 flex items-center pl-3 pointer-events-none">
+                        <FaSearch className="text-gray-400 text-sm" />
+                    </div>
+                    <Input
+                        type="text"
+                        placeholder="Search users..."
+                        value={filterText}
+                        onChange={(e) => setFilterText(e.target.value)}
+                        className="pl-10 bg-[#1e2229] border-neutral-700 text-white w-full sm:w-60 focus:border-cyan-500"
+                        autoComplete="off"
+                    />
+                </div>
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                     <SheetTrigger asChild>
-                        <button className="github-primary" onClick={() => {
-                            setEditingUser(null);
-                            setNewUser({ username: '', fullName: '', password: '', profilePic: '', role: 'user' });
-                        }}>
-                            <FaPlus className="mr-2 inline" />
+                        <Button 
+                            className="bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white"
+                            onClick={() => {
+                                setEditingUser(null);
+                                setNewUser({ username: '', fullName: '', password: '', profilePic: '', role: 'user' });
+                            }}
+                        >
+                            <FaPlus className="mr-2" />
                             Add User
-                        </button>
+                        </Button>
                     </SheetTrigger>
-                    <SheetContent>
+                    <SheetContent className="bg-[#1a1b1e] border-neutral-800 text-white">
                         <SheetHeader>
-                            <SheetTitle>{editingUser ? 'Edit User' : 'Add New User'}</SheetTitle>
-                            <SheetDescription>Enter the details for the user.</SheetDescription>
+                            <SheetTitle className="text-cyan-400">{editingUser ? 'Edit User' : 'Add New User'}</SheetTitle>
+                            <SheetDescription className="text-gray-400">
+                                {editingUser ? 'Update user information.' : 'Create a new user account.'}
+                            </SheetDescription>
                         </SheetHeader>
-                        <div className="grid gap-4 py-4">
-                            <Input
-                                name="username"
-                                value={newUser.username}
-                                onChange={handleInputChange}
-                                placeholder="Username"
-                                autoComplete="off"
-                            />
-                            <Input
-                                name="fullName"
-                                value={newUser.fullName}
-                                onChange={handleInputChange}
-                                placeholder="Full Name"
-                                autoComplete="off"
-                            />
-                            <Input
-                                type="password"
-                                name="password"
-                                value={newUser.password}
-                                onChange={handleInputChange}
-                                placeholder={editingUser ? "Leave blank to keep current password" : "Password"}
-                                autoComplete="off"
-                            />
-                            <select
-                                name="role"
-                                value={newUser.role}
-                                onChange={handleInputChange}
-                                className="w-full p-2 mb-2 bg-gray-700 rounded"
-                                autoComplete="off"
-                            >
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                            <label htmlFor="profilePic" className="block mb-1">Profile Picture</label>
-                            {newUser.profilePic ? (
-                                <div className="relative w-full p-2 mb-2 bg-gray-700 rounded flex justify-center items-center">
-                                    <img src={newUser.profilePic} alt="Profile" className="w-1/2 h-auto rounded" />
-                                    <button
-                                        className="absolute top-0 right-0 p-1 text-white bg-red-500 rounded-full"
-                                        onClick={() => setNewUser({ ...newUser, profilePic: '' })}
-                                    >
-                                        <FaTimes />
-                                    </button>
-                                </div>
-                            ) : (
-                                <UploadButton
-                                    className='w-full p-2 mb-2 bg-gray-700 rounded'
-                                    endpoint="imageUploader"
-                                    onClientUploadComplete={(res) => {
-                                        console.log("Files: ", res);
-                                        setNewUser({ ...newUser, profilePic: res[0].url });
-                                        toast.success("Image uploaded successfully.");
-                                    }}
-                                    onUploadError={(error) => {
-                                        toast.error(`Upload Error: ${error.message}`);
-                                    }}
+                        <div className="grid gap-5 py-6">
+                            <div className="space-y-2">
+                                <label htmlFor="username" className="text-sm font-medium text-gray-300">Username</label>
+                                <Input
+                                    id="username"
+                                    name="username"
+                                    value={newUser.username}
+                                    onChange={handleInputChange}
+                                    placeholder="Username"
+                                    autoComplete="off"
+                                    className="bg-[#2A2A2A] border-neutral-700 text-white focus:border-cyan-500"
                                 />
-                            )}
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label htmlFor="fullName" className="text-sm font-medium text-gray-300">Full Name</label>
+                                <Input
+                                    id="fullName"
+                                    name="fullName"
+                                    value={newUser.fullName}
+                                    onChange={handleInputChange}
+                                    placeholder="Full Name"
+                                    autoComplete="off"
+                                    className="bg-[#2A2A2A] border-neutral-700 text-white focus:border-cyan-500"
+                                />
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label htmlFor="password" className="text-sm font-medium text-gray-300">Password</label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    value={newUser.password}
+                                    onChange={handleInputChange}
+                                    placeholder={editingUser ? "Leave blank to keep current password" : "Password"}
+                                    autoComplete="off"
+                                    className="bg-[#2A2A2A] border-neutral-700 text-white focus:border-cyan-500"
+                                />
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label htmlFor="role" className="text-sm font-medium text-gray-300">Role</label>
+                                <select
+                                    id="role"
+                                    name="role"
+                                    value={newUser.role}
+                                    onChange={handleInputChange}
+                                    className="w-full p-2.5 bg-[#2A2A2A] border border-neutral-700 rounded-md text-white focus:border-cyan-500 focus:outline-none"
+                                    autoComplete="off"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label htmlFor="profilePic" className="text-sm font-medium text-gray-300">Profile Picture URL</label>
+                                <Input
+                                    id="profilePic"
+                                    name="profilePic"
+                                    value={newUser.profilePic}
+                                    onChange={handleInputChange}
+                                    placeholder="Profile Picture URL"
+                                    autoComplete="off"
+                                    className="bg-[#2A2A2A] border-neutral-700 text-white focus:border-cyan-500"
+                                />
+                            </div>
                         </div>
-                        <div className="flex justify-end mt-4">
-                            <button className="github-primary" onClick={editingUser ? handleUpdateUser : handleAddUser}>
-                                {editingUser ? 'Update' : 'Add'}
-                            </button>
-                        </div>
+                        <SheetFooter>
+                            <Button 
+                                type="button" 
+                                onClick={editingUser ? handleUpdateUser : handleAddUser}
+                                className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                            >
+                                {editingUser ? 'Update User' : 'Add User'}
+                            </Button>
+                        </SheetFooter>
                     </SheetContent>
                 </Sheet>
             </div>
 
             {isLoading ? (
-                <div className="flex flex-col items-center justify-center">
-                    <p className="text-xl font-bold mb-4">Loading Users</p>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
+                <div className="flex justify-center items-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
                 </div>
             ) : (
                 <>
-                    {subHeaderComponent}
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Profile Picture</TableHead>
-                                <TableHead>Username</TableHead>
-                                <TableHead>Full Name</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((user) => (
-                                <TableRow key={user._id}>
-                                    <TableCell>
-                                        <img src={user.profilePicture} alt={user.username} className="w-16 h-16 object-cover rounded-full" />
-                                    </TableCell>
-                                    <TableCell>{user.username}</TableCell>
-                                    <TableCell>{user.fullName}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
-                                            {user.role}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <button
-                                            onClick={() => handleEdit(user)}
-                                            className="github-secondary text-blue-500 hover:text-blue-700 mr-2"
-                                        >
-                                            <FaEdit />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(user._id)}
-                                            className="github-secondary text-red-500 hover:text-red-700"
-                                        >
-                                            <FaTrash />
-                                        </button>
-                                    </TableCell>
+                    <div className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg overflow-hidden">
+                        <Table>
+                            <TableHeader className="bg-[#1e2229] border-b border-neutral-800">
+                                <TableRow>
+                                    <TableHead className="text-white font-medium">User</TableHead>
+                                    <TableHead className="text-white font-medium">Full Name</TableHead>
+                                    <TableHead className="text-white font-medium">Role</TableHead>
+                                    <TableHead className="text-white font-medium text-right">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredItems.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-10 text-gray-400">
+                                            No users found
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredItems.map((user) => (
+                                        <TableRow key={user._id} className="border-b border-neutral-800/50 hover:bg-[#2A2A2A]/30">
+                                            <TableCell className="font-medium flex items-center gap-3">
+                                                <div className="relative">
+                                                    {user.profilePicture ? (
+                                                        <img 
+                                                            src={user.profilePicture} 
+                                                            alt={user.username} 
+                                                            className="w-8 h-8 rounded-full object-cover border border-neutral-700"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-cyan-800/30 flex items-center justify-center border border-cyan-700/20">
+                                                            <FaUser className="text-cyan-500/70 text-sm" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {user.username}
+                                            </TableCell>
+                                            <TableCell className="text-gray-300">{user.fullName}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={user.role === 'admin' ? 'default' : 'outline'} className={user.role === 'admin' ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border-cyan-500/30' : 'border-neutral-600 text-neutral-400'}>
+                                                    {user.role === 'admin' ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <FaShieldAlt className="text-xs" />
+                                                            Admin
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <FaUserCog className="text-xs" />
+                                                            User
+                                                        </div>
+                                                    )}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleEdit(user)}
+                                                    className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 mr-1"
+                                                >
+                                                    <FaEdit />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(user._id)}
+                                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                                >
+                                                    <FaTrash />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-                    <Pagination className="mt-4">
-                        <PaginationContent>
-                            <PaginationItem>
-                                <PaginationPrevious
-                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                                />
-                            </PaginationItem>
-                            {Array.from({ length: Math.ceil(users.length / itemsPerPage) }, (_, i) => (
-                                <PaginationItem key={i}>
-                                    <PaginationLink
-                                        onClick={() => setCurrentPage(i + 1)}
-                                        isActive={currentPage === i + 1}
-                                    >
-                                        {i + 1}
-                                    </PaginationLink>
+                    <div className="mt-6">
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious href="#" />
                                 </PaginationItem>
-                            ))}
-                            <PaginationItem>
-                                <PaginationNext
-                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(users.length / itemsPerPage)))}
-                                    className={currentPage === Math.ceil(users.length / itemsPerPage) ? 'pointer-events-none opacity-50' : ''}
-                                />
-                            </PaginationItem>
-                        </PaginationContent>
-                    </Pagination>
+                                <PaginationItem>
+                                    <PaginationLink href="#">1</PaginationLink>
+                                </PaginationItem>
+                                <PaginationItem>
+                                    <PaginationNext href="#" />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
                 </>
             )}
         </div>

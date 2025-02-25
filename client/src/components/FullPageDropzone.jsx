@@ -70,11 +70,12 @@ const FullPageDropzone = ({ children }) => {
   return (
     <div {...getRootProps()} className="relative">
       <input {...getInputProps()} />
-      {isDragActive ? (
+      {isDragActive && (
         <div className="p-4 fixed inset-4 bg-[#0D939B]/90 border-2 rounded-lg border-[#11B3BD] flex items-center justify-center z-50">
           <p className="text-lg md:text-xl font-semibold text-white text-center">Drop STL, STEP, or 3MF files here</p>
         </div>
-      ) : (
+      )}
+      {/* {isDragActive ? (
         <>
           <div className="hidden md:flex fixed top-1/2 left-0 transform -translate-y-1/2 bg-[#0D939B] text-white p-2 rounded-r-lg items-center z-50 group overflow-hidden transition-all duration-300 ease-in-out hover:w-auto w-10 cursor-pointer" onClick={open}>
             <FaUpload className="ml-1 flex-shrink-0" />
@@ -85,7 +86,7 @@ const FullPageDropzone = ({ children }) => {
             <p className="ml-4 text-xs md:text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out">You can upload STL, STEP, or 3MF files<br/>by dragging and dropping anywhere<br/>or click here to upload.</p>
           </div>
         </>
-      )}
+      )} */}
       {children}
     </div>
   );

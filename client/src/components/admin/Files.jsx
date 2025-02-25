@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { FaPlus, FaTimes, FaTrash, FaEdit, FaSpinner, FaCheck, FaSync, FaCalendarAlt, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaTrash, FaEdit, FaSpinner, FaCheck, FaSync, FaCalendarAlt, FaSearch, FaCopy, FaClipboard, FaCheckCircle, FaFileUpload, FaDatabase, FaSadTear, FaFilter, FaFileDownload } from 'react-icons/fa';
 import { UploadButton } from "../../utils/uploadthing";
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -127,6 +127,8 @@ function FileManagement() {
         product_url: ''
     });
     const [fileProduct, setFileProduct] = useState(null);
+    const [refFileNames, setRefFileNames] = useState({});
+    const [copiedFileId, setCopiedFileId] = useState(null);
 
     const handleUpdatePrice = async (fileid, priceOverride) => {
         try {
@@ -158,6 +160,25 @@ function FileManagement() {
         const interval = setInterval(fetchFileStatuses, 5000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        const fetchRefFileNames = async () => {
+            const fileNamesMap = {};
+            for (const file of files) {
+                if (file.ref_fileid) {
+                    const fileName = await getRefFileName(file.ref_fileid);
+                    if (fileName) {
+                        fileNamesMap[file.ref_fileid] = fileName;
+                    }
+                }
+            }
+            setRefFileNames(fileNamesMap);
+        };
+        
+        if (files.length > 0) {
+            fetchRefFileNames();
+        }
+    }, [files]);
 
     const fetchFiles = async () => {
         setIsLoading(true);
@@ -451,6 +472,55 @@ function FileManagement() {
         return pageLinks;
     };
 
+    // Add a function to get the filename for a reference file
+    const getRefFileName = async (refFileId) => {
+        if (!refFileId) return null;
+        
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/file`, {
+                action: 'get',
+                fileid: refFileId
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.data.status === 'success') {
+                return response.data.result.filename;
+            } else {
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching reference file:', error);
+            return null;
+        }
+    };
+
+    // Add copy to clipboard function
+    const copyToClipboard = (text, fileId) => {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                setCopiedFileId(fileId);
+                toast.success('File ID copied to clipboard');
+                
+                // Reset the copied state after 2 seconds
+                setTimeout(() => {
+                    setCopiedFileId(null);
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('Failed to copy text: ', err);
+                toast.error('Failed to copy to clipboard');
+            });
+    };
+
+    // Function to truncate file ID for display
+    const truncateFileId = (fileId) => {
+        if (!fileId) return '';
+        return fileId.substring(0, 8) + '...';
+    };
+
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -459,170 +529,288 @@ function FileManagement() {
                     <span className="mr-2">Drag and Drop files to add them</span>
                 </div>
                 <Sheet open={fileDetailsOpen} onOpenChange={setFileDetailsOpen}>
-                    <SheetContent>
+                    <SheetContent className="w-[95%] sm:w-[800px] max-w-[95vw] lg:max-w-[1000px]">
                         <SheetHeader>
                             <SheetTitle>File Details</SheetTitle>
                             <SheetDescription>View and edit file details.</SheetDescription>
                         </SheetHeader>
-                        <div className="grid gap-4 py-4">
-                            <p><strong>Filename:</strong> {fileDetails.filename || 'N/A'}</p>
-                            <p><strong>File ID:</strong> <code className='text-blue-500 text-sm'>{fileDetails.fileid || 'N/A'}</code></p>
-                            <hr></hr>
-                            <p><strong>File Status:</strong>
-                                {fileDetails.file_status === 'unsliced' && <FaSpinner className="animate-spin inline mr-2 ml-2" />}
-                                {fileDetails.file_status === 'success' && <FaCheck className="text-green-500 inline mr-2 ml-2" />}
-                                {fileDetails.file_status === 'error' && <FaTimes className="text-red-500 inline mr-2 ml-2" />}
-                                {fileDetails.file_status}
-                            </p>
-                            <p><strong>Date Created:</strong> {new Date(fileDetails.dateCreated).toLocaleString() || 'N/A'}</p>
-                            {fileDetails.file_status === 'success' && (
-                                <>
-                                    <p><strong>File Dimensions:</strong> {fileDetails.dimensions.x}<strong>x</strong> {fileDetails.dimensions.y}<strong>y</strong> {fileDetails.dimensions.z}<strong>z</strong></p>
-                                    <p><strong>File Mass:</strong> {fileDetails.mass_in_grams}g</p>
-                                </>
-                            )}
-                            {fileDetails.file_status === 'error' && (
-                                <p><strong>Error Message:</strong> {fileDetails.file_error}</p>
-                            )}
-                            <a href={fileDetails.utfile_url} download className='github-primary'>Download File</a>
-                            <a className='github-primary' onClick={() => handleAddToCart(fileDetails.fileid)}>Add file to Cart</a>
-                            <hr></hr>
-                            <div className='flex justify-center'>
-                                {fileDetailsOpen && fileDetails.utfile_url && (
-                                    <div className="w-full h-64 rounded-md overflow-hidden border border-gray-300">
-                                        <p className='text-center'>Model Preview</p>
-                                        <LazyModelViewer
-                                            url={fileDetails.utfile_url || "https://cdn.mandarin3d.com/files/default.glb"}
-                                            style={{ width: '100%', height: '100%' }}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                            <div className='flex justify-center'>
-                                <button className='github-primary mr-2' onClick={() => handleSlice(fileDetails.fileid)}>Reslice Model</button>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <button className='github-primary'>Create a Product</button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-4xl">
-                                        <DialogHeader>
-                                            <DialogTitle>Create New Product</DialogTitle>
-                                            <DialogDescription>
-                                                Enter the details for the new product and see a live preview.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="flex gap-8">
-                                            <div className="flex-1">
-                                                <div className="grid gap-4 py-4">
-                                                    <Input
-                                                        placeholder="Product Title"
-                                                        value={newProduct.product_title}
-                                                        onChange={(e) => setNewProduct({...newProduct, product_title: e.target.value})}
-                                                    />
-                                                    <Textarea
-                                                        placeholder="Product Description"
-                                                        value={newProduct.product_description}
-                                                        onChange={(e) => setNewProduct({...newProduct, product_description: e.target.value})}
-                                                    />
-                                                    <Input
-                                                        placeholder="Product Features (comma-separated)"
-                                                        value={newProduct.product_features}
-                                                        onChange={(e) => setNewProduct({...newProduct, product_features: e.target.value})}
-                                                    />
-                                                    <label htmlFor="image" className="block mb-1">Product Image</label>
-                                                    {newProduct.product_image_url ? (
-                                                        <div className="relative w-full p-2 mb-2 bg-gray-700 rounded flex justify-center items-center">
-                                                            <img src={newProduct.product_image_url} alt="Uploaded Product" className="w-1/2 h-auto rounded" />
-                                                            <button
-                                                                className="absolute top-0 right-0 p-1 text-white bg-red-500 rounded-full"
-                                                                onClick={() => setNewProduct({ ...newProduct, product_image_url: '' })}
-                                                            >
-                                                                <FaTimes />
-                                                            </button>
-                                                        </div>
+                        <div className="grid gap-6 py-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* Left Column - File Info */}
+                                <div className="space-y-6">
+                                    <div className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg p-4 space-y-3">
+                                        <h3 className="text-md font-medium border-b border-neutral-800/50 pb-2 mb-1">Basic Information</h3>
+                                        
+                                        <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                            <span className="text-gray-400 text-sm">Filename:</span>
+                                            <span className="text-white font-medium">{fileDetails.filename || 'N/A'}</span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                            <span className="text-gray-400 text-sm">File ID:</span>
+                                            <div className="flex items-center gap-2">
+                                                <code className="text-blue-400 text-sm font-mono bg-[#1e2229] px-2 py-0.5 rounded border border-neutral-800">{fileDetails.fileid || 'N/A'}</code>
+                                                <button 
+                                                    className="text-gray-400 hover:text-white" 
+                                                    onClick={() => copyToClipboard(fileDetails.fileid, 'details')}
+                                                    title="Copy file ID"
+                                                >
+                                                    {copiedFileId === 'details' ? (
+                                                        <FaCheckCircle className="text-green-500 text-sm" />
                                                     ) : (
-                                                        <UploadButton
-                                                            className='w-full p-2 mb-2 rounded border border-gray-300'
-                                                            endpoint="imageUploader"
-                                                            onClientUploadComplete={(res) => {
-                                                                console.log("Files: ", res);
-                                                                setNewProduct({ ...newProduct, product_image_url: res[0].url });
-                                                                toast.success("Image uploaded successfully.");
-                                                            }}
-                                                            onUploadError={(error) => {
-                                                                toast.error(`Upload Error: ${error.message}`);
-                                                            }}
-                                                        />
+                                                        <FaCopy className="text-sm" />
                                                     )}
-                                                    <Input
-                                                        placeholder="Product Author"
-                                                        value={newProduct.product_author}
-                                                        onChange={(e) => setNewProduct({...newProduct, product_author: e.target.value})}
-                                                    />
-                                                    <Input
-                                                        placeholder="Product Author URL"
-                                                        value={newProduct.product_author_url}
-                                                        onChange={(e) => setNewProduct({...newProduct, product_author_url: e.target.value})}
-                                                    />
-                                                    <Input
-                                                        placeholder="Product License"
-                                                        value={newProduct.product_license}
-                                                        onChange={(e) => setNewProduct({...newProduct, product_license: e.target.value})}
-                                                    />
-                                                    <Input
-                                                        placeholder="Product URL"
-                                                        value={newProduct.product_url}
-                                                        onChange={(e) => setNewProduct({...newProduct, product_url: e.target.value})}
-                                                    />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                            <span className="text-gray-400 text-sm">File Status:</span>
+                                            <div className="flex items-center gap-2">
+                                                {fileDetails.file_status === 'unsliced' && <FaSpinner className="animate-spin text-yellow-400" />}
+                                                {fileDetails.file_status === 'success' && <FaCheck className="text-green-500" />}
+                                                {fileDetails.file_status === 'error' && <FaTimes className="text-red-500" />}
+                                                <span className="capitalize">{fileDetails.file_status}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                            <span className="text-gray-400 text-sm">Date Created:</span>
+                                            <span>{new Date(fileDetails.dateCreated).toLocaleString() || 'N/A'}</span>
+                                        </div>
+                                        
+                                        {fileDetails.ref_fileid && (
+                                            <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                                <span className="text-gray-400 text-sm">Reference File:</span>
+                                                <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                                    {refFileNames[fileDetails.ref_fileid] || fileDetails.ref_fileid}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {fileDetails.file_status === 'success' && (
+                                        <div className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg p-4 space-y-3">
+                                            <h3 className="text-md font-medium border-b border-neutral-800/50 pb-2 mb-1">Dimensions & Properties</h3>
+                                            
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-[#1e2229]/70 p-3 rounded-lg border border-neutral-800/50">
+                                                    <span className="text-xs text-gray-400 block">Width (X)</span>
+                                                    <span className="text-xl text-white font-medium">{fileDetails.dimensions.x}<span className="text-sm text-gray-400 ml-1">mm</span></span>
                                                 </div>
-                                                <div className="flex justify-end mt-4">
-                                                    <button className="github-primary" onClick={() => handleProductAdd(fileDetails.fileid)}>
-                                                        Create Product
-                                                    </button>
+                                                <div className="bg-[#1e2229]/70 p-3 rounded-lg border border-neutral-800/50">
+                                                    <span className="text-xs text-gray-400 block">Depth (Y)</span>
+                                                    <span className="text-xl text-white font-medium">{fileDetails.dimensions.y}<span className="text-sm text-gray-400 ml-1">mm</span></span>
+                                                </div>
+                                                <div className="bg-[#1e2229]/70 p-3 rounded-lg border border-neutral-800/50">
+                                                    <span className="text-xs text-gray-400 block">Height (Z)</span>
+                                                    <span className="text-xl text-white font-medium">{fileDetails.dimensions.z}<span className="text-sm text-gray-400 ml-1">mm</span></span>
+                                                </div>
+                                                <div className="bg-[#1e2229]/70 p-3 rounded-lg border border-neutral-800/50">
+                                                    <span className="text-xs text-gray-400 block">Mass</span>
+                                                    <span className="text-xl text-white font-medium">{fileDetails.mass_in_grams}<span className="text-sm text-gray-400 ml-1">g</span></span>
                                                 </div>
                                             </div>
-                                            <div className="flex-1">
-                                                <ShowcaseProduct
-                                                    product_title={newProduct.product_title || "Product Title"}
-                                                    product_description={newProduct.product_description || "Product Description"}
-                                                    product_image_url={newProduct.product_image_url || "https://via.placeholder.com/300"}
-                                                    product_features={newProduct.product_features ? newProduct.product_features.split(',').map(f => f.trim()) : []}
-                                                    product_fileid={fileDetails.fileid}
-                                                    product_author={newProduct.product_author || "Mandarin 3D"}
-                                                    product_author_url={newProduct.product_author_url || "https://mandarin3d.com"}
-                                                    product_license={newProduct.product_license || "Public Domain"}
-                                                    file_obj={fileDetails}
+                                        </div>
+                                    )}
+                                    
+                                    {fileDetails.file_status === 'error' && (
+                                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                                            <h3 className="text-md font-medium text-red-400 border-b border-red-500/30 pb-2 mb-1">Error Information</h3>
+                                            <p className="text-red-300">{fileDetails.file_error || 'Unknown error occurred during processing'}</p>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg p-4 space-y-3">
+                                        <h3 className="text-md font-medium border-b border-neutral-800/50 pb-2 mb-1">Price & Product Information</h3>
+                                        
+                                        <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                            <span className="text-gray-400 text-sm">Price Override:</span>
+                                            <div className="flex items-center">
+                                                <span className="mr-2 text-gray-400">$</span>
+                                                <Input
+                                                    id="priceOverride"
+                                                    value={fileDetails.price_override}
+                                                    onChange={(e) => setFileDetails({ ...fileDetails, price_override: e.target.value })}
+                                                    placeholder="Optional"
+                                                    className="bg-[#1e2229] border-neutral-700 text-white"
                                                 />
                                             </div>
                                         </div>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <hr></hr>
-                            <div className="space-y-2">
-                                <label htmlFor="priceOverride" className="text-sm font-medium leading-none">Price Override</label>
-                                <div className="flex items-center">
-                                    <span className="mr-2">$</span>
-                                    <Input
-                                        id="priceOverride"
-                                        value={fileDetails.price_override}
-                                        onChange={(e) => setFileDetails({ ...fileDetails, price_override: e.target.value })}
-                                        placeholder="Optional"
-                                    />
+                                        
+                                        <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                            <span className="text-gray-400 text-sm">Product:</span>
+                                            {fileProduct ? (
+                                                <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                                    {fileProduct.product_title}
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline">No Product</Badge>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="flex justify-end">
+                                            <button
+                                                className="bg-gradient-to-r from-cyan-600/90 to-cyan-700/80 hover:from-cyan-700 hover:to-cyan-800 text-white px-3 py-1.5 rounded-md text-sm flex items-center"
+                                                onClick={() => handleUpdatePrice(fileDetails.fileid || 'N/A', fileDetails.price_override || 'N/A')}
+                                            >
+                                                <FaEdit className="mr-1.5" />
+                                                Update Price
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 
+                                {/* Right Column - Preview & Product Creation */}
+                                <div className="space-y-4">
+                                    <div className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg p-4 space-y-3">
+                                        <h3 className="text-md font-medium border-b border-neutral-800/50 pb-2">Model Preview</h3>
+                                        
+                                        {fileDetailsOpen && fileDetails.utfile_url && (
+                                            <div className="w-full h-[280px] rounded-md overflow-hidden border border-neutral-800 bg-[#1e2229]/70">
+                                                <LazyModelViewer
+                                                    url={fileDetails.utfile_url || "https://cdn.mandarin3d.com/files/default.glb"}
+                                                    style={{ width: '100%', height: '100%' }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Action Buttons */}
+                                    <div className="bg-[#1a1b1e]/40 backdrop-blur-sm border border-neutral-800 rounded-lg p-4">
+                                        <h3 className="text-md font-medium border-b border-neutral-800/50 pb-2 mb-3">Actions</h3>
+                                        
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <a 
+                                                href={fileDetails.utfile_url} 
+                                                download 
+                                                className="bg-[#1e2229] hover:bg-[#2A2A2A] border border-neutral-700 text-white px-3 py-1.5 rounded-md text-sm flex items-center justify-center"
+                                            >
+                                                <FaFileDownload className="mr-1.5" />
+                                                Download File
+                                            </a>
+                                            <button 
+                                                className="bg-[#1e2229] hover:bg-[#2A2A2A] border border-neutral-700 text-white px-3 py-1.5 rounded-md text-sm flex items-center justify-center"
+                                                onClick={() => handleAddToCart(fileDetails.fileid)}
+                                            >
+                                                <FaPlus className="mr-1.5" />
+                                                Add to Cart
+                                            </button>
+                                            <button 
+                                                className="bg-[#1e2229] hover:bg-[#2A2A2A] border border-neutral-700 text-white px-3 py-1.5 rounded-md text-sm flex items-center justify-center"
+                                                onClick={() => handleSlice(fileDetails.fileid)}
+                                            >
+                                                <FaSync className="mr-1.5" />
+                                                Reslice Model
+                                            </button>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <button className='bg-gradient-to-r from-purple-600/90 to-purple-700/80 hover:from-purple-700 hover:to-purple-800 text-white px-3 py-1.5 rounded-md text-sm flex items-center justify-center'>
+                                                        <FaPlus className="mr-1.5" />
+                                                        Create Product
+                                                    </button>
+                                                </DialogTrigger>
+                                                <DialogContent className="max-w-4xl">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Create New Product</DialogTitle>
+                                                        <DialogDescription>
+                                                            Enter the details for the new product and see a live preview.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="flex gap-8">
+                                                        <div className="flex-1">
+                                                            <div className="grid gap-4 py-4">
+                                                                <Input
+                                                                    placeholder="Product Title"
+                                                                    value={newProduct.product_title}
+                                                                    onChange={(e) => setNewProduct({...newProduct, product_title: e.target.value})}
+                                                                />
+                                                                <Textarea
+                                                                    placeholder="Product Description"
+                                                                    value={newProduct.product_description}
+                                                                    onChange={(e) => setNewProduct({...newProduct, product_description: e.target.value})}
+                                                                />
+                                                                <Input
+                                                                    placeholder="Product Features (comma-separated)"
+                                                                    value={newProduct.product_features}
+                                                                    onChange={(e) => setNewProduct({...newProduct, product_features: e.target.value})}
+                                                                />
+                                                                <label htmlFor="image" className="block mb-1">Product Image</label>
+                                                                {newProduct.product_image_url ? (
+                                                                    <div className="relative w-full p-2 mb-2 bg-gray-700 rounded flex justify-center items-center">
+                                                                        <img src={newProduct.product_image_url} alt="Uploaded Product" className="w-1/2 h-auto rounded" />
+                                                                        <button
+                                                                            className="absolute top-0 right-0 p-1 text-white bg-red-500 rounded-full"
+                                                                            onClick={() => setNewProduct({ ...newProduct, product_image_url: '' })}
+                                                                        >
+                                                                            <FaTimes />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <UploadButton
+                                                                        className='w-full p-2 mb-2 rounded border border-gray-300'
+                                                                        endpoint="imageUploader"
+                                                                        onClientUploadComplete={(res) => {
+                                                                            console.log("Files: ", res);
+                                                                            setNewProduct({ ...newProduct, product_image_url: res[0].url });
+                                                                            toast.success("Image uploaded successfully.");
+                                                                        }}
+                                                                        onUploadError={(error) => {
+                                                                            toast.error(`Upload Error: ${error.message}`);
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                                <Input
+                                                                    placeholder="Product Author"
+                                                                    value={newProduct.product_author}
+                                                                    onChange={(e) => setNewProduct({...newProduct, product_author: e.target.value})}
+                                                                />
+                                                                <Input
+                                                                    placeholder="Product Author URL"
+                                                                    value={newProduct.product_author_url}
+                                                                    onChange={(e) => setNewProduct({...newProduct, product_author_url: e.target.value})}
+                                                                />
+                                                                <Input
+                                                                    placeholder="Product License"
+                                                                    value={newProduct.product_license}
+                                                                    onChange={(e) => setNewProduct({...newProduct, product_license: e.target.value})}
+                                                                />
+                                                                <Input
+                                                                    placeholder="Product URL"
+                                                                    value={newProduct.product_url}
+                                                                    onChange={(e) => setNewProduct({...newProduct, product_url: e.target.value})}
+                                                                />
+                                                            </div>
+                                                            <div className="flex justify-end mt-4">
+                                                                <button 
+                                                                    className="bg-gradient-to-r from-purple-600/90 to-purple-700/80 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
+                                                                    onClick={() => handleProductAdd(fileDetails.fileid)}
+                                                                >
+                                                                    <FaPlus className="mr-2" />
+                                                                    Create Product
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <ShowcaseProduct
+                                                                product_title={newProduct.product_title || "Product Title"}
+                                                                product_description={newProduct.product_description || "Product Description"}
+                                                                product_image_url={newProduct.product_image_url || "https://via.placeholder.com/300"}
+                                                                product_features={newProduct.product_features ? newProduct.product_features.split(',').map(f => f.trim()) : []}
+                                                                product_fileid={fileDetails.fileid}
+                                                                product_author={newProduct.product_author || "Mandarin 3D"}
+                                                                product_author_url={newProduct.product_author_url || "https://mandarin3d.com"}
+                                                                product_license={newProduct.product_license || "Public Domain"}
+                                                                file_obj={fileDetails}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <hr />
-                            <p><strong>Product:</strong> {fileProduct ? fileProduct.product_title : "No associated product"}</p>
-                            
-                        </div>
-                        <div className="flex justify-end mt-4">
-                            <button
-                                className="github-primary"
-                                onClick={() => handleUpdatePrice(fileDetails.fileid || 'N/A', fileDetails.price_override || 'N/A')}
-                            >
-                                Update Price
-                            </button>
                         </div>
                     </SheetContent>
                 </Sheet>
@@ -645,59 +833,150 @@ function FileManagement() {
                                 <TableHead>Price Override</TableHead>
                                 <TableHead>Date Created</TableHead>
                                 <TableHead>Product Name</TableHead>
+                                <TableHead>Reference File</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sortFilesByDate(filteredItems).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((file) => (
-                                <TableRow key={file.fileid} >
-                                    <TableCell className="font-medium" onClick={() => handleRowClick(file)}>{file.filename}</TableCell>
-                                    <TableCell onClick={() => handleRowClick(file)}>
-                                        {file.file_status === 'unsliced' && <FaSpinner className="animate-spin inline mr-2" />}
-                                        {file.file_status === 'success' && <FaCheck className="text-green-500 inline mr-2" />}
-                                        {file.file_status === 'error' && <FaTimes className="text-red-500 inline mr-2" />}
-                                        {file.file_status}
-                                    </TableCell>
-                                    <TableCell onClick={() => handleRowClick(file)}>{file.fileid}</TableCell>
-                                    <TableCell onClick={() => handleRowClick(file)}>{file.price_override ? `$${(file.price_override).toFixed(2)}` : 'N/A'}</TableCell>
-                                    <TableCell onClick={() => handleRowClick(file)}>{new Date(file.dateCreated).toLocaleString()}</TableCell>
-                                    <TableCell onClick={() => handleRowClick(file)}>
-                                        {file.productName ? (
-                                            <Badge>{file.productName}</Badge>
-                                        ) : (
-                                            <Badge variant="outline">No Product</Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <button onClick={() => handleSlice(file.fileid)} className="github-secondary text-blue-500 hover:text-blue-700 mr-2 mb-2">
-                                            <FaSync />
-                                        </button>
-                                        <button onClick={() => handleDelete(file.fileid)} className="github-secondary text-red-500 hover:text-red-700 mb-2">
-                                            <FaTrash />
-                                        </button>
+                            {filteredItems.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-64 text-center">
+                                        <div className="flex flex-col items-center justify-center p-8">
+                                            <div className="w-16 h-16 mb-4 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+                                                <FaDatabase className="text-3xl text-cyan-400/70" />
+                                            </div>
+                                            <h3 className="text-lg font-medium text-white mb-2">No Files Found</h3>
+                                            <p className="text-gray-400 mb-4 max-w-md">
+                                                {filterText 
+                                                    ? "No files match your search criteria. Try adjusting your filters." 
+                                                    : "Upload files to get started with your 3D print management."}
+                                            </p>
+                                            <div className="flex gap-3">
+                                                {filterText && (
+                                                    <button 
+                                                        className="flex items-center px-4 py-2 bg-gradient-to-r from-amber-600/80 to-amber-700/60 rounded-md text-white text-sm"
+                                                        onClick={() => setFilterText('')}
+                                                    >
+                                                        <FaFilter className="mr-2" />
+                                                        Clear Filters
+                                                    </button>
+                                                )}
+                                                <UploadButton
+                                                    className="ut-button:bg-gradient-to-r ut-button:from-cyan-600/90 ut-button:to-cyan-700/70 ut-button:rounded-md ut-button:text-white ut-button:px-4 ut-button:py-2 ut-button:text-sm ut-button:flex ut-button:items-center ut-allowed-content:hidden"
+                                                    endpoint="modelUploader"
+                                                    content={{
+                                                        button({ ready }) {
+                                                            return (
+                                                                <div className="flex items-center">
+                                                                    <FaFileUpload className="mr-2" />
+                                                                    <span>Upload a File</span>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    }}
+                                                    onClientUploadComplete={(res) => {
+                                                        toast.success("Files uploaded successfully!");
+                                                        fetchFiles();
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : (
+                                sortFilesByDate(filteredItems).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((file) => (
+                                    <TableRow key={file.fileid} >
+                                        <TableCell className="font-medium" onClick={() => handleRowClick(file)}>{file.filename}</TableCell>
+                                        <TableCell onClick={() => handleRowClick(file)}>
+                                            {file.file_status === 'unsliced' && <FaSpinner className="animate-spin inline mr-2" />}
+                                            {file.file_status === 'success' && <FaCheck className="text-green-500 inline mr-2" />}
+                                            {file.file_status === 'error' && <FaTimes className="text-red-500 inline mr-2" />}
+                                            {file.file_status}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div 
+                                                className="flex items-center gap-1 cursor-pointer group"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    copyToClipboard(file.fileid, file.fileid);
+                                                }}
+                                            >
+                                                <span className="text-gray-300 font-mono text-sm">
+                                                    {truncateFileId(file.fileid)}
+                                                </span>
+                                                {copiedFileId === file.fileid ? (
+                                                    <FaCheckCircle className="text-green-500 text-xs group-hover:opacity-100" />
+                                                ) : (
+                                                    <FaCopy className="text-gray-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                )}
+                                                <span className="sr-only">Click to copy</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell onClick={() => handleRowClick(file)}>{file.price_override ? `$${(file.price_override).toFixed(2)}` : 'N/A'}</TableCell>
+                                        <TableCell onClick={() => handleRowClick(file)}>{new Date(file.dateCreated).toLocaleString()}</TableCell>
+                                        <TableCell onClick={() => handleRowClick(file)}>
+                                            {file.productName ? (
+                                                <Badge>{file.productName}</Badge>
+                                            ) : (
+                                                <Badge variant="outline">No Product</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell onClick={() => handleRowClick(file)}>
+                                            {file.ref_fileid ? (
+                                                <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                                    {refFileNames[file.ref_fileid] || truncateFileId(file.ref_fileid)}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-gray-400">—</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSlice(file.fileid);
+                                                }} 
+                                                className="github-secondary text-blue-500 hover:text-blue-700 mr-2 mb-2"
+                                                title="Reslice model"
+                                            >
+                                                <FaSync />
+                                            </button>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(file.fileid);
+                                                }} 
+                                                className="github-secondary text-red-500 hover:text-red-700 mb-2"
+                                                title="Delete file"
+                                            >
+                                                <FaTrash />
+                                            </button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
 
-                    <Pagination className="mt-4">
-                        <PaginationContent>
-                            <PaginationItem>
-                                <PaginationPrevious
-                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                                />
-                            </PaginationItem>
-                            {renderPaginationItems()}
-                            <PaginationItem>
-                                <PaginationNext
-                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(files.length / itemsPerPage)))}
-                                    className={currentPage === Math.ceil(files.length / itemsPerPage) ? 'pointer-events-none opacity-50' : ''}
-                                />
-                            </PaginationItem>
-                        </PaginationContent>
-                    </Pagination>
+                    {filteredItems.length > 0 && (
+                        <Pagination className="mt-4">
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                                    />
+                                </PaginationItem>
+                                {renderPaginationItems()}
+                                <PaginationItem>
+                                    <PaginationNext
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(files.length / itemsPerPage)))}
+                                        className={currentPage === Math.ceil(files.length / itemsPerPage) ? 'pointer-events-none opacity-50' : ''}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    )}
                 </>
             )}
         </div>
