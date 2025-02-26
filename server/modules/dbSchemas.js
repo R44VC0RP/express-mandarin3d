@@ -290,3 +290,34 @@ export const quoteSchema = new mongoose.Schema({
         filament_color: String,
     }]
 });
+
+// Press Release schema for news articles
+export const pressReleaseSchema = new mongoose.Schema({
+    article_id: String,
+    title: String,
+    content: String,
+    summary: String,
+    image_url: String,
+    author: String,
+    tags: [String],
+    featured: {
+        type: Boolean,
+        default: false
+    },
+    published: {
+        type: Boolean,
+        default: true
+    },
+    dateCreated: {
+        type: Date,
+        default: Date.now
+    },
+    dateUpdated: {
+        type: Date,
+        default: Date.now
+    },
+    slug: {
+        type: String,
+        required: true
+    }
+}, { versionKey: false });

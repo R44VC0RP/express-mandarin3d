@@ -17,6 +17,7 @@ import { useCart } from '../context/Cart';
 import Loading from 'react-fullscreen-loading';
 import axios from 'axios';
 import { toast } from 'sonner';
+import FeaturedNews from '../components/FeaturedNews';
 
 // Asset Imports
 import prining_bambu from '../assets/videos/printing_bambu.mp4';
@@ -196,12 +197,8 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0F0F0F] to-[#1A1A1A] text-white flex flex-col">
-      {/* Header */}
-      <div className="sticky top-0 z-40">
-        <Header />
-      </div>
+      <Header />
 
-      {/* Main content */}
       <main className="relative z-10 flex-grow">
         {showAlert && (
           <div className="bg-blue-500 text-white p-4 rounded mb-4 flex items-center">
@@ -210,7 +207,6 @@ function Home() {
           </div>
         )}
 
-        {/* Quick Action Banner */}
         <div className="bg-gradient-to-r from-cyan-500/20 via-cyan-500/10 to-cyan-500/20 border-y border-cyan-500/20">
           <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center mb-4 md:mb-0">
@@ -229,7 +225,6 @@ function Home() {
           </div>
         </div>
 
-        {/* Hero Section */}
         <section className="container mx-auto px-4 py-8 md:py-12">
           <Carousel
             className="w-full rounded-2xl overflow-hidden shadow-2xl"
@@ -288,7 +283,6 @@ function Home() {
           </Carousel>
         </section>
 
-        {/* Features Section */}
         <section className="container mx-auto px-4 py-16 md:py-24">
           <div className="text-center mb-16">
             <div className="inline-flex items-center px-4 py-2 mb-6 rounded-full bg-gradient-to-r from-cyan-500/10 to-cyan-500/0 border border-cyan-500/20">
@@ -343,7 +337,6 @@ function Home() {
           </div>
         </section>
 
-        {/* Testimonials & Showcase Section */}
         <section className="container mx-auto px-4 py-16 md:py-24">
           <div className="text-center mb-16">
             <div className="inline-flex items-center px-4 py-2 mb-6 rounded-full bg-gradient-to-r from-cyan-500/10 to-cyan-500/0 border border-cyan-500/20">
@@ -366,9 +359,8 @@ function Home() {
                 key={index}
                 className="group relative rounded-2xl overflow-hidden bg-[#1a1b1e]/80 border border-neutral-800/50 backdrop-blur-sm hover:border-cyan-500/20 transition-all duration-500"
               >
-                {/* Image Section */}
                 <div className="relative h-64 overflow-hidden">
-                  <div className="absolute inset-0 bg-black/20 mix-blend-overlay pointer-events-none" /> {/* Grain effect */}
+                  <div className="absolute inset-0 bg-black/20 mix-blend-overlay pointer-events-none" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1a1b1e] via-transparent opacity-60" />
                   <img
                     src={testimonial.image}
@@ -377,7 +369,6 @@ function Home() {
                   />
                 </div>
 
-                {/* Content Section */}
                 <div className="p-6 relative">
                   <FaQuoteLeft className="text-cyan-500/20 text-4xl absolute top-4 left-4" />
                   <div className="relative">
@@ -392,12 +383,13 @@ function Home() {
                   </div>
                 </div>
 
-                {/* Hover Effect Border */}
                 <div className="absolute bottom-0 left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
               </div>
             ))}
           </div>
         </section>
+
+        <FeaturedNews />
       </main>
 
       <Footer />

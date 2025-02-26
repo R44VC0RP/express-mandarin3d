@@ -61,7 +61,8 @@ import {
   collectionSchema,
   orderNumberSchema,
   orderSchema,
-  quoteSchema
+  quoteSchema,
+  pressReleaseSchema
 } from './modules/dbSchemas.js';
 
 
@@ -119,6 +120,7 @@ const Collection = mongoose.model('Collection', collectionSchema);
 const OrderNumber = mongoose.model('OrderNumber', orderNumberSchema);
 const Order = mongoose.model('Order', orderSchema);
 const Quote = mongoose.model('Quote', quoteSchema);
+const PressRelease = mongoose.model('PressRelease', pressReleaseSchema);
 
 // #region LOGIN AND AUTHENTICATION
 
@@ -3091,3 +3093,224 @@ app.get('/api/admin/dashboard/stats', requireLogin, requireAdmin, async (req, re
 });
 
 // #endregion ADMIN DASHBOARD ENDPOINTS
+
+// Press Release API Endpoints
+// Get all press releases
+app.get('/api/press-releases', async (req, res) => {
+  try {
+    const pressReleases = await PressRelease.find({ published: true }).sort({ dateCreated: -1 });
+    res.status(200).json({
+      status: 'success',
+      pressReleases
+    });
+  } catch (error) {
+    console.error('Error fetching press releases:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch press releases'
+    });
+  }
+});
+
+// Get featured press releases
+app.get('/api/press-releases/featured', async (req, res) => {
+  try {
+    const featuredPressReleases = await PressRelease.find({ 
+      published: true,
+      featured: true 
+    }).sort({ dateCreated: -1 }).limit(3);
+    
+    res.status(200).json({
+      status: 'success',
+      featuredPressReleases
+    });
+  } catch (error) {
+    console.error('Error fetching featured press releases:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch featured press releases'
+    });
+  }
+});
+
+// Get press release by ID
+app.get('/api/press-releases/:articleId', async (req, res) => {
+  try {
+    const { articleId } = req.params;
+    const pressRelease = await PressRelease.findOne({ article_id: articleId });
+    
+    if (!pressRelease) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Press release not found'
+      });
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      pressRelease
+    });
+  } catch (error) {
+    console.error('Error fetching press release:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch press release'
+    });
+  }
+});
+
+// Get press release by slug
+app.get('/api/press-releases/slug/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const pressRelease = await PressRelease.findOne({ slug });
+    
+    if (!pressRelease) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Press release not found'
+      });
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      pressRelease
+    });
+  } catch (error) {
+    console.error('Error fetching press release by slug:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch press release'
+    });
+  }
+});
+
+// Create a new press release (admin only)
+app.post('/api/press-releases', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const { title, content, summary, image_url, author, tags, featured, published, slug } = req.body;
+    
+    // Check if slug already exists
+    const existingSlug = await PressRelease.findOne({ slug });
+    if (existingSlug) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'A press release with this slug already exists'
+      });
+    }
+    
+    const article_id = uuidv4();
+    const newPressRelease = new PressRelease({
+      article_id,
+      title,
+      content,
+      summary,
+      image_url,
+      author,
+      tags: tags || [],
+      featured: featured || false,
+      published: published !== undefined ? published : true,
+      slug
+    });
+    
+    await newPressRelease.save();
+    
+    res.status(201).json({
+      status: 'success',
+      pressRelease: newPressRelease
+    });
+  } catch (error) {
+    console.error('Error creating press release:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to create press release'
+    });
+  }
+});
+
+// Update a press release (admin only)
+app.put('/api/press-releases/:articleId', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const { articleId } = req.params;
+    const { title, content, summary, image_url, author, tags, featured, published, slug } = req.body;
+    
+    // Check if the press release exists
+    const pressRelease = await PressRelease.findOne({ article_id: articleId });
+    if (!pressRelease) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Press release not found'
+      });
+    }
+    
+    // Check if the new slug already exists (if it's being changed)
+    if (slug && slug !== pressRelease.slug) {
+      const existingSlug = await PressRelease.findOne({ slug });
+      if (existingSlug) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'A press release with this slug already exists'
+        });
+      }
+    }
+    
+    // Update the press release
+    const updatedPressRelease = await PressRelease.findOneAndUpdate(
+      { article_id: articleId },
+      {
+        title: title || pressRelease.title,
+        content: content || pressRelease.content,
+        summary: summary || pressRelease.summary,
+        image_url: image_url || pressRelease.image_url,
+        author: author || pressRelease.author,
+        tags: tags || pressRelease.tags,
+        featured: featured !== undefined ? featured : pressRelease.featured,
+        published: published !== undefined ? published : pressRelease.published,
+        slug: slug || pressRelease.slug,
+        dateUpdated: Date.now()
+      },
+      { new: true }
+    );
+    
+    res.status(200).json({
+      status: 'success',
+      pressRelease: updatedPressRelease
+    });
+  } catch (error) {
+    console.error('Error updating press release:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update press release'
+    });
+  }
+});
+
+// Delete a press release (admin only)
+app.delete('/api/press-releases/:articleId', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const { articleId } = req.params;
+    
+    // Check if the press release exists
+    const pressRelease = await PressRelease.findOne({ article_id: articleId });
+    if (!pressRelease) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Press release not found'
+      });
+    }
+    
+    // Delete the press release
+    await PressRelease.deleteOne({ article_id: articleId });
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Press release deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting press release:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to delete press release'
+    });
+  }
+});

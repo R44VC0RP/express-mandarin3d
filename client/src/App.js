@@ -20,6 +20,8 @@ import CookieCutterForm from './pages/customJobs/cookieCutter';
 import OrderConfirmation from './pages/Confirmation';
 import CollectionPage from './pages/Collections';
 import Products from './pages/Products';
+import News from './pages/News';
+import NewsArticle from './pages/NewsArticle';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -134,6 +136,9 @@ function App() {
                 <Route path="/products" element={<Products />} />
                 <Route path="/collections/:collectionId" element={<CollectionPage />} />
                 <Route path="/file/:fileId" element={<FilePreview />} />
+                {/* News Section */}
+                <Route path="/news" element={<News />} />
+                <Route path="/news/:slug" element={<NewsArticle />} />
                 {/* End of Client Sections */}
                 {/* Product Sections */}
                 <Route path="/custom-nameplates" element={<CustomNameplate />} />

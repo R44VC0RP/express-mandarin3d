@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaBars, FaUser, FaCog, FaChartBar, FaBoxes, FaFileAlt, FaShoppingCart, FaTruck, FaBox, FaSignOutAlt, FaUsers } from 'react-icons/fa';
+import { FaBars, FaUser, FaCog, FaChartBar, FaBoxes, FaFileAlt, FaShoppingCart, FaTruck, FaBox, FaSignOutAlt, FaUsers, FaNewspaper } from 'react-icons/fa';
 import Dashboard from '../components/admin/Dashboard';
 import FilamentInventory from '../components/admin/Filaments';
 import FileManagement from '../components/admin/Files';
@@ -11,6 +11,7 @@ import QuoteManagement from './admin/QuoteManagement.jsx';
 import CartManagement from './admin/Cart.jsx';
 import Orders from './admin/Orders.jsx';
 import CustomerAnalytics from './admin/CustomerAnalytics.jsx';
+import PressReleases from './admin/PressReleases.jsx';
 import logo from '../assets/images/m3d_logo.png';
 import { Button } from '../components/ui/button';
 import { Home, CreditCard, Receipt, Users, Package, BarChart, FileText, Clock, Database, PieChart } from 'lucide-react';
@@ -31,6 +32,7 @@ function Sidebar({ activeTab, setActiveTab }) {
                 { name: 'Settings', icon: FaCog },
                 { name: 'Orders', icon: FaFileAlt },
                 { name: 'Quotes', icon: FaFileAlt },
+                { name: 'Press Releases', icon: FaNewspaper },
             ],
         },
         {
@@ -126,6 +128,7 @@ function Content({ activeTab }) {
                     {activeTab === 'Orders' && <Orders />}
                     {activeTab === 'Quotes' && <QuoteManagement />}
                     {activeTab === 'Customer Analytics' && <CustomerAnalytics />}
+                    {activeTab === 'Press Releases' && <PressReleases />}
                 </div>
             </div>
         </div>
