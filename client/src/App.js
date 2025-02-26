@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation, useParams } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import Home from './pages/Home';
 import AdamCad from './pages/adamtest/AdamCad';
 import WasmCadViewer from './pages/adamtest/WasmCadViewer';
@@ -114,46 +115,48 @@ const Quote = () => {
 
 function App() {
   return (
-    <AlertProvider>
-      <CartProvider>
-        <AuthProvider>
-          <Router>
-            <FullPageDropzone>
-              <Routes>
-                <Route path="/adamcad" element={<AdamCad />} />
-                <Route path="/login" element={<LoginRoute />} />
-                <Route path="/" element={<Home />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/upload" element={<Upload />} />
-                <Route path="/logout" element={<Logout />} />
-                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-                <Route path="/hex" element={<Hex />} />
-                <Route path="/marketplace" element={<LuxuryMarketplace />} />
-                <Route path="/products/cookie-cutters" element={<CookieCutterForm />} />
-                <Route path="/confirmation/:orderId" element={<OrderConfirmation  />} />
-                <Route path="/quote/:quoteId" element={<Quote />} />
-                {/* Client Sections */}
-                <Route path="/products" element={<Products />} />
-                <Route path="/collections/:collectionId" element={<CollectionPage />} />
-                <Route path="/file/:fileId" element={<FilePreview />} />
-                {/* News Section */}
-                <Route path="/news" element={<News />} />
-                <Route path="/news/:slug" element={<NewsArticle />} />
-                {/* End of Client Sections */}
-                {/* Product Sections */}
-                <Route path="/custom-nameplates" element={<CustomNameplate />} />
-                {/* End of Product Sections */}
-                <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route path="/contact" element={<Contact />} />
-              </Routes>
+    <HelmetProvider>
+      <AlertProvider>
+        <CartProvider>
+          <AuthProvider>
+            <Router>
+              <FullPageDropzone>
+                <Routes>
+                  <Route path="/adamcad" element={<AdamCad />} />
+                  <Route path="/login" element={<LoginRoute />} />
+                  <Route path="/" element={<Home />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/upload" element={<Upload />} />
+                  <Route path="/logout" element={<Logout />} />
+                  <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                  <Route path="/hex" element={<Hex />} />
+                  <Route path="/marketplace" element={<LuxuryMarketplace />} />
+                  <Route path="/products/cookie-cutters" element={<CookieCutterForm />} />
+                  <Route path="/confirmation/:orderId" element={<OrderConfirmation  />} />
+                  <Route path="/quote/:quoteId" element={<Quote />} />
+                  {/* Client Sections */}
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/collections/:collectionId" element={<CollectionPage />} />
+                  <Route path="/file/:fileId" element={<FilePreview />} />
+                  {/* News Section */}
+                  <Route path="/news" element={<News />} />
+                  <Route path="/news/:slug" element={<NewsArticle />} />
+                  {/* End of Client Sections */}
+                  {/* Product Sections */}
+                  <Route path="/custom-nameplates" element={<CustomNameplate />} />
+                  {/* End of Product Sections */}
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/contact" element={<Contact />} />
+                </Routes>
 
-              <AlertManager /> 
-              <Toaster richColors  />
-            </FullPageDropzone>
-          </Router>
-        </AuthProvider>
-      </CartProvider>
-    </AlertProvider>
+                <AlertManager /> 
+                <Toaster richColors  />
+              </FullPageDropzone>
+            </Router>
+          </AuthProvider>
+        </CartProvider>
+      </AlertProvider>
+    </HelmetProvider>
   );
 }
 

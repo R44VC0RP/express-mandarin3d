@@ -3098,7 +3098,7 @@ app.get('/api/admin/dashboard/stats', requireLogin, requireAdmin, async (req, re
 // Get all press releases
 app.get('/api/press-releases', async (req, res) => {
   try {
-    const pressReleases = await PressRelease.find({ published: true }).sort({ dateCreated: -1 });
+    const pressReleases = await PressRelease.find().sort({ dateCreated: -1 });
     res.status(200).json({
       status: 'success',
       pressReleases

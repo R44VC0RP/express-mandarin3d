@@ -41,7 +41,8 @@ const Header = () => {
     const navLinks = [
         { href: "https://shop.mandarin3d.com", text: "Product Store" },
         { href: "/upload", text: "Upload Model" },
-        { href: "/contact", text: "Contact Us" }
+        { href: "/contact", text: "Contact Us" },
+        { href: "/news", text: "News" }
     ];
 
     return (

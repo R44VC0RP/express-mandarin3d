@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FaCalendarAlt, FaTag, FaUser } from 'react-icons/fa';
+import { Helmet } from 'react-helmet-async';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -39,9 +40,22 @@ const News = () => {
     });
   };
 
+  // Meta data for the news page
+  const pageTitle = "News & Press Releases | Mandarin 3D";
+  const pageDescription = "Stay updated with the latest news, announcements, and press releases from Mandarin 3D.";
+  const websiteUrl = window.location.origin;
+  const pageUrl = `${websiteUrl}/news`;
+  
+  // Use the first featured article's image as the OG image if available
+  const featuredArticle = pressReleases.find(article => article.featured);
+  const ogImage = featuredArticle?.image_url || "https://utfs.io/f/RSbfEU0J8Dcdbk53MjC1cRrkYvuof67UMOAPNSgx4aFp29ET";
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0F0F0F] to-[#1A1A1A] text-white">
+        <Helmet>
+          <title>Loading News | Mandarin 3D</title>
+        </Helmet>
         <Header />
         <div className="container mx-auto px-4 py-16 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
@@ -54,6 +68,10 @@ const News = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0F0F0F] to-[#1A1A1A] text-white">
+        <Helmet>
+          <title>Error Loading News | Mandarin 3D</title>
+          <meta name="description" content="An error occurred while loading the news page." />
+        </Helmet>
         <Header />
         <div className="container mx-auto px-4 py-16">
           <div className="bg-red-900/20 border border-red-700/30 text-red-400 px-4 py-3 rounded-lg" role="alert">
@@ -68,6 +86,25 @@ const News = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0F0F0F] to-[#1A1A1A] text-white">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={ogImage} />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={ogImage} />
+      </Helmet>
+      
       <Header />
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">

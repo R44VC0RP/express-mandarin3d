@@ -402,6 +402,15 @@ const PressReleases = () => {
                           >
                             {article.published ? <FaEye /> : <FaEyeSlash />}
                           </button>
+                          <a
+                            href={`/news/${article.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                            title="View press release"
+                          >
+                            <FaDesktop />
+                          </a>
                           <button
                             onClick={() => openSheet(article)}
                             className="text-blue-400 hover:text-blue-300 transition-colors"
