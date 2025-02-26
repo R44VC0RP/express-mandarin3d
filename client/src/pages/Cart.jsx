@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { FaInfoCircle, FaArrowLeft, FaArrowDown, FaArrowUp, FaTrash } from 'react-icons/fa';
+import { FaInfoCircle, FaArrowLeft, FaArrowDown, FaArrowUp, FaTrash, FaClock } from 'react-icons/fa';
 import ShowcaseProduct from '../components/ShowcaseProduct';
 import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
@@ -51,6 +51,7 @@ function Home() {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
   const [addons, setAddons] = useState([]);
   const [selectedAddons, setSelectedAddons] = useState([]);
+  const [estimatedDays, setEstimatedDays] = useState(3); // Default to 3 days
 
   const [orderComments, setOrderComments] = useState("");
   const [shippingOption, setShippingOption] = useState(0);
@@ -214,8 +215,22 @@ function Home() {
     fetchFilamentColors();
     fetchShippingOptions();
     fetchProducts();
+    
+    // Simple one-time fetch for the time estimate
+    console.log("Fetching order estimate...");
+    axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/order-time-estimate`)
+      .then(response => {
+        console.log("Order estimate response:", response.data);
+        if (response.data.status === 'success') {
+          setEstimatedDays(response.data.estimatedDays);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching order estimate:', error);
+        // Keep the default value of 3 days
+      });
+    
     console.log("User: ", isAuthenticated);
-
   }, []);
 
   useEffect(() => { // SUBTOTAL CALCULATION
@@ -501,36 +516,6 @@ function Home() {
     }
   };
 
-  if (localLoading) {
-    return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
-  }
-
-  const settings = {
-    dots: true,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-        }
-      },
-      {
-        breakpoint: 640,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1
-        }
-      }
-    ]
-  };
-
-
-
   const processCheckout = async () => {
     if (process.env.NODE_ENV === 'production') {
       window?.datafast("checkout", {
@@ -616,7 +601,33 @@ function Home() {
     }
   };
 
+  if (localLoading) {
+    return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
+  }
 
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 3,
+    slidesToScroll: 1,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 640,
+        settings: {
+          slidesToShow: 1,
+          slidesToScroll: 1
+        }
+      }
+    ]
+  };
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white">
@@ -777,6 +788,22 @@ function Home() {
                   <p className="font-light">Estimated Total:</p>
                   <p className="font-bold">${total.toFixed(2)}</p>
                 </div>
+                
+                {/* Simplified Time Estimate Section */}
+                <div className="bg-[#1A1A1A] p-3 rounded-md mb-4 border border-[#3A3A3A]">
+                  <div className="flex items-center mb-2">
+                    <FaClock className="text-[#0D939B] mr-2" />
+                    <p className="font-semibold text-[#C7C7C7]">Estimated Production Time:</p>
+                  </div>
+                  <p className="text-sm mb-1">
+                    Based on our current order volume, your order will take approximately 
+                    <span className="font-bold text-white ml-1">{estimatedDays} days</span> to complete before shipping.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    This estimate includes production time only. Shipping time will vary based on your location and selected shipping method.
+                  </p>
+                </div>
+                
                 <button
                   className={`primary-button w-full py-2 rounded-lg ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={cartItems.length === 0}
@@ -850,7 +877,7 @@ function Home() {
         </section>
 
         {/* Pricing Plans Section */}
-        <section className="py-8 px-4">
+        {/* <section className="py-8 px-4">
           <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
           <Slider {...settings}>
             {products.map((plan, index) => (
@@ -859,7 +886,7 @@ function Home() {
               </div>
             ))}
           </Slider>
-        </section>
+        </section> */}
       </main>
       <Footer />
 

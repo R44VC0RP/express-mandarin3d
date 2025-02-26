@@ -3314,3 +3314,50 @@ app.delete('/api/press-releases/:articleId', requireLogin, requireAdmin, async (
     });
   }
 });
+
+
+
+
+// Add a new endpoint for order time estimate
+app.get('/api/order-time-estimate', async (req, res) => {
+  try {
+    console.log("Fetching order time estimate");
+    
+    // Check if Order model exists
+    if (!Order) {
+      console.error("Order model is not defined");
+      return res.json({ 
+        status: 'success', 
+        pendingCount: 0,
+        estimatedDays: 3,
+        error: "Order model is not defined"
+      });
+    }
+    
+    // Count all non-delivered orders
+    const pendingCount = await Order.countDocuments({
+      order_status: { $nin: ["Delivered", "Shipping", "Completed"] }
+    });
+
+    console.log("Pending order count:", pendingCount);
+    
+    // Calculate estimated days with a minimum of 3 days
+    const estimatedDays = Math.max(Math.round(pendingCount * 1.5), 3);
+    console.log("Estimated days:", estimatedDays);
+    
+    res.json({ 
+      status: 'success', 
+      pendingCount,
+      estimatedDays
+    });
+  } catch (error) {
+    console.error('Error calculating order time estimate:', error);
+    // Return a success response with default values instead of an error
+    res.json({ 
+      status: 'success', 
+      pendingCount: 0,
+      estimatedDays: 3,
+      error: error.message
+    });
+  }
+});
