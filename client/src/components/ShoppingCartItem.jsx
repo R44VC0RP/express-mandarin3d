@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect, useRef } from 'react';
-import { FaMinus, FaPlus, FaSpinner, FaExclamationTriangle, FaEdit, FaLink } from 'react-icons/fa';
+import { FaMinus, FaPlus, FaSpinner, FaExclamationTriangle, FaEdit, FaLink, FaSync } from 'react-icons/fa';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { StlViewer } from "react-stl-viewer";
@@ -144,7 +144,9 @@ const ShoppingCartItem = ({
   onQuantityChange = () => { },
   onQualityChange = () => { },
   onColorChange = () => { },
-  onRemove = () => { }
+  onRemove = () => { },
+  onRefresh = () => { },
+  isPolling = false
 }) => {
   const [email, setEmail] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -200,14 +202,14 @@ const ShoppingCartItem = ({
   const hexColor = filamentColors.find(color => color.filament_name === filament_color)?.filament_color;
   if (file_status === 'unsliced') {
     return (
-      <div className="p-4">
+      <div className="bg-[#1a1b1e]/80 backdrop-blur-sm rounded-lg border border-neutral-800/50 p-4 overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <a href="#" className="hover:underline">
-                    <p className="text-white font-bold text-xl sm:text-2xl">
+                    <p className="text-white font-bold text-xl sm:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80">
                       {filename}
                     </p>
                   </a>
@@ -231,45 +233,75 @@ const ShoppingCartItem = ({
                 href={`/file/${fileid}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-white hover:text-primary transition-colors"
+                className="text-cyan-400 hover:text-cyan-300 transition-colors"
               >
                 <FaLink className="text-lg" />
               </a>
+              
+              {/* Status indicator */}
+              <div className="ml-2 flex items-center">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  isPolling 
+                    ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" 
+                    : "bg-neutral-500/10 text-neutral-400 border border-neutral-500/20"
+                }`}>
+                  {isPolling ? (
+                    <>
+                      <FaSpinner className="mr-1 animate-spin" />
+                      Processing
+                    </>
+                  ) : (
+                    <>
+                      <FaSpinner className="mr-1" />
+                      Waiting
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
             {isAuthenticated && (
               <div className="mb-2">
-                <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md">{fileid}</code>
+                <code className="text-neutral-400 text-sm px-2 py-1 bg-[#2A2A2A] border border-neutral-800 rounded-md">{fileid}</code>
               </div>
             )}
           </div>
+          
+          {/* Manual refresh button */}
+          <button 
+            onClick={onRefresh}
+            className="text-neutral-400 hover:text-cyan-400 transition-colors p-2 rounded-full hover:bg-cyan-500/10"
+            title="Refresh file status"
+          >
+            <FaSync className={isPolling ? "animate-spin text-yellow-400" : ""} />
+          </button>
         </div>
         
         <div className="flex flex-col lg:flex-row items-start justify-between">
           <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 lg:mb-0 w-full lg:w-auto">
-            <Skeleton className="w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4" />
+            <Skeleton className="w-32 h-32 border border-neutral-800 rounded-lg overflow-hidden mb-4 sm:mb-0 sm:mr-4 bg-[#2A2A2A]" />
             <div>
-              <p className="text-white font-bold">File Mass: <Skeleton className="inline-block h-4 w-16" /></p>
-              <p className="text-white font-bold">Part Dimensions:</p>
-              <p className="text-white">X: <Skeleton className="inline-block h-4 w-16" /></p>
-              <p className="text-white">Y: <Skeleton className="inline-block h-4 w-16" /></p>
-              <p className="text-white">Z: <Skeleton className="inline-block h-4 w-16" /></p>
+              <p className="text-neutral-300 font-medium mb-1">File Mass: <Skeleton className="inline-block h-4 w-16 bg-[#2A2A2A]" /></p>
+              <p className="text-neutral-300 font-medium mb-1">Part Dimensions:</p>
+              <p className="text-neutral-400">X: <Skeleton className="inline-block h-4 w-16 bg-[#2A2A2A]" /></p>
+              <p className="text-neutral-400">Y: <Skeleton className="inline-block h-4 w-16 bg-[#2A2A2A]" /></p>
+              <p className="text-neutral-400">Z: <Skeleton className="inline-block h-4 w-16 bg-[#2A2A2A]" /></p>
             </div>
           </div>
           
           <div className="flex flex-col sm:flex-row lg:flex-col items-start mb-4 lg:mb-0 w-full lg:w-auto">
             <div className="w-full sm:w-1/2 lg:w-full mb-4 sm:mb-0 sm:mr-2 lg:mr-0">
-              <p className="text-white font-bold mb-1">File Color</p>
+              <p className="text-neutral-300 font-medium mb-1">File Color</p>
               <select
-                className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
+                className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-neutral-800 text-neutral-400 cursor-not-allowed"
                 disabled
               >
                 <option>Select Color</option>
               </select>
             </div>
             <div className="w-full sm:w-1/2 lg:w-full">
-              <p className="text-white font-bold mb-1 mt-2">Layer Height (Quality)</p>
+              <p className="text-neutral-300 font-medium mb-1 mt-2">Layer Height (Quality)</p>
               <select 
-                className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
+                className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-neutral-800 text-neutral-400 cursor-not-allowed"
                 disabled
               >
                 <option value="0.20mm">0.20mm - Default</option>
@@ -278,19 +310,25 @@ const ShoppingCartItem = ({
           </div>
           
           <div className="flex flex-col items-start lg:items-end w-full lg:w-auto">
-            <p className="text-white font-bold mb-1">Part Quantity</p>
+            <p className="text-neutral-300 font-medium mb-1">Part Quantity</p>
             <div className="flex items-center mb-2">
-              <button className="text-white p-1 card-special" disabled><FaMinus /></button>
-              <p className="mx-2 text-white">1</p>
-              <button className="text-white p-1 card-special" disabled><FaPlus /></button>
+              <button className="text-neutral-400 p-1 bg-[#2A2A2A] border border-neutral-800 rounded cursor-not-allowed" disabled><FaMinus /></button>
+              <p className="mx-2 text-neutral-400">1</p>
+              <button className="text-neutral-400 p-1 bg-[#2A2A2A] border border-neutral-800 rounded cursor-not-allowed" disabled><FaPlus /></button>
             </div>
-            <div className="flex flex-col items-center justify-center mb-2">
-              <p className="text-white font-bold mb-2">Your file is getting quoted...</p>
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            <div className="flex flex-col items-center justify-center mb-4">
+              <p className="text-neutral-300 font-medium mb-2">
+                {isPolling 
+                  ? "Processing your file..." 
+                  : "Your file is waiting to be processed..."}
+              </p>
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <button className="github-remove w-full lg:w-auto">Remove</button>
+                <button className="px-4 py-2 bg-transparent hover:bg-red-500/10 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-colors duration-300">
+                  Remove
+                </button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -301,44 +339,45 @@ const ShoppingCartItem = ({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onRemove(fileid)}>Remove</AlertDialogAction>
+                  <AlertDialogAction onClick={() => onRemove(fileid)} className="bg-red-500 hover:bg-red-600">Remove</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
         </div>
-        <hr className="w-full border-[#5E5E5E] mt-4" />
       </div>
     );
   }
 
   if (file_status === 'error') {
     return (
-      <div className="p-4">
+      <div className="bg-[#1a1b1e]/80 backdrop-blur-sm rounded-lg border border-red-500/30 p-4 overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start justify-between">
-        {isAuthenticated && (
           <div className="flex items-center mb-2 sm:mb-0">
-            <code className="text-white">{fileid}</code>
+            <div className="flex items-center gap-2">
+              <FaExclamationTriangle className="text-red-500 mr-2" />
+              <p className="text-white font-bold text-xl">{filename}</p>
+              <a 
+                href={`/file/${fileid}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-cyan-400 hover:text-cyan-300 transition-colors ml-2"
+              >
+                <FaLink className="text-lg" />
+              </a>
             </div>
-          )}
-          <div className="flex items-center mb-2 sm:mb-0">
-            <FaExclamationTriangle className="text-red-500 mr-2" />
-            <p className="text-white">{filename}</p>
-            <a 
-              href={`/file/${fileid}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-white hover:text-primary transition-colors ml-2"
-            >
-              <FaLink className="text-lg" />
-            </a>
+            {isAuthenticated && (
+              <div className="ml-4">
+                <code className="text-neutral-400 text-sm px-2 py-1 bg-[#2A2A2A] border border-neutral-800 rounded-md">{fileid}</code>
+              </div>
+            )}
           </div>
-          <div className="mb-2 sm:mb-0">
-            <p className="text-red-500">There was an error processing your file.</p>
-            <p className="text-red-500"><span className="font-bold">Error:</span> {file_error}</p>
+          <div className="mb-2 sm:mb-0 mt-2 sm:mt-0">
+            <p className="text-red-400 font-medium">There was an error processing your file.</p>
+            <p className="text-red-400"><span className="font-bold">Error:</span> {file_error}</p>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <p className="text-white cursor-pointer hover:underline">
+                <p className="text-cyan-400 cursor-pointer hover:text-cyan-300 transition-colors mt-2">
                   <span className="font-bold">Fear not!</span> Click here to forward the file to our team for review.
                 </p>
               </DialogTrigger>
@@ -364,25 +403,35 @@ const ShoppingCartItem = ({
               </DialogContent>
             </Dialog>
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button className="github-remove mt-2 sm:mt-0">Remove</button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure you want to remove this file?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently remove the file from your cart.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onRemove(fileid)}>Remove</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="flex items-center">
+            <button 
+              onClick={onRefresh}
+              className="text-neutral-400 hover:text-cyan-400 transition-colors p-2 rounded-full hover:bg-cyan-500/10 mr-2"
+              title="Refresh file status"
+            >
+              <FaSync />
+            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="px-4 py-2 bg-transparent hover:bg-red-500/10 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded-lg transition-colors duration-300">
+                  Remove
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to remove this file?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently remove the file from your cart.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onRemove(fileid)} className="bg-red-500 hover:bg-red-600">Remove</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
-        <hr className="w-full border-[#5E5E5E] mt-2" />
       </div>
     );
   }
@@ -390,14 +439,14 @@ const ShoppingCartItem = ({
   const contrastColor = getContrastColor(hexColor);
 
   return (
-    <div className="p-4">
-      <div className="flex flex-col sm:flex-row items-start justify-between">
+    <div className="bg-[#1a1b1e]/80 backdrop-blur-sm rounded-lg border border-neutral-800/50 p-4 overflow-hidden">
+      <div className="flex flex-col sm:flex-row items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <a href="#" className="hover:underline">
-                  <p className="text-white font-bold text-xl sm:text-2xl">
+                  <p className="text-white font-bold text-xl sm:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80">
                     {filename}
                   </p>
                 </a>
@@ -421,21 +470,21 @@ const ShoppingCartItem = ({
               href={`/file/${fileid}`} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-white hover:text-primary transition-colors"
+              className="text-cyan-400 hover:text-cyan-300 transition-colors"
             >
               <FaLink className="text-lg" />
             </a>
           </div>
           {isAuthenticated && (
             <div className="mb-2">
-              <code className="text-white text-sm px-2 py-1 bg-[#2A2A2A] border border-[#5E5E5E] rounded-md">{fileid}</code>
+              <code className="text-neutral-400 text-sm px-2 py-1 bg-[#2A2A2A] border border-neutral-800 rounded-md">{fileid}</code>
             </div>
           )}
         </div>
       </div>
       <div className="flex flex-col lg:flex-row items-start justify-between">
         <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 lg:mb-0 w-full lg:w-auto">
-          <div className="w-full sm:w-32 h-32 border border-[#5E5E5E] rounded-md overflow-hidden mb-4 sm:mb-0 sm:mr-4" style={{ backgroundColor: contrastColor }}>
+          <div className="w-full sm:w-32 h-32 border border-neutral-800 rounded-lg overflow-hidden mb-4 sm:mb-0 sm:mr-4" style={{ backgroundColor: contrastColor }}>
             {utfile_url ? (
               <LazyModelViewer url={utfile_url} style={style} hexColor={hexColor} />
             ) : (
@@ -443,18 +492,18 @@ const ShoppingCartItem = ({
             )}
           </div>
           <div className="w-full sm:w-auto">
-            <p className="text-white font-bold">File Mass: <span className="font-light">{mass_in_grams}g</span></p>
-            <p className="text-white font-bold">Part Dimensions:</p>
-            <p className="text-white">X: <span className="font-light">{dimensions.x}mm</span></p>
-            <p className="text-white">Y: <span className="font-light">{dimensions.y}mm</span></p>
-            <p className="text-white">Z: <span className="font-light">{dimensions.z}mm</span></p>
+            <p className="text-neutral-300 font-medium mb-1">File Mass: <span className="text-neutral-400">{mass_in_grams}g</span></p>
+            <p className="text-neutral-300 font-medium mb-1">Part Dimensions:</p>
+            <p className="text-neutral-400">X: <span>{dimensions.x}mm</span></p>
+            <p className="text-neutral-400">Y: <span>{dimensions.y}mm</span></p>
+            <p className="text-neutral-400">Z: <span>{dimensions.z}mm</span></p>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row lg:flex-col items-start mb-4 lg:mb-0 w-full lg:w-auto">
           <div className="w-full sm:w-1/2 lg:w-full mb-4 sm:mb-0 sm:mr-2 lg:mr-0">
-            <p className="text-white font-bold mb-1">File Color</p>
+            <p className="text-neutral-300 font-medium mb-1">File Color</p>
             <select
-              className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
+              className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-neutral-800 text-white focus:border-cyan-500 transition-colors duration-300"
               value={filament_color}
               onChange={(e) => onColorChange(fileid, e.target.value)}
             >
@@ -466,9 +515,9 @@ const ShoppingCartItem = ({
             </select>
           </div>
           <div className="w-full sm:w-1/2 lg:w-full">
-            <p className="text-white font-bold mb-1 mt-2">Layer Height (Quality)</p>
+            <p className="text-neutral-300 font-medium mb-1 mt-2">Layer Height (Quality)</p>
             <select
-              className="bg-[#2A2A2A] text-white border border-[#5E5E5E] rounded-lg p-1 w-full"
+              className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-neutral-800 text-white focus:border-cyan-500 transition-colors duration-300"
               value={quality}
               onChange={(e) => onQualityChange(fileid, e.target.value)}
             >
@@ -480,14 +529,19 @@ const ShoppingCartItem = ({
           </div>
         </div>
         <div className="flex flex-col items-start lg:items-end w-full lg:w-auto">
-          <p className="text-white font-bold mb-1">Part Quantity</p>
+          <p className="text-neutral-300 font-medium mb-1">Part Quantity</p>
           <div className="flex items-center mb-2">
-            <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity - 1)}><FaMinus /></button>
+            <button 
+              className="text-white p-1 bg-[#2A2A2A] hover:bg-[#3A3A3A] border border-neutral-800 rounded-l transition-colors duration-200 flex items-center justify-center w-8 h-8" 
+              onClick={() => onQuantityChange(fileid, quantity - 1)}
+            >
+              <FaMinus size={12} />
+            </button>
             {isEditing ? (
               <input
                 ref={inputRef}
                 type="number"
-                className="mx-2 text-white bg-[#2A2A2A] border border-[#5E5E5E] rounded w-16 text-center"
+                className="mx-0 text-white bg-[#2A2A2A] border-y border-neutral-800 w-10 text-center h-8"
                 value={editedQuantity}
                 onChange={(e) => setEditedQuantity(e.target.value)}
                 onBlur={() => handleQuantityChange(editedQuantity)}
@@ -498,17 +552,27 @@ const ShoppingCartItem = ({
                 }}
               />
             ) : (
-              <div className="flex items-center mx-2 text-white cursor-pointer" onClick={() => setIsEditing(true)}>
+              <div 
+                className="flex items-center justify-center w-10 h-8 text-white cursor-pointer bg-[#2A2A2A] border-y border-neutral-800 hover:bg-[#3A3A3A] transition-colors duration-200" 
+                onClick={() => setIsEditing(true)}
+              >
                 <span>{quantity}</span>
-                <FaEdit className="ml-1 text-xs" />
+                <FaEdit className="ml-1 text-xs text-cyan-400" />
               </div>
             )}
-            <button className="text-white p-1 card-special" onClick={() => onQuantityChange(fileid, quantity + 1)}><FaPlus /></button>
+            <button 
+              className="text-white p-1 bg-[#2A2A2A] hover:bg-[#3A3A3A] border border-neutral-800 rounded-r transition-colors duration-200 flex items-center justify-center w-8 h-8" 
+              onClick={() => onQuantityChange(fileid, quantity + 1)}
+            >
+              <FaPlus size={12} />
+            </button>
           </div>
-          <p className="text-white font-bold text-lg mb-2">${price}</p>
+          <p className="text-white font-bold text-xl mb-2">${typeof price === 'number' ? price.toFixed(2) : Number(price).toFixed(2)}</p>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <button className="github-remove w-full lg:w-auto">Remove</button>
+              <button className="px-3 py-1.5 bg-transparent hover:bg-red-500/10 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded transition-colors duration-300">
+                Remove
+              </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -519,13 +583,12 @@ const ShoppingCartItem = ({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onRemove(fileid)}>Remove</AlertDialogAction>
+                <AlertDialogAction onClick={() => onRemove(fileid)} className="bg-red-500 hover:bg-red-600">Remove</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
         </div>
       </div>
-      <hr className="w-full border-[#5E5E5E] mt-4" />
     </div>
   );
 };

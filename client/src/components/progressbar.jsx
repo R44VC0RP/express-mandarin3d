@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 
-export const AnimatedProgressBar = ({ progress = 85 }) => {
+export const AnimatedProgressBar = memo(({ progress = 85 }) => {
     const [animate, setAnimate] = useState(false);
   
     useEffect(() => {
-      setAnimate(true);
+      // Delay animation start to avoid initial layout thrashing
+      const timer = setTimeout(() => {
+        setAnimate(true);
+      }, 50);
+      
+      return () => clearTimeout(timer);
     }, []);
 
     const progressValue = typeof progress === 'string' ? parseInt(progress, 10) : progress;
   
+    // Reduced number of decorative elements and simplified animations
     const styles = `
       .progress2 {
         padding: 6px;
@@ -16,6 +22,7 @@ export const AnimatedProgressBar = ({ progress = 85 }) => {
         background: hsl(var(--muted));
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px rgba(255, 255, 255, 0.08);
         overflow: hidden;
+        will-change: transform; /* Hardware acceleration hint */
       }
       .progress-bar2 {
         height: 18px;
@@ -26,48 +33,39 @@ export const AnimatedProgressBar = ({ progress = 85 }) => {
         transition-property: width, background-color;
         position: relative;
         overflow: hidden;
+        transform: translateZ(0); /* Force GPU rendering */
+        will-change: width, background-color;
       }
       .progress-moved .progress-bar2 {
         width: ${progressValue}%;
         background-color: hsl(var(--primary));
-        animation: progressAnimation 3s;
+        animation: progressAnimation 0.8s ease-out;
       }
-      .stars-container, .glitter-container {
+      .glitter-container {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-      }
-      .star {
-        position: absolute;
-        width: 2px;
-        height: 2px;
-        background-color: white;
-        border-radius: 50%;
-        opacity: 0;
-        animation: twinkle 1s infinite alternate;
+        overflow: hidden;
       }
       .glitter {
         position: absolute;
-        width: 1px;
-        height: 1px;
+        width: 2px;
+        height: 2px;
         background-color: #FFD700;
         border-radius: 50%;
         opacity: 0;
         animation: sparkle 2s infinite;
+        transform: translateZ(0); /* Force GPU rendering */
       }
       @keyframes progressAnimation {
         0%   { width: 5%; background-color: hsla(var(--primary), 0.5);}
         100% { width: ${progressValue}%; background-color: hsl(var(--primary)); }
       }
-      @keyframes twinkle {
-        0% { opacity: 0; transform: scale(1); }
-        100% { opacity: 1; transform: scale(1.5); }
-      }
       @keyframes sparkle {
-        0%, 100% { opacity: 0; transform: scale(0); }
-        50% { opacity: 1; transform: scale(1); }
+        0%, 100% { opacity: 0; transform: scale(0) translateZ(0); }
+        50% { opacity: 1; transform: scale(1.5) translateZ(0); }
       }
     `;
 
@@ -75,30 +73,17 @@ export const AnimatedProgressBar = ({ progress = 85 }) => {
       <div className="mb-3">
         <div className={`progress2 ${animate ? 'progress-moved' : ''}`}>
           <div className="progress-bar2" style={{ width: `${progressValue}%` }}>
-            <div className="stars-container">
-              {[...Array(20)].map((_, i) => (
-                <div 
-                  key={i} 
-                  className="star" 
-                  style={{ 
-                    left: `${Math.random() * 100}%`, 
-                    top: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 2}s`,
-                    animationDuration: `${1 + Math.random() * 2}s`
-                  }}
-                ></div>
-              ))}
-            </div>
             <div className="glitter-container">
-              {[...Array(30)].map((_, i) => (
+              {/* Reduced to 10 glitter elements instead of 50 total animated elements */}
+              {[...Array(10)].map((_, i) => (
                 <div 
                   key={i} 
                   className="glitter" 
                   style={{ 
                     left: `${Math.random() * 100}%`, 
                     top: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 3}s`,
-                    animationDuration: `${0.5 + Math.random() * 1}s`
+                    animationDelay: `${Math.random() * 2}s`,
+                    animationDuration: `${1 + Math.random() * 1}s`
                   }}
                 ></div>
               ))}
@@ -108,4 +93,4 @@ export const AnimatedProgressBar = ({ progress = 85 }) => {
         <style>{styles}</style>
       </div>
     );
-  };
+  });

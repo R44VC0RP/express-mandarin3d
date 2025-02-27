@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { FaInfoCircle, FaArrowLeft, FaArrowDown, FaArrowUp, FaTrash, FaClock } from 'react-icons/fa';
+import { FaInfoCircle, FaArrowLeft, FaArrowDown, FaArrowUp, FaTrash, FaClock, FaShoppingCart, FaTruck, FaBox, FaComments, FaSpinner, FaSync } from 'react-icons/fa';
 import ShowcaseProduct from '../components/ShowcaseProduct';
 import Slider from 'react-slick';
 import "slick-carousel/slick/slick.css";
@@ -15,6 +15,7 @@ import axios from 'axios';
 import Loading from 'react-fullscreen-loading';
 import { toast } from 'sonner';
 import { AnimatedProgressBar } from '../components/progressbar';
+import { motion } from 'framer-motion';
 
 import {
   AlertDialog,
@@ -63,6 +64,11 @@ function Home() {
   const hasShownInitialToast = useRef(false);
   const hasShownStatusChangeToast = useRef(false);
   const previousCartItems = useRef([]);
+  const [pollingFiles, setPollingFiles] = useState(new Set());
+  const [filePollingInterval, setFilePollingInterval] = useState(null);
+  const [lastPolledTime, setLastPolledTime] = useState(Date.now());
+  const [isPollingActive, setIsPollingActive] = useState(false);
+  const fileStatusChanges = useRef({});
 
   const fetchCartItems = useCallback(async (reload = true) => {
     if (reload) {
@@ -79,19 +85,28 @@ function Home() {
       if (response.data.status === 'success' && Array.isArray(response.data.files)) {
         console.log("Cart Updated: ");
         const newCartItems = response.data.files;
-
-        // Only check for status changes if previousCartItems is not empty
+        
+        // Check for status changes in files
         if (previousCartItems.current.length > 0) {
-          // Check if any file status has changed from 'unsliced' to 'success'
-          const statusChanged = newCartItems.some((newItem) => {
+          newCartItems.forEach((newItem) => {
             const oldItem = previousCartItems.current.find(item => item.fileid === newItem.fileid);
-            return oldItem && oldItem.file_status === 'unsliced' && newItem.file_status === 'success';
+            
+            if (oldItem && oldItem.file_status !== newItem.file_status) {
+              // Track the status change
+              fileStatusChanges.current[newItem.fileid] = {
+                from: oldItem.file_status,
+                to: newItem.file_status,
+                filename: newItem.filename
+              };
+              
+              // Show toast notification for important status changes
+              if (oldItem.file_status === 'unsliced' && newItem.file_status === 'success') {
+                toast.success(`"${newItem.filename}" has been processed successfully!`);
+              } else if (oldItem.file_status === 'unsliced' && newItem.file_status === 'error') {
+                toast.error(`There was an error processing "${newItem.filename}".`);
+              }
+            }
           });
-
-          if (statusChanged && !hasShownStatusChangeToast.current) {
-            toast.success('Some files in your cart have been updated!');
-            hasShownStatusChangeToast.current = true;
-          }
         }
 
         setCartItems(newCartItems);
@@ -99,6 +114,24 @@ function Home() {
 
         // Update previousCartItems for next comparison
         previousCartItems.current = newCartItems;
+        
+        // Update the set of files that need polling
+        const filesNeedingPolling = new Set(
+          newCartItems
+            .filter(item => item.file_status === 'unsliced')
+            .map(item => item.fileid)
+        );
+        
+        setPollingFiles(filesNeedingPolling);
+        
+        // If we have files to poll but polling is not active, start it
+        if (filesNeedingPolling.size > 0 && !isPollingActive) {
+          startFilePolling();
+        } 
+        // If we don't have files to poll but polling is active, stop it
+        else if (filesNeedingPolling.size === 0 && isPollingActive) {
+          stopFilePolling();
+        }
       } else {
         console.error('Unexpected response format:', response.data);
         setCartItems([]);
@@ -110,8 +143,88 @@ function Home() {
       if (reload) {
         setCartLoading(false);
       }
+      setLastPolledTime(Date.now());
     }
-  }, [cart.cart_id]);
+  }, [cart.cart_id, isPollingActive]);
+
+  const pollFileStatus = useCallback(async (fileId) => {
+    try {
+      const response = await axios.post(process.env.REACT_APP_BACKEND_URL + '/api/file', {
+        action: 'get',
+        fileid: fileId
+      });
+      
+      if (response.data.status === 'success') {
+        const fileData = response.data.result;
+        
+        // If file status has changed from unsliced
+        if (fileData.file_status !== 'unsliced') {
+          // Update the cart to reflect the new file status
+          await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/cart/update`, {
+            cart_id: cart.cart_id,
+            fileid: fileId,
+            file_status: fileData.file_status
+          });
+          
+          // Refresh cart items without full reload
+          fetchCartItems(false);
+        }
+      }
+    } catch (error) {
+      console.error(`Error polling file ${fileId}:`, error);
+    }
+  }, [cart.cart_id, fetchCartItems]);
+
+  const startFilePolling = useCallback(() => {
+    if (filePollingInterval) {
+      clearInterval(filePollingInterval);
+    }
+    
+    setIsPollingActive(true);
+    
+    // Increase polling interval from 2s to 3s to reduce browser load
+    const interval = setInterval(() => {
+      // Only poll if we have files that need polling
+      if (pollingFiles.size > 0) {
+        console.log(`Polling ${pollingFiles.size} files for status updates...`);
+        
+        // Debounce API calls by using Promise.all for batch processing
+        const pollPromises = Array.from(pollingFiles).map(fileId => 
+          pollFileStatus(fileId)
+        );
+        
+        Promise.all(pollPromises).catch(err => 
+          console.error('Error in polling files batch:', err)
+        );
+      } else {
+        // If no files need polling, stop the interval
+        stopFilePolling();
+      }
+    }, 3000); // Increased from 2000ms to 3000ms
+    
+    setFilePollingInterval(interval);
+  }, [pollingFiles, pollFileStatus, filePollingInterval]);
+
+  const stopFilePolling = useCallback(() => {
+    if (filePollingInterval) {
+      clearInterval(filePollingInterval);
+      setFilePollingInterval(null);
+    }
+    setIsPollingActive(false);
+  }, [filePollingInterval]);
+
+  useEffect(() => {
+    return () => {
+      if (filePollingInterval) {
+        clearInterval(filePollingInterval);
+      }
+    };
+  }, [filePollingInterval]);
+
+  const handleRefreshFile = async (fileId) => {
+    toast.info(`Refreshing status for file ${fileId}...`);
+    await pollFileStatus(fileId);
+  };
 
   const checkCartStatus = useCallback(async () => {
     if (!cart.cart_id) return;
@@ -120,11 +233,6 @@ function Home() {
       if (response.data.status === 'success' && response.data.cart_valid) {
         if (cartStatus !== 'valid') {
           setCartStatus('valid');
-          // if (!hasShownInitialToast.current) {
-
-          //   toast.success('All files in your cart are up to date!');
-          //   hasShownInitialToast.current = true;
-          // }
           setTimeout(() => fetchCartItems(false), 1000);
         }
         clearInterval(statusCheckInterval);
@@ -135,7 +243,8 @@ function Home() {
           setPreviousCartStatus(cartStatus);
         }
         if (!statusCheckInterval) {
-          const interval = setInterval(() => checkCartStatus(), 5000); // Check every 5 seconds
+          // Increase polling interval from 5 to 8 seconds to reduce load
+          const interval = setInterval(() => checkCartStatus(), 8000);
           setStatusCheckInterval(interval);
         }
       }
@@ -231,7 +340,43 @@ function Home() {
       });
     
     console.log("User: ", isAuthenticated);
+    
+    // Cleanup function to stop polling when component unmounts
+    return () => {
+      if (filePollingInterval) {
+        clearInterval(filePollingInterval);
+      }
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+      }
+      // Reset polling state
+      setIsPollingActive(false);
+      setPollingFiles(new Set());
+    };
   }, []);
+
+  // Add a separate effect to handle polling initialization after cart items are loaded
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      // Check if there are any unsliced files that need polling
+      const unslicedFiles = cartItems
+        .filter(item => item.file_status === 'unsliced')
+        .map(item => item.fileid);
+      
+      if (unslicedFiles.length > 0) {
+        // Update the polling files set
+        setPollingFiles(new Set(unslicedFiles));
+        
+        // Start polling if not already active
+        if (!isPollingActive) {
+          startFilePolling();
+        }
+      } else if (isPollingActive) {
+        // No unsliced files but polling is active, stop it
+        stopFilePolling();
+      }
+    }
+  }, [cartItems, isPollingActive]);
 
   useEffect(() => { // SUBTOTAL CALCULATION
     const newSubtotal = cartItems.reduce((total, item) => {
@@ -602,7 +747,7 @@ function Home() {
   };
 
   if (localLoading) {
-    return <Loading loading background="#0F0F0F" loaderColor="#FFFFFF" />;
+    return <Loading loading background="#0F0F0F" loaderColor="#0D939B" />;
   }
 
   const settings = {
@@ -630,72 +775,68 @@ function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white">
+    <div className="min-h-screen bg-gradient-to-b from-[#0F0F0F] to-[#1A1A1A] text-white">
       <Header />
-      <div className="mt-3 mb-3 w-full border-t border-b border-[#5E5E5E] bg-[#2A2A2A]">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-left mt-2">
-            <p className="ml-2 mb-2 text-3xl font-bold">Your Cart</p>
+      
+      {/* Hero Section with Title */}
+      <section className="relative mx-auto max-w-screen-2xl px-4 py-2 mt-2">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,.2)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] animate-[gradient_3s_linear_infinite]" />
+        </div>
+
+        <div className="relative">
+          <div className="text-center mb-8">
+            
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80 mb-4">
+              Your Cart
+            </h1>
+            <p className="text-lg text-white/60 max-w-2xl mx-auto">
+              Review your items and proceed to checkout
+            </p>
           </div>
         </div>
-      </div>
-      <main className="container mx-auto ">
+      </section>
+
+      <main className="container mx-auto px-4 pb-16">
         {showAlert && (
-          <div className="bg-blue-500 text-white p-4 rounded mb-4 flex items-center">
+          <div className="bg-blue-500/20 border border-blue-500/40 text-white p-4 rounded-lg mb-4 flex items-center">
             <FaInfoCircle className="mr-2" />
             You are already logged in.
           </div>
         )}
-        {/* Checkout Section */}
-        <section className="px-4">
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-4">
-            {/* Left Column: Shopping Cart Items */}
+        {/* File Processing Status Indicator */}
+        {pollingFiles.size > 0 && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 text-white p-4 rounded-lg mb-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <FaSpinner className="mr-2 animate-spin text-yellow-400" />
+              <span>
+                <span className="font-semibold text-yellow-400">Processing Files:</span> {pollingFiles.size} file(s) being processed. This may take a few minutes.
+              </span>
+            </div>
+            <div className="text-xs text-neutral-400 flex items-center">
+              <FaSync className="mr-1 animate-spin" />
+              Auto-refreshing ({Math.floor((Date.now() - lastPolledTime) / 1000)}s ago)
+            </div>
+          </div>
+        )}
 
-            <div name="checkout-items" className="col-span-2 mt-4 lg:mt-4">
-              <div className="w-full">
-                <div className="lg:hidden">
-                  <button
-                    onClick={() => {
-                      const checkoutConfig = document.querySelector('div[name="checkout-config"]');
-                      if (checkoutConfig) {
-                        checkoutConfig.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}
-                    className="flex items-center justify-center w-full py-2 mb-4 bg-[#0D939B] text-white rounded-md"
-                  >
-                    Go to Checkout
-                    <FaArrowDown className="ml-2" />
-                  </button>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Cart Items */}
+          <div className="lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="space-y-4">
                 {cartLoading ? (
-                  <div className="flex flex-col items-center justify-center">
+                  <div className="flex flex-col items-center justify-center p-8 bg-[#1a1b1e]/80 backdrop-blur-sm rounded-lg border border-neutral-800/50">
                     <p className="text-xl font-bold mb-4">Loading Cart</p>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
                   </div>
                 ) : cartItems.length > 0 ? (
                   <>
-                    <div className="flex justify-end mb-4">
-                      {/* <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button className="github-remove inline-flex items-center px-3 py-1">
-                            Remove All Files
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure you want to remove all files?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently remove all files from your cart.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleRemoveAllFiles}>Remove All</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog> */}
-                    </div>
                     {cartItems.filter(item => item.file_status === 'unsliced').map((item) => (
                       <ShoppingCartItem
                         key={item.fileid}
@@ -706,6 +847,8 @@ function Home() {
                         onColorChange={handleColorChange}
                         onRemove={handleRemove}
                         isAuthenticated={isAuthenticated}
+                        onRefresh={() => handleRefreshFile(item.fileid)}
+                        isPolling={isPollingActive && pollingFiles.has(item.fileid)}
                       />
                     ))}
                     {cartItems.filter(item => item.file_status === 'error').map((item) => (
@@ -718,6 +861,8 @@ function Home() {
                         onColorChange={handleColorChange}
                         onRemove={handleRemove}
                         isAuthenticated={isAuthenticated}
+                        onRefresh={() => handleRefreshFile(item.fileid)}
+                        isPolling={false}
                       />
                     ))}
                     {cartItems.filter(item => item.file_status !== 'unsliced' && item.file_status !== 'error').map((item) => (
@@ -730,169 +875,252 @@ function Home() {
                         onColorChange={handleColorChange}
                         onRemove={handleRemove}
                         isAuthenticated={isAuthenticated}
-
                       />
                     ))}
                   </>
                 ) : (
-                  <p>Your cart is empty.</p>
+                  <div className="flex flex-col items-center justify-center p-8 bg-[#1a1b1e]/80 backdrop-blur-sm rounded-lg border border-neutral-800/50">
+                    <FaShoppingCart className="text-4xl text-neutral-400 mb-4" />
+                    <p className="text-xl font-semibold text-neutral-300 mb-2">Your cart is empty</p>
+                    <p className="text-neutral-400 text-center mb-4">Add some items to get started with your 3D printing project.</p>
+                    <button
+                      onClick={() => window.location.href = '/upload'}
+                      className="px-6 py-3 bg-[#0D939B] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center group"
+                    >
+                      Start Your Project
+                      <FaArrowLeft className="ml-2 transform group-hover:-translate-x-1 transition-transform duration-300" />
+                    </button>
+                  </div>
                 )}
               </div>
-            </div>
-            {/* Right Column: Shopping Cart Config */}
-            <div name="checkout-config" className="mt-4 lg:-mt-8">
-              <div className="card-special w-full p-4">
-                <div className="flex flex-col items-center mb-4">
-                  <p className="text-xl font-bold mb-2 text-[#C7C7C7]" >Parts Subtotal:</p>
-                  <p className="text-4xl font-bold">${subtotal.toFixed(2)}</p>
-                </div>
-                <div className="mb-4">
-                  {cartItems.filter(item => item.file_status === "success").map((item) => (
-                    <CheckoutLineItem
-                      key={item.fileid}
-                      item_name={item.filename}
-                      item_price={item.price}
-                      item_quantity={item.quantity}
-                    />
-                  ))}
-                </div>
+            </motion.div>
+          </div>
 
-                <hr className="border-t border-[#5E5E5E] my-4" />
-                {freeShippingProgress === 100 ? (
-                  <div className="flex justify-between mb-2">
-                    <p className="font-light">Shipping:</p>
-                    <p className="font-bold text-green-500">Free</p>
-                  </div>
-                ) : (
-                  <>
+          {/* Right Column: Order Summary */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="lg:col-span-1"
+          >
+            <div className="sticky top-24 space-y-4">
+              {/* Order Summary Card */}
+              <div className="bg-[#1a1b1e]/80 backdrop-blur-sm rounded-lg border border-neutral-800/50 p-6">
+                <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex flex-col">
                     <div className="flex justify-between mb-2">
-                      <p className="font-light">Estimated Shipping:</p>
-                      <p className="font-bold">${activeShippingOption.toFixed(2)}</p>
+                      <span className="text-neutral-400">Subtotal</span>
+                      <span className="font-semibold">${subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between mb-2">
-                      <p className="font-light">Free Shipping Progress (${freeShippingThreshold} Threshold):</p>
+                    
+                    {freeShippingProgress === 100 ? (
+                      <div className="flex justify-between mb-2">
+                        <span className="text-neutral-400">Shipping</span>
+                        <span className="text-green-400 font-semibold">Free</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between mb-2">
+                          <span className="text-neutral-400">Estimated Shipping</span>
+                          <span className="font-semibold">${activeShippingOption.toFixed(2)}</span>
+                        </div>
+                        <div className="mb-2">
+                          <p className="text-sm text-neutral-400 mb-2">Free Shipping Progress (${freeShippingThreshold} Threshold)</p>
+                          {/* Commented out AnimatedProgressBar for performance testing
+                          {typeof document !== 'undefined' && 
+                            document.visibilityState === 'visible' && 
+                            <AnimatedProgressBar progress={freeShippingProgress} />
+                          }
+                          */}
+                          
+                          {/* Simple standard progress bar replacement */}
+                          <div className="w-full h-[30px] bg-neutral-800 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-cyan-600 rounded-full transition-all duration-500 ease-out"
+                              style={{ width: `${freeShippingProgress}%` }}
+                            >
+                              {freeShippingProgress > 15 && (
+                                <div className="h-full flex items-center justify-center text-xs font-medium text-white">
+                                  {Math.round(freeShippingProgress)}%
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {selectedAddons.map(addon => (
+                      <div key={addon.addon_id} className="flex justify-between mb-2">
+                        <span className="text-neutral-400">{addon.addon_name}</span>
+                        <span className="font-semibold">${addon.addon_price.toFixed(2)}</span>
+                      </div>
+                    ))}
+
+                    <div className="border-t border-neutral-800/50 my-4" />
+
+                    <div className="flex justify-between mb-4">
+                      <span className="text-lg">Total</span>
+                      <span className="text-lg font-bold">${total.toFixed(2)}</span>
                     </div>
-                    <AnimatedProgressBar progress={freeShippingProgress} />
-                  </>
-                )}
-                {selectedAddons.map(addon => (
-                  <div key={addon.addon_id} className="flex justify-between mb-2">
-                    <p className="font-light">{addon.addon_name}</p>
-                    {addon.addon_price > 0 && (
-                      <p className="font-bold">${(addon.addon_price).toFixed(2)}</p>
+
+                    {/* Estimated Time Card */}
+                    <div className="bg-[#1A1A1A] p-4 rounded-md border border-[#3A3A3A] mb-4">
+                      <div className="flex items-center mb-2">
+                        <FaClock className="text-[#0D939B] mr-2" />
+                        <p className="font-semibold text-[#C7C7C7]">Estimated Production Time</p>
+                      </div>
+                      <p className="text-sm text-neutral-300 mb-1">
+                        Based on our current order volume, your order will take approximately{' '}
+                        <span className="font-bold text-white">{estimatedDays} days</span> to complete before shipping.
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        This estimate includes production time only. Shipping time will vary based on your location and selected shipping method.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={processCheckout}
+                      disabled={cartItems.length === 0}
+                      className={`w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+                        cartItems.length === 0
+                          ? 'bg-neutral-700/50 text-neutral-400 cursor-not-allowed'
+                          : 'bg-[#0D939B] hover:bg-[#0B7F86] text-white hover:shadow-lg hover:shadow-cyan-500/20'
+                      }`}
+                    >
+                      <FaShoppingCart />
+                      Proceed to Checkout
+                    </button>
+
+                    {isAuthenticated && (
+                      <button
+                        onClick={createQuote}
+                        className="w-full py-3 px-4 rounded-lg font-semibold mt-2 border border-[#0D939B] text-[#0D939B] hover:bg-[#0D939B] hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
+                      >
+                        <FaBox />
+                        Create Quote
+                      </button>
                     )}
                   </div>
-                ))}
-                <hr className="border-t border-[#5E5E5E] my-4" />
-                <div className="flex justify-between mb-4">
-                  <p className="font-light">Estimated Total:</p>
-                  <p className="font-bold">${total.toFixed(2)}</p>
-                </div>
-                
-                {/* Simplified Time Estimate Section */}
-                <div className="bg-[#1A1A1A] p-3 rounded-md mb-4 border border-[#3A3A3A]">
-                  <div className="flex items-center mb-2">
-                    <FaClock className="text-[#0D939B] mr-2" />
-                    <p className="font-semibold text-[#C7C7C7]">Estimated Production Time:</p>
-                  </div>
-                  <p className="text-sm mb-1">
-                    Based on our current order volume, your order will take approximately 
-                    <span className="font-bold text-white ml-1">{estimatedDays} days</span> to complete before shipping.
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    This estimate includes production time only. Shipping time will vary based on your location and selected shipping method.
-                  </p>
-                </div>
-                
-                <button
-                  className={`primary-button w-full py-2 rounded-lg ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={cartItems.length === 0}
-                  onClick={() => { processCheckout() }}
-                >
-                  Checkout
-                </button>
-                {/* Add Freeze Cart button for authenticated users */}
-                {isAuthenticated && (
-                  <button
-                    className="secondary-button w-full py-2 mt-4 rounded-lg"
-                    onClick={createQuote}
-                  >
-                    Freeze Cart (Create Quote)
-                  </button>
-                )}
-                <div className="mt-4">
-                  {isAuthenticated && (
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="testMode"
-                        className="mr-2"
-                        checked={testMode}
-                        onChange={() => setTestMode(!testMode)}
-                      // Add state and handler for this checkbox
-                      />
-                      <label htmlFor="testMode" className="text-sm text-gray-300">Test Mode</label>
-                    </div>
-                  )}
-                  <div className="mt-4">
-                    By placing this order you agree to Mandarin 3D's <a href="/terms-of-service" className="text-blue-500">Terms and Conditions</a>
-                  </div>
                 </div>
               </div>
-              <div className="card-special w-full p-4 mt-4">
-                <div className="flex flex-col items-center mb-4">
-                  <p className="text-lg font-bold mb-2 text-[#C7C7C7]">Order Options and Addons:</p>
-                </div>
-                <p className="text-md text-white">Shipping Speed</p>
-                <select className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-[#5E5E5E] text-white" onChange={(e) => handleShippingChange(e.target.value)}>
-                  {shippingOptions.map((option) => (
-                    <option key={option.id} value={option.id}>{option.display_name}</option>
-                  ))}
-                </select>
-                <p className="text-md text-white mt-2">Order Comments</p>
-                <textarea className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-[#5E5E5E] text-white" placeholder="Add any special instructions here..." onChange={(e) => setOrderComments(e.target.value)}></textarea>
-                {addons.map((addon) => (
-                  <div key={addon.addon_id} className="flex items-start mt-2">
-                    <div className="flex items-start mt-2 cursor-pointer" onClick={() => handleAddonToggle(addon)}>
-                      <input
-                        id={`addon-${addon.addon_id}`}
-                        type="checkbox"
-                        className="mr-2 mt-1"
-                        checked={selectedAddons.some(a => a.addon_id === addon.addon_id)}
-                        readOnly
-                      />
-                      <div>
-                        <p className="text-md text-white font-bold">
-                          {addon.addon_name}
-                          {addon.addon_price > 0 && ` (+$${(addon.addon_price).toFixed(2)})`}
-                        </p>
-                        <p className="text-sm text-gray-400">{addon.addon_description}</p>
+
+              {/* Options Card */}
+              <div className="bg-[#1a1b1e]/80 backdrop-blur-sm rounded-lg border border-neutral-800/50 p-6">
+                <h2 className="text-xl font-semibold mb-4">Order Options</h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      <FaTruck className="inline-block mr-2" />
+                      Shipping Method
+                    </label>
+                    <select 
+                      className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-neutral-800 text-white focus:border-cyan-500 transition-colors duration-300"
+                      onChange={(e) => handleShippingChange(e.target.value)}
+                    >
+                      {shippingOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.display_name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">
+                      <FaComments className="inline-block mr-2" />
+                      Order Comments
+                    </label>
+                    <textarea 
+                      className="w-full p-2 rounded-lg bg-[#2A2A2A] border border-neutral-800 text-white focus:border-cyan-500 transition-colors duration-300 min-h-[100px]"
+                      placeholder="Add any special instructions here..."
+                      onChange={(e) => setOrderComments(e.target.value)}
+                    />
+                  </div>
+
+                  {addons.map((addon) => (
+                    <div key={addon.addon_id} className="flex items-start">
+                      <div className="flex items-start cursor-pointer group" onClick={() => handleAddonToggle(addon)}>
+                        <div className="relative flex items-center mt-1 mr-3">
+                          <input
+                            type="checkbox"
+                            className="peer sr-only"
+                            checked={selectedAddons.some(a => a.addon_id === addon.addon_id)}
+                            readOnly
+                          />
+                          <div className="w-4 h-4 border-2 border-neutral-600 rounded transition-all duration-200 
+                            peer-checked:border-cyan-500 peer-checked:bg-cyan-500 
+                            group-hover:border-cyan-500/50"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center text-white transform scale-0 peer-checked:scale-100 transition-transform duration-200">
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-medium text-white group-hover:text-cyan-500 transition-colors duration-200">
+                            {addon.addon_name}
+                            {addon.addon_price > 0 && (
+                              <span className="text-cyan-400 ml-1">
+                                (+${addon.addon_price.toFixed(2)})
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors duration-200">{addon.addon_description}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+                  ))}
 
-        {/* Pricing Plans Section */}
-        {/* <section className="py-8 px-4">
-          <h2 className="text-3xl font-bold mb-6">Our Featured Products</h2>
-          <Slider {...settings}>
-            {products.map((plan, index) => (
-              <div key={index} className="px-2">
-                <ShowcaseProduct {...plan} onAddToCart={handleAddToCart} />
+                  {isAuthenticated && (
+                    <div className="flex items-center pt-4 border-t border-neutral-800/50">
+                      <div className="relative flex items-center">
+                        <input
+                          type="checkbox"
+                          id="testMode"
+                          className="peer sr-only"
+                          checked={testMode}
+                          onChange={() => setTestMode(!testMode)}
+                        />
+                        <div className="w-4 h-4 border-2 border-neutral-600 rounded transition-all duration-200 
+                          peer-checked:border-cyan-500 peer-checked:bg-cyan-500 
+                          hover:border-cyan-500/50"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center text-white transform scale-0 peer-checked:scale-100 transition-transform duration-200">
+                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </div>
+                      </div>
+                      <label htmlFor="testMode" className="text-sm text-neutral-400 ml-2 cursor-pointer hover:text-neutral-300 transition-colors duration-200">
+                        Test Mode
+                      </label>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
-          </Slider>
-        </section> */}
+
+              <p className="text-sm text-neutral-400 text-center">
+                By placing this order you agree to Mandarin 3D's{' '}
+                <a href="/terms-of-service" className="text-cyan-400 hover:text-cyan-300 transition-colors duration-300">
+                  Terms and Conditions
+                </a>
+              </p>
+            </div>
+          </motion.div>
+        </div>
       </main>
+
       <Footer />
 
       {cartStatus === 'slicing' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-yellow-500 text-black p-2 text-center">
-          Some files in your cart are being processed. Please wait... (if you do not see any updates for a white, please refresh the page)
+        <div className="fixed bottom-0 left-0 right-0 bg-yellow-500/90 backdrop-blur-sm text-black p-4 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <FaSpinner className="animate-spin" />
+            Some files in your cart are being processed. Please wait...
+          </div>
         </div>
       )}
     </div>
