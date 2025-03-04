@@ -443,6 +443,8 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
     // If a file was uploaded, you can access it via req.file
     const uploadedFile = req.file;
     const external_source = req.body.external_source || "remote-submit";
+    const file_url = req.body.file_url || null;
+    if (uploadedFile) {
     
     // Create a Blob with the file data
     const blob = new Blob([uploadedFile.buffer], { type: uploadedFile.mimetype });
@@ -458,6 +460,16 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
     const response = await utapi.uploadFiles(file);
 
     console.log('Upload response:', response);
+    } else if (file_url) {
+      console.log("Uploading file from URL: ", file_url);
+      const response = await utapi.uploadFilesFromUrl(file_url);
+      console.log('Upload response:', response);
+    } else {
+      return res.status(400).json({
+        status: 'error',
+        message: 'No file or file URL provided'
+      });
+    }
 
 
     const newFile = await createNewFile(file.name, response.data.file_id, response.data.url, null, external_source);
@@ -468,14 +480,124 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
 
     res.status(200).json({
       message: 'File uploaded successfully',
-      response: response,
-      url: "https://mandarin3d.com/file/" + newFile.fileid
+      // response: response,
+      url: "https://mandarin3d.com/file/" + newFile.fileid,
+      fileid: newFile.fileid,
+      status: "slicing"
     });
   } catch (error) {
     console.error('Form submission error:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
+    });
+  }
+});
+
+// Add this after the submit-remote route
+app.get('/api/file-query', async (req, res) => {
+  try {
+    const fileids = req.query.fileids.split(',');
+    
+    // Validate input
+    if (!fileids || fileids.length === 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid fileid(s) provided'
+      });
+    }
+
+    const defaultFilament = await getDefaultFilament();
+    if (!defaultFilament) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Could not get default filament pricing'
+      });
+    }
+
+    const result = {};
+    
+    for (const fileid of fileids) {
+      const fileDetails = await getFile(fileid);
+      
+      if (!fileDetails) {
+        result[fileid] = {
+          status: 'error',
+          message: 'File not found'
+        };
+        continue;
+      }
+
+      // Check if file is still being processed
+      if (fileDetails.file_status === 'unsliced') {
+        result[fileid] = {
+          status: 'slicing',
+          message: 'File is still being sliced'
+        };
+        continue;
+      }
+
+      // Check if file had processing errors
+      if (fileDetails.file_status === 'error') {
+        result[fileid] = {
+          status: 'error',
+          message: fileDetails.file_error || 'Error processing file'
+        };
+        continue;
+      }
+
+      // Calculate prices for both quality levels
+      const decentQualityPrice = calculatePrice(fileDetails, defaultFilament, { quality: '0.20mm' });
+      const bestQualityPrice = calculatePrice(fileDetails, defaultFilament, { quality: '0.16mm' });
+
+      result[fileid] = {
+        mass: fileDetails.mass_in_grams,
+        dimensions: {
+          x: fileDetails.dimensions.x,
+          y: fileDetails.dimensions.y,
+          z: fileDetails.dimensions.z,
+          units: "mm"
+        },
+        pricing: {
+          decent_quality: {
+            layer_height: 0.20,
+            price: parseFloat(decentQualityPrice),
+            currency: "USD"
+          },
+          best_quality: {
+            layer_height: 0.16,
+            price: parseFloat(bestQualityPrice),
+            currency: "USD"
+          }
+        }
+      };
+    }
+
+    // If all files returned error/slicing status, maintain that in the top level response
+    const allFiles = Object.values(result);
+    if (allFiles.every(file => file.status === 'error')) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'All files had errors',
+        details: result
+      });
+    }
+    if (allFiles.every(file => file.status === 'slicing')) {
+      return res.status(202).json({
+        status: 'slicing',
+        message: 'All files are still being sliced',
+        details: result
+      });
+    }
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('File query error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error',
+      details: error.message
     });
   }
 });
@@ -1185,6 +1307,7 @@ const getFilamentByName = async (filament_name) => {
   const filament = await Filament.findOne({ filament_name });
   return filament;
 }
+
 
 const getDefaultFilament = async () => {
   const filament = await Filament.findOne();
