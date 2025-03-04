@@ -444,6 +444,7 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
     const uploadedFile = req.file;
     const external_source = req.body.external_source || "remote-submit";
     const file_url = req.body.file_url || null;
+    let response;
     if (uploadedFile) {
     
     // Create a Blob with the file data
@@ -457,12 +458,12 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
     console.log("Uploading file: ", file.name);
 
     // Process the form data with the properly formatted file
-    const response = await utapi.uploadFiles(file);
+    response = await utapi.uploadFiles(file);
 
     console.log('Upload response:', response);
     } else if (file_url) {
       console.log("Uploading file from URL: ", file_url);
-      const response = await utapi.uploadFilesFromUrl(file_url);
+      response = await utapi.uploadFilesFromUrl(file_url);
       console.log('Upload response:', response);
     } else {
       return res.status(400).json({
@@ -471,9 +472,15 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
       });
     }
 
-
-    const newFile = await createNewFile(response.data.name, response.data.file_id, response.data.url, null, external_source);
-    console.log("New file created: ", newFile);
+    if (response.data) {
+      const newFile = await createNewFile(response.data.name, response.data.file_id, response.data.url, null, external_source);
+      console.log("New file created: ", newFile);
+    } else {
+      return res.status(400).json({
+        status: 'error',
+        message: 'No file uploaded'
+      });
+    }
 
     // const quote = await createNewQuote([newFile.fileid], "");
     // console.log("New quote created: ", quote);
