@@ -2,7 +2,7 @@ import { test, expect } from "bun:test";
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const API_URL = 'https://backend.mandarin3d.com';
+const API_URL = 'http://localhost:8080';
 const TEST_STL_PATH = join(__dirname, 'next_gen_puffer.stl'); // You'll need to add a test STL file
 const TEST_STL_URL = 'https://0o4pg1fpby.ufs.sh/f/RSbfEU0J8DcdJyjGBY53YcMCbI7gKOhHekyato51XAsQxF68'; // Replace with a real STL URL
 

@@ -475,6 +475,12 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
     if (response.data) {
       const newFile = await createNewFile(response.data.name, response.data.file_id, response.data.url, null, external_source);
       console.log("New file created: ", newFile);
+      res.status(200).json({
+        message: 'File uploaded successfully',
+        url: "https://mandarin3d.com/file/" + newFile.fileid,
+        fileid: newFile.fileid,
+        status: "slicing"
+      });
     } else {
       return res.status(400).json({
         status: 'error',
@@ -485,12 +491,7 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
     // const quote = await createNewQuote([newFile.fileid], "");
     // console.log("New quote created: ", quote);
 
-    res.status(200).json({
-      message: 'File uploaded successfully',
-      url: "https://mandarin3d.com/file/" + newFile.fileid,
-      fileid: newFile.fileid,
-      status: "slicing"
-    });
+    
   } catch (error) {
     console.error('Form submission error:', error);
     res.status(500).json({ 

@@ -3,3 +3,4 @@
 .DS_Store
 npx-app/node_modules/
 node_modules/
+.env
