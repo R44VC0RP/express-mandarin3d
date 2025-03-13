@@ -178,7 +178,7 @@ function Upload() {
                 >
                   <button
                     onClick={() => window.location.href = '/cart'}
-                    className="group flex items-center gap-2 px-8 py-4 bg-[#0D939B] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 shadow-lg hover:shadow-cyan-500/20"
+                    className="group flex items-center gap-2 px-8 py-4 bg-[#466F80] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 shadow-lg hover:shadow-cyan-500/20"
                   >
                     <FaShoppingCart className="text-xl" />
                     <span className="font-semibold">Go to Cart</span>

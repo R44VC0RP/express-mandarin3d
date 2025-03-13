@@ -197,7 +197,7 @@ function Products() {
                     onClick={() => handleNavClick(item.id)}
                     className={`flex items-center px-4 py-2 rounded-full transition-all duration-300 ${
                       activeSection === item.id
-                        ? 'bg-[#0D939B] text-white'
+                        ? 'bg-[#466F80] text-white'
                         : 'text-[#8A8A8A] hover:bg-[#4A4A4A] hover:text-white'
                     }`}
                   >

@@ -243,7 +243,7 @@ export default function FilePreview() {
   };
 
   if (isLoading) {
-    return <Loading loading background="#0F0F0F" loaderColor="#0D939B" />;
+    return <Loading loading background="#0F0F0F" loaderColor="#466F80" />;
   }
 
   if (!fileData) {
@@ -345,7 +345,7 @@ export default function FilePreview() {
                   <LazyModelViewer 
                     url={fileData.utfile_url}
                     style={style}
-                    hexColor="#0D939B"
+                    hexColor="#466F80"
                   />
                 </div>
               </motion.div>
@@ -472,7 +472,7 @@ export default function FilePreview() {
                       onClick={handleAddToCart}
                       className={`group flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all duration-300 shadow-lg ${
                         isFileSliced 
-                          ? "bg-[#0D939B] hover:bg-[#0B7F86] text-white hover:shadow-cyan-500/20" 
+                          ? "bg-[#466F80] hover:bg-[#0B7F86] text-white hover:shadow-cyan-500/20" 
                           : "bg-neutral-700/50 text-neutral-400 cursor-not-allowed"
                       }`}
                       disabled={!isFileSliced}

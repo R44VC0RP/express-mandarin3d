@@ -161,7 +161,7 @@ function ShowcaseProduct({
         <Carousel file_obj={file_obj} imageUrl={product_image_url} />        
         <p className="text-xs mb-2 text-gray-400">
           Made by:{' '}
-          <a href={product_author_url} className="text-[#0D939B]">
+          <a href={product_author_url} className="text-[#466F80]">
             {product_author}
           </a>{' '}
           | <span className="text-gray-400">{product_license}</span>
@@ -171,7 +171,7 @@ function ShowcaseProduct({
           <ul className="flex-1">
             {product_features.map((feature, index) => (
               <li key={index} className="flex items-center mb-1">
-                <FaCheck className="text-[#0D939B] mr-2 text-xs" />
+                <FaCheck className="text-[#466F80] mr-2 text-xs" />
                 <span className="text-xs">{feature}</span>
               </li>
             ))}

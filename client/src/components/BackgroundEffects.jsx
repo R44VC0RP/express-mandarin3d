@@ -27,9 +27,9 @@ const BackgroundEffects = () => {
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden">
-      <div ref={blueLight1Ref} className="absolute top-0 left-0 w-2/3 h-2/3 bg-[#0D939B] rounded-full filter blur-[120px] opacity-30 -translate-x-1/4 -translate-y-1/4 transition-all duration-1000"></div>
-      <div ref={blueLight2Ref} className="absolute top-0 right-0 w-2/3 h-2/3 bg-[#0D939B] rounded-full filter blur-[120px] opacity-30 translate-x-1/4 -translate-y-1/4 transition-all duration-1000"></div>
-      <div ref={blueLight3Ref} className="absolute bottom-0 left-1/2 w-2/3 h-2/3 bg-[#0D939B] rounded-full filter blur-[120px] opacity-20 -translate-x-1/2 translate-y-1/4 transition-all duration-1000"></div>
+      <div ref={blueLight1Ref} className="absolute top-0 left-0 w-2/3 h-2/3 bg-[#466F80] rounded-full filter blur-[120px] opacity-30 -translate-x-1/4 -translate-y-1/4 transition-all duration-1000"></div>
+      <div ref={blueLight2Ref} className="absolute top-0 right-0 w-2/3 h-2/3 bg-[#466F80] rounded-full filter blur-[120px] opacity-30 translate-x-1/4 -translate-y-1/4 transition-all duration-1000"></div>
+      <div ref={blueLight3Ref} className="absolute bottom-0 left-1/2 w-2/3 h-2/3 bg-[#466F80] rounded-full filter blur-[120px] opacity-20 -translate-x-1/2 translate-y-1/4 transition-all duration-1000"></div>
       
       {/* Slanted lines with random filled squares */}
       <div className="absolute inset-0 opacity-10" style={{

@@ -144,7 +144,7 @@ const Contact = () => {
 
                     <button
                       type="submit"
-                      className="w-full px-6 py-2.5 bg-[#0D939B] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center justify-center group text-sm"
+                      className="w-full px-6 py-2.5 bg-[#466F80] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center justify-center group text-sm"
                     >
                       <FaPaperPlane className="mr-2 transform group-hover:translate-x-1 transition-transform duration-300" />
                       Send Message

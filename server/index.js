@@ -459,16 +459,13 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
 
     console.log('Upload response:', response);
 
-
     const newFile = await createNewFile(file.name, response.data.file_id, response.data.url, null, external_source);
     console.log("New file created: ", newFile);
-
-    // const quote = await createNewQuote([newFile.fileid], "");
-    // console.log("New quote created: ", quote);
 
     res.status(200).json({
       message: 'File uploaded successfully',
       response: response,
+      fileid: newFile.fileid,
       url: "https://mandarin3d.com/file/" + newFile.fileid
     });
   } catch (error) {
@@ -476,6 +473,48 @@ app.post('/api/submit-remote', upload.single('file'), async (req, res) => {
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
+    });
+  }
+});
+
+
+app.post('/api/check-file', async (req, res) => {
+  const {
+    fileid
+  } = req.body;
+  try {
+    const file = await File.findOne({
+      fileid
+    });
+    if (!file) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'File not found'
+      });
+    }
+
+    // Get default filament
+    const defaultFilament = await Filament.findOne({});
+    if (!defaultFilament) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'No filament found in database'
+      });
+    }
+
+    // Calculate price using default quality of 0.20mm
+    const calculatedPrice = calculatePrice(file, defaultFilament, { quantity: 1, quality: '0.20mm' });
+
+    return res.json({
+      status: 'success',
+      file,
+      calculatedPrice
+    });
+  } catch (error) {
+    console.error('Error checking file:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
     });
   }
 });

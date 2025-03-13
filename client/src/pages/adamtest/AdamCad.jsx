@@ -1025,7 +1025,7 @@ function AdamCad() {
                         <button className="inline-flex items-center whitespace-nowrap text-xs font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow-sm h-7 px-3 py-1 rounded-full border border-[#F82484]/50 text-white hover:bg-[#F82484]/40 hover:text-white bg-[#2D2D2D] shadow-adam justify-center transition-all duration-200">
                           <FaDownload className="mr-1 h-3 w-3" /> Download STL
                         </button>
-                        <button className="inline-flex items-center whitespace-nowrap text-xs font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow-sm h-7 px-3 py-1 rounded-full border border-[#0D939B]/50 text-white hover:bg-[#0D939B]/40 hover:text-white bg-[#093739] shadow-adam justify-center transition-all duration-200">
+                        <button className="inline-flex items-center whitespace-nowrap text-xs font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow-sm h-7 px-3 py-1 rounded-full border border-[#466F80]/50 text-white hover:bg-[#466F80]/40 hover:text-white bg-[#093739] shadow-adam justify-center transition-all duration-200">
                           <FaSpinner className="mr-1 h-3 w-3" /> 3D Print via Mandarin 3D
                         </button>
                       </div>

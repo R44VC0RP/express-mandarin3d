@@ -167,7 +167,7 @@ function CustomProductForm({ formConfig }) {
           </button>
           <button
             onClick={onSubmit}
-            className="px-6 py-3 bg-[#0D939B] text-white rounded-full hover:bg-[#11B3BD] transition duration-300 ease-in-out"
+            className="px-6 py-3 bg-[#466F80] text-white rounded-full hover:bg-[#11B3BD] transition duration-300 ease-in-out"
           >
             Submit Order
           </button>
@@ -204,7 +204,7 @@ function CustomProductForm({ formConfig }) {
   };
 
   const renderField = (field) => {
-    const baseInputClass = "w-full p-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D939B] text-white placeholder-gray-300";
+    const baseInputClass = "w-full p-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#466F80] text-white placeholder-gray-300";
     const errorClass = "border-red-500 focus:ring-red-500";
 
     switch (field.type) {
@@ -374,7 +374,7 @@ function CustomProductForm({ formConfig }) {
                   <button
                     type="button"
                     onClick={handleNextStep}
-                    className="px-6 py-3 bg-[#0D939B] text-white rounded-full hover:bg-[#11B3BD] transition duration-300 ease-in-out flex items-center"
+                    className="px-6 py-3 bg-[#466F80] text-white rounded-full hover:bg-[#11B3BD] transition duration-300 ease-in-out flex items-center"
                   >
                     Next
                     <FaArrowRight className="ml-2" />
@@ -383,7 +383,7 @@ function CustomProductForm({ formConfig }) {
                   <button
                     type="button"
                     onClick={() => setIsReviewing(true)}
-                    className="px-6 py-3 bg-[#0D939B] text-white rounded-full hover:bg-[#11B3BD] transition duration-300 ease-in-out flex items-center"
+                    className="px-6 py-3 bg-[#466F80] text-white rounded-full hover:bg-[#11B3BD] transition duration-300 ease-in-out flex items-center"
                   >
                     Review Order
                     <FaArrowRight className="ml-2" />

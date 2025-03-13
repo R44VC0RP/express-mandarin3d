@@ -774,7 +774,7 @@ function FileManagement() {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-xl font-bold mb-4">Loading Files</p>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#466F80]"></div>
                 </div>
             ) : (
                 <>

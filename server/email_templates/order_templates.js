@@ -46,7 +46,7 @@ export const order_received = (orderObject, trackingUrl) => {
             margin-bottom: 30px;
         }
         .header h1 {
-            color: #0D939B;
+            color: #466F80;
             font-size: 24px;
             margin-bottom: 5px;
         }
@@ -85,7 +85,7 @@ export const order_received = (orderObject, trackingUrl) => {
         }
         .button {
             display: inline-block;
-            background-color: #0D939B;
+            background-color: #466F80;
             color: #FFFFFF;
             padding: 10px 20px;
             text-decoration: none;
@@ -204,7 +204,7 @@ export const business_order_received = (orderObject) => {
             margin-bottom: 30px;
         }
         .header h1 {
-            color: #0D939B;
+            color: #466F80;
             font-size: 24px;
             margin-bottom: 5px;
         }
@@ -234,7 +234,7 @@ export const business_order_received = (orderObject) => {
             border-bottom: 1px solid #ddd;
         }
         .receipt th {
-            background-color: #0D939B;
+            background-color: #466F80;
             color: white;
         }
         .receipt .total {
@@ -243,7 +243,7 @@ export const business_order_received = (orderObject) => {
         .button {
             display: inline-block;
             padding: 10px 20px;
-            background-color: #0D939B;
+            background-color: #466F80;
             color: white;
             text-decoration: none;
             border-radius: 5px;
@@ -362,7 +362,7 @@ export const order_shipped = (orderObject) => {
             margin-bottom: 30px;
         }
         .header h1 {
-            color: #0D939B;
+            color: #466F80;
             font-size: 24px;
             margin-bottom: 5px;
         }
@@ -401,7 +401,7 @@ export const order_shipped = (orderObject) => {
         }
         .button {
             display: inline-block;
-            background-color: #0D939B;
+            background-color: #466F80;
             color: #FFFFFF;
             padding: 10px 20px;
             text-decoration: none;
@@ -497,7 +497,7 @@ export const contact_email = (name, email, message) => {
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .header {
-            background: #0D939B;
+            background: #466F80;
             color: #ffffff;
             padding: 20px;
             text-align: center;
@@ -566,7 +566,7 @@ export const file_issue_email = (fileid, email, fileurl) => {
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         .header {
-            background: #0D939B;
+            background: #466F80;
             color: #ffffff;
             padding: 20px;
             text-align: center;
@@ -584,7 +584,7 @@ export const file_issue_email = (fileid, email, fileurl) => {
         .button {
             display: inline-block;
             padding: 10px 20px;
-            background: #0D939B;
+            background: #466F80;
             color: #ffffff;
             text-decoration: none;
             border-radius: 5px;

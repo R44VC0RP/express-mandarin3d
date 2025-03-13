@@ -19,7 +19,7 @@ export default function CookieCutterForm() {
                 <h1 className="text-4xl font-semibold mb-8">Our Product Library</h1>
                 <div className="flex flex-row items-center justify-center space-x-8">
                     <a href="/projects/cookie-cutters" className="flex flex-col items-center justify-center">
-                        <div className="w-24 h-24 rounded-full bg-[#0D939B] flex items-center justify-center mb-2">
+                        <div className="w-24 h-24 rounded-full bg-[#466F80] flex items-center justify-center mb-2">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"> 
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
@@ -27,7 +27,7 @@ export default function CookieCutterForm() {
                         <span className="text-white text-lg font-semibold">Cookie Cutters</span>
                     </a>
                     <a href="/projects/cookie-cutters" className="flex flex-col items-center justify-center">
-                        <div className="w-24 h-24 rounded-full bg-[#0D939B] flex items-center justify-center mb-2">
+                        <div className="w-24 h-24 rounded-full bg-[#466F80] flex items-center justify-center mb-2">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
@@ -54,17 +54,17 @@ export default function CookieCutterForm() {
                     <div className="flex flex-col items-center space-y-4">
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2">
-                                <div className="flex items-center justify-center w-8 h-8 bg-[#0D939B] text-white rounded-full">1</div>
+                                <div className="flex items-center justify-center w-8 h-8 bg-[#466F80] text-white rounded-full">1</div>
                                 <span className="text-white">Designing</span>
                             </div>
                             <ArrowRight className="w-8 text-white" />
                             <div className="flex items-center space-x-2">
-                                <div className="flex items-center justify-center w-8 h-8 bg-[#0D939B] text-white rounded-full">2</div>
+                                <div className="flex items-center justify-center w-8 h-8 bg-[#466F80] text-white rounded-full">2</div>
                                 <span className="text-white">Ordering</span>
                             </div>
                             <ArrowRight className="w-8 text-white" />
                             <div className="flex items-center space-x-2">
-                                <div className="flex items-center justify-center w-8 h-8 bg-[#0D939B] text-white rounded-full">3</div>
+                                <div className="flex items-center justify-center w-8 h-8 bg-[#466F80] text-white rounded-full">3</div>
                                 <span className="text-white">Printing</span>
                             </div>
                         </div>

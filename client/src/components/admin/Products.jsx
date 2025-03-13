@@ -390,7 +390,7 @@ function ProductManagement() {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-xl font-bold mb-4">Loading Products</p>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#466F80]"></div>
                 </div>
             ) : (
                 <>
@@ -412,7 +412,7 @@ function ProductManagement() {
                         <TableBody>
                             {sortProductsByDate(filteredItems).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((product) => (
                                 <TableRow key={product.product_id}>
-                                    <TableCell className="font-medium cursor-pointer hover:text-[#0D939B]" onClick={() => handleViewProduct(product)}>
+                                    <TableCell className="font-medium cursor-pointer hover:text-[#466F80]" onClick={() => handleViewProduct(product)}>
                                         {product.product_title}
                                     </TableCell>
                                     <TableCell>{product.product_description.substring(0, 50)}...</TableCell>
@@ -482,7 +482,7 @@ function ProductManagement() {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-xl font-bold mb-4">Loading Collections</p>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#466F80]"></div>
                 </div>
             ) : (
                 <>

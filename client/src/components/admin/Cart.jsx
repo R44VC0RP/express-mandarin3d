@@ -188,7 +188,7 @@ function CartManagement() {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-xl font-bold mb-4">Loading Carts</p>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D939B]"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#466F80]"></div>
                 </div>
             ) : (
                 <>
@@ -210,7 +210,7 @@ function CartManagement() {
                                 <TableRow 
                                     key={cartItems.cart_id} 
                                     onClick={() => handleCartClick(cartItems)} 
-                                    className={`cursor-pointer ${cartItems.cart_id === cart?.cart_id ? 'bg-[#0D939B]' : ''}`}
+                                    className={`cursor-pointer ${cartItems.cart_id === cart?.cart_id ? 'bg-[#466F80]' : ''}`}
                                 >
                                     <TableCell>{cartItems.cart_id}</TableCell>
                                     <TableCell>{cartItems.user_id}</TableCell>

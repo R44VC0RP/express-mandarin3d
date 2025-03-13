@@ -339,7 +339,7 @@ export default function LuxuryMarketplace() {
                     placeholder="Search products..."
                     value={searchQuery}
                     onChange={handleSearch}
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-[#0D939B] focus:border-transparent bg-white bg-opacity-10 backdrop-blur-md shadow-lg border-white border-opacity-20"
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-[#466F80] focus:border-transparent bg-white bg-opacity-10 backdrop-blur-md shadow-lg border-white border-opacity-20"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Search className="text-gray-400" />

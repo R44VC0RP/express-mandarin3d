@@ -121,12 +121,12 @@ function Home() {
       description: "Bringing your ideas to life, one layer at a time.",
       buttons: [
         {
-          text: "Start Your Project", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
+          text: "Start Your Project", className: "bg-[#466F80] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
             window.location.href = "/upload";
           }
         },
         {
-          text: "Browse Models", className: "border border-[#0D939B] text-[#0D939B] hover:bg-[#0D939B] hover:text-white transition-colors duration-300", onClick: () => {
+          text: "Browse Models", className: "border border-[#466F80] text-[#466F80] hover:bg-[#466F80] hover:text-white transition-colors duration-300", onClick: () => {
             window.location.href = "https://shop.mandarin3d.com";
           }
         }
@@ -139,7 +139,7 @@ function Home() {
       description: "We curate the best designs from the maker community and make them available to you.",
       buttons: [
         {
-          text: "Design Your Cutter", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
+          text: "Design Your Cutter", className: "bg-[#466F80] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
             window.location.href = "https://shop.mandarin3d.com/pages/cookie-cutters";
           }
         },
@@ -152,7 +152,7 @@ function Home() {
       description: "Stand out with a custom nameplate or plaque. Perfect for gifts, awards, or personalization.",
       buttons: [
         {
-          text: "Create Your Design", className: "bg-[#0D939B] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
+          text: "Create Your Design", className: "bg-[#466F80] hover:bg-[#0B7F86] text-white transition-colors duration-300", onClick: () => {
             window.location.href = "https://shop.mandarin3d.com/pages/nameplates";
           }
         },
@@ -217,7 +217,7 @@ function Home() {
             </div>
             <button
               onClick={() => window.location.href = '/upload'}
-              className="px-6 py-3 bg-[#0D939B] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center group"
+              className="px-6 py-3 bg-[#466F80] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center group"
             >
               Start Your Project
               <FaArrowRight className="ml-2 transform group-hover:translate-x-1 transition-transform duration-300" />

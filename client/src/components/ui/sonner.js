@@ -24,7 +24,7 @@ const Toaster = (props) => {
       }}
       style={{
         "--success-bg": "#064346",
-        "--success-border": "#0D939B",
+        "--success-border": "#466F80",
         "--success-text": "#11B3BD",
       }}
       {...props}

@@ -747,7 +747,7 @@ function Home() {
   };
 
   if (localLoading) {
-    return <Loading loading background="#0F0F0F" loaderColor="#0D939B" />;
+    return <Loading loading background="#0F0F0F" loaderColor="#466F80" />;
   }
 
   const settings = {
@@ -885,7 +885,7 @@ function Home() {
                     <p className="text-neutral-400 text-center mb-4">Add some items to get started with your 3D printing project.</p>
                     <button
                       onClick={() => window.location.href = '/upload'}
-                      className="px-6 py-3 bg-[#0D939B] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center group"
+                      className="px-6 py-3 bg-[#466F80] hover:bg-[#0B7F86] text-white rounded-full transition-all duration-300 flex items-center group"
                     >
                       Start Your Project
                       <FaArrowLeft className="ml-2 transform group-hover:-translate-x-1 transition-transform duration-300" />
@@ -969,7 +969,7 @@ function Home() {
                     {/* Estimated Time Card */}
                     <div className="bg-[#1A1A1A] p-4 rounded-md border border-[#3A3A3A] mb-4">
                       <div className="flex items-center mb-2">
-                        <FaClock className="text-[#0D939B] mr-2" />
+                        <FaClock className="text-[#466F80] mr-2" />
                         <p className="font-semibold text-[#C7C7C7]">Estimated Production Time</p>
                       </div>
                       <p className="text-sm text-neutral-300 mb-1">
@@ -987,7 +987,7 @@ function Home() {
                       className={`w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
                         cartItems.length === 0
                           ? 'bg-neutral-700/50 text-neutral-400 cursor-not-allowed'
-                          : 'bg-[#0D939B] hover:bg-[#0B7F86] text-white hover:shadow-lg hover:shadow-cyan-500/20'
+                          : 'bg-[#466F80] hover:bg-[#0B7F86] text-white hover:shadow-lg hover:shadow-cyan-500/20'
                       }`}
                     >
                       <FaShoppingCart />
@@ -997,7 +997,7 @@ function Home() {
                     {isAuthenticated && (
                       <button
                         onClick={createQuote}
-                        className="w-full py-3 px-4 rounded-lg font-semibold mt-2 border border-[#0D939B] text-[#0D939B] hover:bg-[#0D939B] hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
+                        className="w-full py-3 px-4 rounded-lg font-semibold mt-2 border border-[#466F80] text-[#466F80] hover:bg-[#466F80] hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
                       >
                         <FaBox />
                         Create Quote
