@@ -332,7 +332,7 @@ export default function Orders() {
 
       {selectedOrder && (
         <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed top-20 left-0 inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 h-full"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               handleOrderUnfocus();
@@ -343,7 +343,7 @@ export default function Orders() {
             className="bg-gradient-to-b from-[#1a1b1e] to-[#141518] w-[95vw] h-[90vh] rounded-xl shadow-xl overflow-hidden relative border border-neutral-800 animate-in fade-in-0 zoom-in-95 duration-300"
           >
             <button 
-              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 flex items-center text-sm mr-8 bg-[#2A2A2A]/80 backdrop-blur-sm border border-neutral-700 rounded-md p-1.5 px-3 hover:bg-[#363636]"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors duration-200 flex items-center text-sm mr-8 bg-[#2A2A2A]/80 backdrop-blur-sm border border-neutral-700 rounded-md p-1.5 px-3 hover:bg-[#363636] z-10"
               onClick={handleOrderUnfocus}
             >
               <span className="mr-2">Close</span>

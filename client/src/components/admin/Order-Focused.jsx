@@ -269,22 +269,10 @@ export default function OrderFocused({ orderId, onClose }) {
 
   return (
     <div className="space-y-6 pb-6 relative">
-      {/* Close button at the top right */}
-      <div className="absolute top-2 right-2 z-10">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onClose} 
-          className="h-10 w-10 rounded-full bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white border border-neutral-700 shadow-md"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </Button>
-      </div>
 
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 pt-2">
             <h2 className="text-lg font-medium text-gray-400">Order</h2>
             <div className="px-2 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded text-cyan-300 font-mono">
               {order.order_number}
@@ -302,7 +290,7 @@ export default function OrderFocused({ orderId, onClose }) {
           </div>
         </div>
         
-        <div className="flex flex-col items-end">
+        <div className="flex flex-col items-end pt-10">
           <span className="text-xs text-gray-500 mb-1">Order ID</span>
           <code className="text-xs bg-[#1e2229] px-2 py-1 rounded border border-neutral-800 text-gray-400 font-mono">
             {order.order_id}
