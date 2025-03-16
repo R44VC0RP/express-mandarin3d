@@ -29,7 +29,8 @@ import {
     getShippingOptions,
     createSession,
     getCheckoutSession,
-    getPayment
+    getPayment,
+    createDirectCharge
 } from './modules/stripeConn.js';
 import {
     UTApi
@@ -76,6 +77,9 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
+
+// At the top of the file, near other constants
+const DIRECT_CHARGE_TEST_MODE = process.env.DIRECT_CHARGE_TEST_MODE === 'true';
 
 // Update CORS configuration
 
@@ -2745,13 +2749,13 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
       }
     },
     total_details: {
-      amount_discount: checkout_session_info.total_details.amount_discount,
-      amount_shipping: checkout_session_info.total_details.amount_shipping,
-      amount_tax: checkout_session_info.total_details.amount_tax,
-      amount_subtotal: Math.round(items_total * 100), // Store in cents
-      amount_total: Math.round(order_total * 100) // Store in cents
+      amount_discount: checkout_session_info.total_details.amount_discount || 0,
+      amount_shipping: checkout_session_info.total_details.amount_shipping || 0,
+      amount_tax: checkout_session_info.total_details.amount_tax || 0,
+      amount_subtotal: Math.round(items_total * 100) || 0, // Store in cents
+      amount_total: Math.round(order_total * 100) || 0 // Store in cents
     },
-    shipping_rate_id: checkout_session_info.shipping_rate_id,
+    shipping_rate_id: checkout_session_info.shipping_rate_id || null,
     cart: {
       cart_id: cart.cart_id,
       files: cart.files.map(file => ({
@@ -3501,3 +3505,196 @@ app.get('/api/order-time-estimate', async (req, res) => {
     });
   }
 });
+
+
+// #region DIRECT CHARGE
+app.post('/api/direct-charge', async (req, res) => {
+  console.log('🚀 Direct charge request received');
+  const { 
+    stripe_customer_id,
+    files, // Array of {fileid, filament_id, quantity, quality}
+    customer_details, // {name, email, address}
+    order_comments = ""
+  } = req.body;
+  
+  try {
+    // Validate input
+    if (!stripe_customer_id || !files || !customer_details) {
+      console.log('❌ Missing required fields:', { stripe_customer_id, files, customer_details });
+      return res.status(400).json({ status: 'error', message: 'Missing required fields' });
+    }
+    
+    console.log(`👤 Processing direct charge for customer: ${stripe_customer_id}`);
+    console.log(`📋 Items: ${files.length} files, Details: ${JSON.stringify(customer_details)}`);
+    
+    // Create pricing object and calculate total
+    const pricing_obj = {};
+    let total = 0;
+    const processedFiles = [];
+    
+    // Process each file to calculate pricing
+    console.log('🧮 Calculating pricing for files');
+    for (const fileRequest of files) {
+      console.log(`🔍 Processing file: ${fileRequest.fileid} with filament: ${fileRequest.filament_id}`);
+      const fileDetails = await getFile(fileRequest.fileid);
+      const filament = await Filament.findOne({ filament_id: fileRequest.filament_id });
+      
+      if (!fileDetails || !filament) {
+        console.log(`❌ File or filament not found: ${fileRequest.fileid}/${fileRequest.filament_id}`);
+        return res.status(404).json({ 
+          status: 'error', 
+          message: `File or filament not found: ${fileRequest.fileid}/${fileRequest.filament_id}` 
+        });
+      }
+      
+      // Calculate price (similar to checkout endpoint)
+      let price = 0;
+      if (fileDetails.price_override) {
+        price = fileDetails.price_override;
+        console.log(`💰 Using price override for ${fileRequest.fileid}: $${price.toFixed(2)}`);
+      } else {
+        price = parseFloat(calculatePrice(fileDetails, filament, fileRequest));
+        console.log(`💰 Calculated price for ${fileRequest.fileid}: $${price.toFixed(2)}`);
+      }
+      
+      pricing_obj[fileRequest.fileid] = price;
+      total += price * fileRequest.quantity;
+      
+      // Store processed file info
+      processedFiles.push({
+        ...fileRequest,
+        filename: fileDetails.filename,
+        utfile_id: fileDetails.utfile_id,
+        utfile_url: fileDetails.utfile_url,
+        filament_color: filament.filament_name,
+        price_override: fileDetails.price_override,
+        dateCreated: new Date(),
+        file_status: "pending"
+      });
+    }
+    
+    console.log(`💵 Total amount to charge: $${total.toFixed(2)}`);
+    
+    // Create a payment intent using the customer's saved payment method
+    console.log(`💳 Creating payment intent in ${DIRECT_CHARGE_TEST_MODE ? 'TEST' : 'LIVE'} mode`);
+    
+    const paymentIntent = await createDirectCharge(total, stripe_customer_id, DIRECT_CHARGE_TEST_MODE);
+    
+    console.log(`✅ Payment intent created: ${paymentIntent.id}, status: ${paymentIntent.status}`);
+    
+    if (paymentIntent.status !== 'succeeded') {
+      console.log(`❌ Payment failed: ${paymentIntent.status}`);
+      return res.status(400).json({
+        status: 'error',
+        message: 'Payment failed',
+        payment_intent: paymentIntent
+      });
+    }
+    
+    // Create a virtual cart object similar to what createOrder expects
+    console.log('🛒 Creating virtual cart for order processing');
+    const virtualCart = {
+      cart_id: `direct-${Date.now()}`,
+      files: processedFiles,
+      cart_addons: [],
+      dateCreated: new Date(),
+      pricing_obj: pricing_obj
+    };
+    
+    // Create checkout session info similar to what createOrder expects
+    const checkoutSessionInfo = {
+      id: `direct-${paymentIntent.id}`,
+      payment_intent: paymentIntent.id,
+      payment_status: paymentIntent.status,
+      shipping_rate_id: paymentIntent.metadata.shipping_rate,
+      total_details: {
+        amount_shipping: parseInt(paymentIntent.metadata.shipping_amount),
+        amount_tax: 0, // Direct charges don't calculate tax automatically
+        amount_discount: 0,
+        amount_subtotal: parseInt(paymentIntent.metadata.base_amount),
+        amount_total: paymentIntent.amount
+      },
+      metadata: {
+        test_mode: DIRECT_CHARGE_TEST_MODE ? 'true' : 'false',
+        datafast_visitor_id: 'direct-charge',
+        datafast_session_id: 'direct-charge',
+        cart_id: virtualCart.cart_id,
+        order_comments: order_comments
+      },
+      customer_details: {
+        ...customer_details,
+        address: customer_details.shipping_address || customer_details.address
+      },
+      shipping_details: {
+        address: customer_details.shipping_address || customer_details.address
+      }
+    };
+    
+    // Create the order
+    console.log('📦 Creating order');
+    const order = await createOrder(virtualCart, checkoutSessionInfo, pricing_obj);
+    console.log(`✅ Order created successfully: ${order.order_id}, Order #${order.order_number}`);
+    
+    // Send confirmation email
+    console.log('📧 Sending confirmation emails');
+    try {
+      await sendOrderReceivedEmail(order);
+      await businessOrderReceived(order);
+      console.log('✅ Confirmation emails sent');
+    } catch (emailError) {
+      console.error('❌ Error sending emails:', emailError.message);
+      // Continue despite email errors
+    }
+    
+    // Try to print receipt
+    console.log('🖨️ Attempting to print receipt');
+    try {
+      var order_object = {
+        "order_number": order.order_number,
+        "customer_name": order.customer_details.name,
+        "order_date": order.dateCreated,
+        "line_items": order.cart.files.map(file => ({
+          qty: file.quantity,
+          product: file.filename,
+          price: file.file_sale_cost
+        })),
+        "addons": []
+      };
+      
+      const response = await axios.post('https://host.home.exonenterprise.com/print', {
+        name: `receipt ${order.order_id}`,
+        pdf_url: "none",
+        action: 'print_receipt',
+        order_object: order_object
+      });
+      console.log("✅ Receipt printing success");
+    } catch (printError) {
+      console.error('❌ Error printing receipt:', printError.message);
+      // Continue despite printing errors
+    }
+    
+    // Update the order's dateUpdated field
+    await Order.updateOne(
+      { order_id: order.order_id },
+      { $set: { dateUpdated: new Date() } }
+    );
+    console.log(`📅 Updated order dateUpdated: ${order.order_id}`);
+    
+    res.json({
+      status: 'success',
+      message: 'Order created successfully',
+      order_id: order.order_id,
+      order_number: order.order_number,
+      test_mode: DIRECT_CHARGE_TEST_MODE
+    });
+    
+  } catch (error) {
+    console.error('❌ Error processing direct charge:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+// #endregion DIRECT CHARGE

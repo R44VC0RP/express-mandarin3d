@@ -5,12 +5,11 @@ dotenv.config({
 import stripePackage from 'stripe';
 
 const free_shipping_rate = "shr_1Q1VOHDBmtvCmuyXi6U0Sb78"
+const standard_shipping_rate = "shr_1Pv1P0DBmtvCmuyXbtY2CSHU"
+const dev_shipping = "shr_1Q1HviDBmtvCmuyXecoZ1v1Z"
 
 const stripe = stripePackage(process.env.STRIPE_API_KEY);
-
 const dev_stripe = stripePackage(process.env.DEV_STRIPE_API_KEY);
-
-const dev_shipping = "shr_1Q1HviDBmtvCmuyXecoZ1v1Z"
 
 export const createNewStripeProduct = async (file_name, file_id, file_image = "https://cdn.discordapp.com/attachments/1165771547223543990/1279816538295107625/3d_model.jpg?ex=66d5d188&is=66d48008&hm=409c22a2b80eaee0ef74c55020ea84511efd9d050f5acd948180d1ae13ac89ce&") => {
     const product = await stripe.products.create({
@@ -149,4 +148,38 @@ export const getPayment = async (payment_id) => {
     }
   }
   return payment;
+}
+
+export const createDirectCharge = async (amount, stripe_customer_id, test_mode = false) => {
+  const stripe_handler = test_mode ? dev_stripe : stripe;
+  
+  // Get the customer to find their default payment method
+  const customer = await stripe_handler.customers.retrieve(stripe_customer_id);
+  if (!customer.default_source && !customer.invoice_settings?.default_payment_method) {
+    throw new Error('Customer has no default payment method set');
+  }
+
+  // Get shipping rate amount from our stored rates
+  const shippingRateId = test_mode ? dev_shipping : standard_shipping_rate;
+  const shippingRate = await stripe_handler.shippingRates.retrieve(shippingRateId);
+  const shippingAmount = shippingRate.fixed_amount.amount / 100; // Convert from cents to dollars
+
+  // Add shipping to total amount
+  const totalAmount = amount + shippingAmount;
+
+  const paymentIntent = await stripe_handler.paymentIntents.create({
+    amount: Math.round(totalAmount * 100), // Convert to cents
+    currency: 'usd',
+    customer: stripe_customer_id,
+    payment_method: customer.invoice_settings?.default_payment_method || customer.default_source,
+    payment_method_types: ['card'],
+    metadata: {
+      shipping_rate: shippingRateId,
+      base_amount: Math.round(amount * 100),
+      shipping_amount: Math.round(shippingAmount * 100)
+    },
+    off_session: true,
+    confirm: true
+  });
+  return paymentIntent;
 }

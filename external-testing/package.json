@@ -1,0 +1,16 @@
+{
+  "name": "m3d-api-tests",
+  "version": "1.0.0",
+  "description": "Test scripts for Mandarin 3D API endpoints",
+  "main": "test-routes.js",
+  "scripts": {
+    "test": "node test-routes.js",
+    "test:direct-charge": "node test-routes.js direct-charge",
+    "test:file-query": "node test-routes.js file-query", 
+    "test:submit-remote": "node test-routes.js submit-remote"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "form-data": "^4.0.0"
+  }
+} 
