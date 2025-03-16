@@ -2130,9 +2130,8 @@ app.post('/api/checkout', async (req, res) => {
       datafast_visitor_id,
       datafast_session_id
     );
-    // console.log('Stripe checkout session:', session);
 
-    // For now, we'll just return a mock response
+
     res.json({ 
       status: 'success', 
       message: 'Checkout object created successfully', 
@@ -2144,14 +2143,6 @@ app.post('/api/checkout', async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 });
-
-app.get('/api/email/test', async (req, res) => {
-  const order = await Order.findOne({ order_number: '#1255-2024' });
-  const test_email = await sendOrderReceivedEmail(order);
-  const business_email = await businessOrderReceived(order);
-  res.json({ status: 'success', message: 'Email sent successfully', test_email });
-});
-
 
 
 app.get('/api/checkout/success', async (req, res) => {
@@ -2226,6 +2217,13 @@ app.get('/api/checkout/success', async (req, res) => {
     console.error('Error retrieving checkout session:', error);
     res.status(500).json({ status: 'error', message: 'Failed to retrieve checkout session' });
   }
+});
+
+app.get('/api/email/test', async (req, res) => {
+  const order = await Order.findOne({ order_number: '#1255-2024' });
+  const test_email = await sendOrderReceivedEmail(order);
+  const business_email = await businessOrderReceived(order);
+  res.json({ status: 'success', message: 'Email sent successfully', test_email });
 });
 
 // #endregion CHECKOUT MANAGEMENT
@@ -2794,6 +2792,18 @@ async function createOrder(cart, checkout_session_info, pricing_obj) {
 // #endregion ORDER MANAGEMENT
 
 // #region QUOTE MANAGEMENT
+
+// public quote creation endpoint
+app.post('/api/quote/create', async (req, res) => {
+  const { quote_files, organization_name } = req.body;
+  var quote = new Quote({
+    quote_id: "quote_" + uuidv4(),
+    quote_comments: "Public quote created by " + organization_name,
+    quote_files
+  });
+  await quote.save();
+  res.json({ status: 'success', message: 'Quote created successfully', quote });
+});
 
 app.post('/api/quote/mgmt', requireLogin, async (req, res) => {
   const { quote_comments, quote_files, action, quote_id } = req.body;
